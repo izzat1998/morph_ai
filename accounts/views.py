@@ -4,6 +4,7 @@ from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import reverse_lazy
 from django.views.generic import CreateView
 from django.contrib import messages
+from django.utils.translation import gettext as _
 
 from .forms import CustomUserCreationForm, CustomAuthenticationForm
 
@@ -28,7 +29,7 @@ class SignUpView(CreateView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        messages.success(self.request, 'Account created successfully! Please log in.')
+        messages.success(self.request, _('Account created successfully! Please log in.'))
         return response
 
 

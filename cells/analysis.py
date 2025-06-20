@@ -8,6 +8,7 @@ import os
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.conf import settings
+from django.utils.translation import gettext as _
 
 try:
     from cellpose import models

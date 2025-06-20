@@ -1,96 +1,184 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
+{% load i18n %}
 
-{% block title %}Analyze {{ cell.name }}{% endblock %}
+{% block title %}{% trans 'Analyze' %} {{ cell.name }}{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-10">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0">Morphometric Analysis - {{ cell.name }}</h3>
+<!-- Hero Section with Cell Info -->
+<section class="container-fluid py-4" style="background: linear-gradient(135deg, var(--lighter-gray) 0%, var(--white) 100%);">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-2">
+                        <li class="breadcrumb-item"><a href="{% url 'cells:list' %}">{% trans 'Images' %}</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'cells:cell_detail' cell.id %}">{{ cell.name }}</a></li>
+                        <li class="breadcrumb-item active">{% trans 'Analyze' %}</li>
+                    </ol>
+                </nav>
+                <h1 class="display-6 fw-bold text-gradient mb-2">{% trans 'Morphometric Analysis' %}</h1>
+                <p class="lead text-muted mb-0">{{ cell.name }}</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <div class="d-flex flex-column align-items-md-end">
+                    <div class="badge bg-primary-subtle text-primary px-3 py-2 mb-2">
+                        <i class="fas fa-microscope me-2"></i>
+                        {{ cell.image_width }}×{{ cell.image_height }} px
+                    </div>
+                    {% if cell.scale_set %}
+                    <small class="text-success">
+                        <i class="fas fa-check-circle me-1"></i>
+                        {% trans 'Scale calibrated' %}: {{ cell.pixels_per_micron|floatformat:2 }} px/μm
+                    </small>
+                    {% else %}
+                    <small class="text-warning">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        {% trans 'Scale not calibrated' %}
+                    </small>
+                    {% endif %}
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h5>Image Preview</h5>
-                            
-                            <!-- ROI Selection Canvas (hidden by default) -->
-                            <div id="roi-container" style="display: none;">
-                                <div class="mb-3">
-                                    <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-outline-primary" id="add-roi-btn">
-                                            <i class="fas fa-plus"></i> Add Region
-                                        </button>
-                                        <button type="button" class="btn btn-outline-secondary" id="clear-roi-btn">
-                                            <i class="fas fa-eraser"></i> Clear All
-                                        </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Main Analysis Content -->
+<section class="container-fluid py-4">
+    <div class="container">
+        <div class="row g-4">
+            <!-- Image Preview Panel -->
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-lg h-100">
+                    <div class="card-header bg-gradient-primary text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-image me-2"></i>
+                                {% trans 'Image Preview' %}
+                            </h5>
+                            <div class="roi-mode-indicator" id="roi-mode-indicator" style="display: none;">
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-crop me-1"></i>
+                                    {% trans 'ROI Mode Active' %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-4">
+                        <!-- ROI Selection Interface (hidden by default) -->
+                        <div id="roi-container" class="d-none">
+                            <div class="roi-controls mb-4 p-3 bg-light rounded">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <div class="btn-group me-3" role="group">
+                                            <button type="button" class="btn btn-primary" id="add-roi-btn">
+                                                <i class="fas fa-plus me-2"></i>{% trans 'Add Region' %}
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary" id="clear-roi-btn">
+                                                <i class="fas fa-eraser me-2"></i>{% trans 'Clear All' %}
+                                            </button>
+                                            <button type="button" class="btn btn-outline-info" id="zoom-fit-btn">
+                                                <i class="fas fa-search-minus me-2"></i>{% trans 'Fit to View' %}
+                                            </button>
+                                        </div>
                                     </div>
-                                    <small class="text-muted d-block mt-1">
-                                        <strong><span id="roi-count">0</span> region(s) selected.</strong> 
-                                        <br>📝 Instructions: Click "Add Region", then click and drag to draw rectangles around areas with cells.
-                                    </small>
+                                    <div class="col-md-4 text-md-end">
+                                        <div class="roi-counter">
+                                            <span class="badge bg-success fs-6 px-3 py-2">
+                                                <i class="fas fa-vector-square me-2"></i>
+                                                <span id="roi-count">0</span> {% trans 'Regions' %}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="position-relative" style="display: inline-block;">
-                                    <canvas id="roi-canvas" style="border: 2px solid #007bff; cursor: default; border-radius: 4px;"></canvas>
-                                    <img id="cell-image" src="{{ cell.image.url }}" style="display: none;" alt="{{ cell.name }}">
-                                    <div id="roi-status" style="position: absolute; top: 5px; left: 5px; background: rgba(0,123,255,0.8); color: white; padding: 2px 6px; border-radius: 3px; font-size: 12px; display: none;">
-                                        Click and drag to draw rectangle
-                                    </div>
+                                <div class="roi-instructions mt-3 p-3 border-start border-primary border-4 bg-white">
+                                    <h6 class="text-primary mb-2">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        {% trans 'ROI Instructions' %}
+                                    </h6>
+                                    <ol class="mb-0 small">
+                                        <li>{% trans 'Click "Add Region" to enable drawing mode' %}</li>
+                                        <li>{% trans 'Click and drag to draw rectangles around cell areas' %}</li>
+                                        <li>{% trans 'Multiple regions can be selected for analysis' %}</li>
+                                        <li>{% trans 'Use "Clear All" to remove all regions' %}</li>
+                                    </ol>
                                 </div>
                             </div>
                             
-                            <!-- Regular Image Display -->
-                            <div id="regular-image">
-                                <img src="{{ cell.image.url }}" class="img-fluid rounded mb-3" alt="{{ cell.name }}">
-                            </div>
-                            
-                            <div class="card bg-light">
-                                <div class="card-body">
-                                    <h6>Image Information</h6>
-                                    <ul class="list-unstyled mb-0">
-                                        <li><strong>Dimensions:</strong> {{ cell.image_width }}×{{ cell.image_height }} px</li>
-                                        <li><strong>Format:</strong> {{ cell.file_format|upper }}</li>
-                                        <li><strong>File Size:</strong> {{ cell.file_size|filesizeformat }}</li>
-                                        {% if cell.scale_set %}
-                                        <li><strong>Scale:</strong> {{ cell.pixels_per_micron|floatformat:2 }} px/μm</li>
-                                        {% else %}
-                                        <li><strong>Scale:</strong> <span class="text-muted">Not calibrated</span> 
-                                            <a href="{% url 'cells:set_scale_calibration' cell.id %}" class="btn btn-sm btn-outline-primary ms-2">
-                                                <i class="fas fa-ruler"></i> Set Scale
-                                            </a>
-                                        </li>
-                                        {% endif %}
-                                    </ul>
+                            <!-- Canvas Container with proper layering -->
+                            <div class="image-container position-relative d-flex justify-content-center">
+                                <div class="canvas-wrapper position-relative">
+                                    <canvas id="roi-canvas" class="border border-2 border-primary rounded shadow-sm"></canvas>
+                                    <div id="roi-status" class="position-absolute top-0 start-0 bg-primary text-white px-2 py-1 rounded-bottom-end small d-none" style="z-index: 10;">
+                                        <i class="fas fa-crosshairs me-1"></i>
+                                        {% trans 'Click and drag to draw rectangle' %}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="col-md-6">
-                            <h5>Analysis Configuration</h5>
-                            
-                            <div class="alert alert-info">
-                                <h6><i class="fas fa-info-circle"></i> About Cellpose Analysis</h6>
-                                <p class="mb-0">This analysis will use Cellpose to automatically segment individual cells and extract morphometric features including area, perimeter, circularity, and shape descriptors.</p>
-                            </div>
-                            
-                            {% crispy form %}
-                            
-                            <div class="card mt-3">
-                                <div class="card-header">
-                                    <h6 class="mb-0">Parameter Guide</h6>
+                        <!-- Regular Image Display -->
+                        <div id="regular-image" class="text-center">
+                            <div class="image-container position-relative d-inline-block">
+                                <img src="{{ cell.image.url }}" class="img-fluid rounded shadow" alt="{{ cell.name }}" style="max-height: 500px;">
+                                <div class="image-overlay position-absolute top-0 end-0 m-2">
+                                    <button class="btn btn-sm btn-outline-light" onclick="toggleImageFullscreen(this.previousElementSibling)" title="{% trans 'Toggle Fullscreen' %}">
+                                        <i class="fas fa-expand"></i>
+                                    </button>
                                 </div>
-                                <div class="card-body">
-                                    <small>
-                                        <ul class="mb-0">
-                                            <li><strong>Cytoplasm:</strong> Best for cytoplasmic staining</li>
-                                            <li><strong>Nuclei:</strong> Best for nuclear staining</li>
-                                            <li><strong>Cytoplasm 2.0:</strong> Improved cytoplasm model</li>
-                                            <li><strong>Diameter:</strong> Set to 0 for automatic detection</li>
-                                            <li><strong>Flow Threshold:</strong> Lower values detect more cells</li>
-                                        </ul>
-                                    </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Image Information Footer -->
+                    <div class="card-footer bg-light">
+                        <div class="row g-3 text-center">
+                            <div class="col-6 col-md-3">
+                                <div class="info-item">
+                                    <div class="info-icon text-primary mb-1">
+                                        <i class="fas fa-ruler-combined"></i>
+                                    </div>
+                                    <div class="info-value fw-bold">{{ cell.image_width }}×{{ cell.image_height }}</div>
+                                    <div class="info-label small text-muted">{% trans 'Dimensions' %}</div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="info-item">
+                                    <div class="info-icon text-success mb-1">
+                                        <i class="fas fa-file-image"></i>
+                                    </div>
+                                    <div class="info-value fw-bold">{{ cell.file_format|upper }}</div>
+                                    <div class="info-label small text-muted">{% trans 'Format' %}</div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="info-item">
+                                    <div class="info-icon text-info mb-1">
+                                        <i class="fas fa-weight-hanging"></i>
+                                    </div>
+                                    <div class="info-value fw-bold">{{ cell.file_size|filesizeformat }}</div>
+                                    <div class="info-label small text-muted">{% trans 'File Size' %}</div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="info-item">
+                                    {% if cell.scale_set %}
+                                        <div class="info-icon text-success mb-1">
+                                            <i class="fas fa-check-circle"></i>
+                                        </div>
+                                        <div class="info-value fw-bold small">{{ cell.pixels_per_micron|floatformat:2 }}</div>
+                                        <div class="info-label small text-muted">px/μm</div>
+                                    {% else %}
+                                        <div class="info-icon text-warning mb-1">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                        </div>
+                                        <div class="info-value fw-bold small">{% trans 'Not Set' %}</div>
+                                        <div class="info-label small">
+                                            <a href="{% url 'cells:set_scale_calibration' cell.id %}" class="btn btn-xs btn-outline-primary">
+                                                <i class="fas fa-ruler me-1"></i>{% trans 'Calibrate' %}
+                                            </a>
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -98,332 +186,685 @@
                 </div>
             </div>
             
-            {% if cell.analyses.exists %}
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Previous Analyses</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Status</th>
-                                    <th>Model</th>
-                                    <th>Diameter</th>
-                                    <th>Cells Found</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for analysis in cell.analyses.all|slice:":5" %}
-                                <tr>
-                                    <td>{{ analysis.analysis_date|date:"M d, H:i" }}</td>
-                                    <td>
-                                        <span class="badge bg-{% if analysis.status == 'completed' %}success{% elif analysis.status == 'failed' %}danger{% elif analysis.status == 'processing' %}warning{% else %}secondary{% endif %}">
-                                            {{ analysis.get_status_display }}
-                                        </span>
-                                    </td>
-                                    <td>{{ analysis.get_cellpose_model_display }}</td>
-                                    <td>{{ analysis.cellpose_diameter|floatformat:1 }}</td>
-                                    <td>{{ analysis.num_cells_detected|default:"-" }}</td>
-                                    <td>
-                                        {% if analysis.status == 'completed' %}
-                                        <a href="{% url 'cells:analysis_detail' analysis.id %}" class="btn btn-xs btn-outline-primary">View</a>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+            <!-- Analysis Configuration Panel -->
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-lg h-100">
+                    <div class="card-header bg-gradient-success text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-cogs me-2"></i>
+                            {% trans 'Analysis Configuration' %}
+                        </h5>
                     </div>
-                    {% if cell.analyses.count > 5 %}
-                    <p class="text-muted"><small>Showing 5 most recent analyses. <a href="{% url 'cells:cell_detail' cell.id %}">View all</a></small></p>
-                    {% endif %}
+                    <div class="card-body p-4">
+                        <!-- Analysis Info Alert -->
+                        <div class="alert alert-info border-0 shadow-sm mb-4">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-info-circle fa-lg text-info"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="alert-heading mb-2">{% trans 'About Cellpose Analysis' %}</h6>
+                                    <p class="mb-0">{% trans 'This analysis will use Cellpose AI to automatically segment individual cells and extract morphometric features including area, perimeter, circularity, and shape descriptors.' %}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Analysis Form -->
+                        <div class="analysis-form">
+                            {% crispy form %}
+                        </div>
+                        
+                        <!-- Analysis Status Container (hidden initially) -->
+                        <div id="analysis-status" class="d-none mt-4">
+                            <div class="alert alert-warning border-0 shadow-sm">
+                                <div class="d-flex align-items-center">
+                                    <div class="spinner-border spinner-border-sm text-warning me-3" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">{% trans 'Analysis in Progress' %}</h6>
+                                        <small class="text-muted">{% trans 'This may take a few minutes depending on image size and complexity...' %}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Parameter Guide Footer -->
+                    <div class="card-footer bg-light">
+                        <div class="accordion accordion-flush" id="parameterGuide">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#parameterGuideContent">
+                                        <i class="fas fa-question-circle me-2"></i>
+                                        {% trans 'Parameter Guide' %}
+                                    </button>
+                                </h2>
+                                <div id="parameterGuideContent" class="accordion-collapse collapse" data-bs-parent="#parameterGuide">
+                                    <div class="accordion-body">
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <div class="parameter-item p-2 border-start border-primary border-3">
+                                                    <h6 class="mb-1 text-primary">{% trans 'Model Selection' %}</h6>
+                                                    <ul class="list-unstyled mb-0 small">
+                                                        <li><strong>{% trans 'Cytoplasm:' %}</strong> {% trans 'Best for cytoplasmic staining' %}</li>
+                                                        <li><strong>{% trans 'Nuclei:' %}</strong> {% trans 'Best for nuclear staining' %}</li>
+                                                        <li><strong>{% trans 'Cytoplasm 2.0:' %}</strong> {% trans 'Improved cytoplasm model' %}</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="parameter-item p-2 border-start border-success border-3">
+                                                    <h6 class="mb-1 text-success">{% trans 'Parameters' %}</h6>
+                                                    <ul class="list-unstyled mb-0 small">
+                                                        <li><strong>{% trans 'Diameter:' %}</strong> {% trans 'Set to 0 for automatic detection' %}</li>
+                                                        <li><strong>{% trans 'Flow Threshold:' %}</strong> {% trans 'Lower values detect more cells' %}</li>
+                                                        <li><strong>{% trans 'Cell Probability:' %}</strong> {% trans 'Higher values for cleaner segmentation' %}</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            {% endif %}
         </div>
     </div>
-</div>
+</section>
+<!-- Previous Analyses Section -->
+{% if cell.analyses.exists %}
+<section class="container-fluid py-4">
+    <div class="container">
+        <div class="card border-0 shadow-lg">
+            <div class="card-header bg-gradient-info text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        {% trans 'Previous Analyses' %}
+                    </h5>
+                    <span class="badge bg-light text-dark">
+                        {{ cell.analyses.count }} {% trans 'Total' %}
+                    </span>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="px-4">{% trans 'Date' %}</th>
+                                <th>{% trans 'Status' %}</th>
+                                <th>{% trans 'Model' %}</th>
+                                <th>{% trans 'Diameter' %}</th>
+                                <th class="text-center">{% trans 'Cells Found' %}</th>
+                                <th class="text-center">{% trans 'Actions' %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for analysis in cell.analyses.all|slice:":5" %}
+                            <tr>
+                                <td class="px-4">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-calendar-alt text-muted me-2"></i>
+                                        <div>
+                                            <div class="fw-bold">{{ analysis.analysis_date|date:"M d, Y" }}</div>
+                                            <small class="text-muted">{{ analysis.analysis_date|date:"H:i" }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if analysis.status == 'completed' %}success{% elif analysis.status == 'failed' %}danger{% elif analysis.status == 'processing' %}warning{% else %}secondary{% endif %} px-3 py-2">
+                                        {% if analysis.status == 'completed' %}
+                                            <i class="fas fa-check-circle me-1"></i>
+                                        {% elif analysis.status == 'failed' %}
+                                            <i class="fas fa-times-circle me-1"></i>
+                                        {% elif analysis.status == 'processing' %}
+                                            <i class="fas fa-spinner fa-spin me-1"></i>
+                                        {% else %}
+                                            <i class="fas fa-clock me-1"></i>
+                                        {% endif %}
+                                        {{ analysis.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary-subtle text-primary px-2 py-1">
+                                        {{ analysis.get_cellpose_model_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="font-monospace">{{ analysis.cellpose_diameter|floatformat:1 }} px</span>
+                                </td>
+                                <td class="text-center">
+                                    {% if analysis.num_cells_detected %}
+                                        <span class="badge bg-success-subtle text-success px-3 py-2">
+                                            <i class="fas fa-dot-circle me-1"></i>
+                                            {{ analysis.num_cells_detected }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if analysis.status == 'completed' %}
+                                        <a href="{% url 'cells:analysis_detail' analysis.id %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye me-1"></i>
+                                            {% trans 'View' %}
+                                        </a>
+                                    {% elif analysis.status == 'processing' %}
+                                        <span class="text-muted small">
+                                            <i class="fas fa-clock me-1"></i>
+                                            {% trans 'In progress...' %}
+                                        </span>
+                                    {% elif analysis.status == 'failed' %}
+                                        <span class="text-danger small">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                            {% trans 'Failed' %}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if cell.analyses.count > 5 %}
+                <div class="card-footer bg-light text-center">
+                    <small class="text-muted">
+                        {% trans 'Showing 5 most recent analyses.' %} 
+                        <a href="{% url 'cells:cell_detail' cell.id %}" class="text-decoration-none">
+                            {% trans 'View all' %} ({{ cell.analyses.count }})
+                        </a>
+                    </small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
 
 <!-- Font Awesome for icons -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 {% block extra_js %}
 <script>
+// Enhanced ROI Analysis Interface
 (function() {
-    // Encapsulate all ROI functionality to avoid variable conflicts
-    let roiCanvas, roiCtx, cellImg;
+    'use strict';
+    
+    // State management
+    let roiCanvas, roiCtx;
     let roiRegions = [];
     let isDrawing = false;
     let startX, startY, currentX, currentY;
     let isAddingROI = false;
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Find the analysis form specifically (not the language form)
-    const form = document.querySelector('form:not([action*="setlang"])') || document.querySelector('form[method="post"]:not([action*="setlang"])');
-    const submitBtn = form?.querySelector('input[type="submit"]') || form?.querySelector('button[type="submit"]');
+    let canvasScale = 1;
     
-    console.log('=== ROI INITIALIZATION ===');
-    console.log('Form found:', form);
-    console.log('Submit button found:', submitBtn);
-    console.log('Form action:', form?.action);
-    console.log('Form method:', form?.method);
+    // DOM elements
+    let form, submitBtn, useROICheckbox, roiContainer, regularImage;
+    let addROIBtn, clearROIBtn, zoomFitBtn, roiModeIndicator;
     
-    if (!form || !submitBtn) {
-        console.error('ERROR: Could not find analysis form or submit button!');
-        return;
-    }
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeElements();
+        initializeROISystem();
+        setupEventListeners();
+        setupFormHandling();
+    });
     
-    if (form.action.includes('setlang')) {
-        console.error('ERROR: Found language form instead of analysis form!');
-        return;
-    }
-    const useROICheckbox = document.getElementById('id_use_roi');
-    const roiContainer = document.getElementById('roi-container');
-    const regularImage = document.getElementById('regular-image');
-    const addROIBtn = document.getElementById('add-roi-btn');
-    const clearROIBtn = document.getElementById('clear-roi-btn');
-    
-    // Initialize canvas
-    roiCanvas = document.getElementById('roi-canvas');
-    if (roiCanvas) {
-        roiCtx = roiCanvas.getContext('2d');
-        cellImg = document.getElementById('cell-image');
+    function initializeElements() {
+        // Find form elements
+        form = document.querySelector('form:not([action*="setlang"])') || 
+               document.querySelector('form[method="post"]:not([action*="setlang"])');
+        submitBtn = form?.querySelector('input[type="submit"]') || 
+                   form?.querySelector('button[type="submit"]');
         
-        // Setup canvas when image loads
-        cellImg.onload = function() {
-            setupCanvas();
-        };
+        // ROI elements
+        useROICheckbox = document.getElementById('id_use_roi');
+        roiContainer = document.getElementById('roi-container');
+        regularImage = document.getElementById('regular-image');
+        roiModeIndicator = document.getElementById('roi-mode-indicator');
         
-        // If image is already loaded
-        if (cellImg.complete) {
-            setupCanvas();
-        }
-    }
-    
-    // Toggle ROI interface
-    if (useROICheckbox) {
-        useROICheckbox.addEventListener('change', function() {
-            if (this.checked) {
-                roiContainer.style.display = 'block';
-                regularImage.style.display = 'none';
-            } else {
-                roiContainer.style.display = 'none';
-                regularImage.style.display = 'block';
-                roiRegions = [];
-                updateROICount();
-            }
-        });
-    }
-    
-    // ROI controls
-    if (addROIBtn) {
-        addROIBtn.addEventListener('click', function() {
-            isAddingROI = true;
-            this.classList.add('active');
-            roiCanvas.style.cursor = 'crosshair';
-            document.getElementById('roi-status').style.display = 'block';
-        });
-    }
-    
-    if (clearROIBtn) {
-        clearROIBtn.addEventListener('click', function() {
-            roiRegions = [];
-            isAddingROI = false;
-            addROIBtn.classList.remove('active');
-            roiCanvas.style.cursor = 'default';
-            redrawCanvas();
-            updateROICount();
-        });
-    }
-    
-    // Canvas mouse events
-    if (roiCanvas) {
-        roiCanvas.addEventListener('mousedown', startDrawing);
-        roiCanvas.addEventListener('mousemove', draw);
-        roiCanvas.addEventListener('mouseup', stopDrawing);
-    }
-    
-    // Form submission - only add if we have the right form
-    if (form && submitBtn) {
-        form.addEventListener('submit', function(e) {
-        // Add ROI data to form if ROI is enabled
-        console.log('=== FORM SUBMISSION EVENT TRIGGERED ===');
-        console.log('Form submission - ROI checkbox checked:', useROICheckbox?.checked);
-        console.log('Form submission - ROI regions count:', roiRegions.length);
-        console.log('Form submission - ROI regions data:', roiRegions);
-        console.log('Form element:', form);
-        console.log('Current form data before adding ROI:');
-        const formData = new FormData(form);
-        for (let [key, value] of formData.entries()) {
-            console.log(`  ${key}: ${value}`);
-        }
+        // Control buttons
+        addROIBtn = document.getElementById('add-roi-btn');
+        clearROIBtn = document.getElementById('clear-roi-btn');
+        zoomFitBtn = document.getElementById('zoom-fit-btn');
         
-        if (useROICheckbox && useROICheckbox.checked && roiRegions.length > 0) {
-            console.log('ADDING ROI DATA TO FORM - ROI regions:', roiRegions);
-            
-            // Create hidden input for ROI data
-            const roiInput = document.createElement('input');
-            roiInput.type = 'hidden';
-            roiInput.name = 'roi_data';
-            roiInput.value = JSON.stringify(roiRegions);
-            form.appendChild(roiInput);
-            
-            const roiCountInput = document.createElement('input');
-            roiCountInput.type = 'hidden';
-            roiCountInput.name = 'roi_count';
-            roiCountInput.value = roiRegions.length;
-            form.appendChild(roiCountInput);
-            
-            console.log('ROI data added to form successfully');
-            
-            // Verify the data was actually added
-            const newFormData = new FormData(form);
-            console.log('Form data AFTER adding ROI:');
-            for (let [key, value] of newFormData.entries()) {
-                console.log(`  ${key}: ${value}`);
-            }
-        } else if (useROICheckbox && useROICheckbox.checked) {
-            // Show warning and prevent submission
-            alert('⚠️ ROI selection is enabled but no regions were drawn.\n\nPlease:\n1. Click "Add Region" button\n2. Draw rectangles around cell areas\n3. Or uncheck "Use ROI Selection" to analyze the whole image');
-            e.preventDefault();
-            submitBtn.disabled = false;
-            submitBtn.value = 'Start Analysis';
+        // Canvas
+        roiCanvas = document.getElementById('roi-canvas');
+        
+        if (!form || !submitBtn) {
+            console.error('Analysis form not found');
             return false;
         }
         
-        submitBtn.disabled = true;
-        submitBtn.value = 'Processing...';
+        return true;
+    }
+    
+    function initializeROISystem() {
+        if (!roiCanvas) return;
         
-        // Show processing message
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-warning mt-3';
-        alertDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analysis is running. This may take a few minutes...';
-        form.appendChild(alertDiv);
-        });
-    }
-});
-
-function setupCanvas() {
-    // Scale image to fit in reasonable size
-    const maxWidth = 500;
-    const maxHeight = 400;
-    let width = cellImg.naturalWidth;
-    let height = cellImg.naturalHeight;
-    
-    if (width > maxWidth || height > maxHeight) {
-        const ratio = Math.min(maxWidth / width, maxHeight / height);
-        width *= ratio;
-        height *= ratio;
+        roiCtx = roiCanvas.getContext('2d');
+        
+        // Create a hidden image for canvas drawing
+        const cellImg = new Image();
+        cellImg.crossOrigin = 'anonymous';
+        cellImg.onload = function() {
+            setupCanvas(this);
+        };
+        cellImg.src = document.querySelector('#regular-image img').src;
     }
     
-    roiCanvas.width = width;
-    roiCanvas.height = height;
+    function setupCanvas(img) {
+        // Calculate optimal canvas size
+        const containerWidth = roiContainer.offsetWidth - 100; // Account for padding
+        const maxWidth = Math.min(containerWidth, 600);
+        const maxHeight = 500;
+        
+        let width = img.naturalWidth;
+        let height = img.naturalHeight;
+        
+        // Scale to fit container
+        if (width > maxWidth || height > maxHeight) {
+            const ratio = Math.min(maxWidth / width, maxHeight / height);
+            width *= ratio;
+            height *= ratio;
+        }
+        
+        canvasScale = width / img.naturalWidth;
+        roiCanvas.width = width;
+        roiCanvas.height = height;
+        
+        // Store reference to image
+        roiCanvas.sourceImage = img;
+        
+        redrawCanvas();
+    }
     
-    redrawCanvas();
-}
-
-function startDrawing(e) {
-    if (!isAddingROI) return;
+    function setupEventListeners() {
+        // ROI mode toggle
+        if (useROICheckbox) {
+            useROICheckbox.addEventListener('change', toggleROIMode);
+        }
+        
+        // Control buttons
+        if (addROIBtn) {
+            addROIBtn.addEventListener('click', enableDrawingMode);
+        }
+        
+        if (clearROIBtn) {
+            clearROIBtn.addEventListener('click', clearAllRegions);
+        }
+        
+        if (zoomFitBtn) {
+            zoomFitBtn.addEventListener('click', fitToView);
+        }
+        
+        // Canvas interactions
+        if (roiCanvas) {
+            roiCanvas.addEventListener('mousedown', startDrawing);
+            roiCanvas.addEventListener('mousemove', draw);
+            roiCanvas.addEventListener('mouseup', stopDrawing);
+            roiCanvas.addEventListener('mouseleave', stopDrawing);
+            
+            // Touch support for mobile
+            roiCanvas.addEventListener('touchstart', handleTouch);
+            roiCanvas.addEventListener('touchmove', handleTouch);
+            roiCanvas.addEventListener('touchend', stopDrawing);
+        }
+    }
     
-    isDrawing = true;
-    const rect = roiCanvas.getBoundingClientRect();
-    startX = e.clientX - rect.left;
-    startY = e.clientY - rect.top;
-    currentX = startX;
-    currentY = startY;
-}
-
-function draw(e) {
-    if (!isDrawing || !isAddingROI) return;
+    function toggleROIMode() {
+        const isROIMode = useROICheckbox.checked;
+        
+        if (isROIMode) {
+            roiContainer.classList.remove('d-none');
+            regularImage.style.display = 'none';
+            roiModeIndicator.style.display = 'block';
+            
+            // Setup canvas if not already done
+            if (!roiCanvas.sourceImage) {
+                initializeROISystem();
+            }
+        } else {
+            roiContainer.classList.add('d-none');
+            regularImage.style.display = 'block';
+            roiModeIndicator.style.display = 'none';
+            clearAllRegions();
+        }
+        
+        // Trigger custom event
+        document.dispatchEvent(new CustomEvent('roiModeChanged', {
+            detail: { enabled: isROIMode }
+        }));
+    }
     
-    const rect = roiCanvas.getBoundingClientRect();
-    currentX = e.clientX - rect.left;
-    currentY = e.clientY - rect.top;
+    function enableDrawingMode() {
+        isAddingROI = true;
+        addROIBtn.classList.add('active');
+        addROIBtn.innerHTML = '<i class="fas fa-crosshairs me-2"></i>Drawing Mode';
+        roiCanvas.style.cursor = 'crosshair';
+        
+        const statusEl = document.getElementById('roi-status');
+        if (statusEl) {
+            statusEl.classList.remove('d-none');
+        }
+    }
     
-    redrawCanvas();
+    function disableDrawingMode() {
+        isAddingROI = false;
+        addROIBtn.classList.remove('active');
+        addROIBtn.innerHTML = '<i class="fas fa-plus me-2"></i>Add Region';
+        roiCanvas.style.cursor = 'default';
+        
+        const statusEl = document.getElementById('roi-status');
+        if (statusEl) {
+            statusEl.classList.add('d-none');
+        }
+    }
     
-    // Draw current rectangle
-    roiCtx.strokeStyle = '#ff0000';
-    roiCtx.lineWidth = 2;
-    roiCtx.setLineDash([5, 5]);
-    roiCtx.strokeRect(startX, startY, currentX - startX, currentY - startY);
-    roiCtx.setLineDash([]);
-}
-
-function stopDrawing() {
-    if (!isDrawing || !isAddingROI) return;
+    function clearAllRegions() {
+        roiRegions = [];
+        updateROICount();
+        disableDrawingMode();
+        redrawCanvas();
+    }
     
-    isDrawing = false;
+    function fitToView() {
+        if (roiCanvas.sourceImage) {
+            setupCanvas(roiCanvas.sourceImage);
+        }
+    }
     
-    const width = Math.abs(currentX - startX);
-    const height = Math.abs(currentY - startY);
+    function getCanvasCoordinates(e) {
+        const rect = roiCanvas.getBoundingClientRect();
+        return {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        };
+    }
     
-    if (width > 10 && height > 10) { // Minimum size check
+    function startDrawing(e) {
+        if (!isAddingROI) return;
+        
+        e.preventDefault();
+        isDrawing = true;
+        
+        const coords = getCanvasCoordinates(e);
+        startX = coords.x;
+        startY = coords.y;
+        currentX = startX;
+        currentY = startY;
+    }
+    
+    function draw(e) {
+        if (!isDrawing || !isAddingROI) return;
+        
+        e.preventDefault();
+        const coords = getCanvasCoordinates(e);
+        currentX = coords.x;
+        currentY = coords.y;
+        
+        redrawCanvas();
+        
+        // Draw current rectangle being drawn
+        roiCtx.strokeStyle = '#dc3545';
+        roiCtx.lineWidth = 2;
+        roiCtx.setLineDash([8, 4]);
+        roiCtx.strokeRect(startX, startY, currentX - startX, currentY - startY);
+        roiCtx.setLineDash([]);
+    }
+    
+    function stopDrawing(e) {
+        if (!isDrawing || !isAddingROI) return;
+        
+        isDrawing = false;
+        
+        const width = Math.abs(currentX - startX);
+        const height = Math.abs(currentY - startY);
+        
+        // Minimum size validation
+        if (width > 15 && height > 15) {
+            addROIRegion();
+            showRegionAddedFeedback();
+        }
+        
+        disableDrawingMode();
+        redrawCanvas();
+    }
+    
+    function addROIRegion() {
         // Scale coordinates to original image size
-        const scaleX = cellImg.naturalWidth / roiCanvas.width;
-        const scaleY = cellImg.naturalHeight / roiCanvas.height;
+        const scaleX = roiCanvas.sourceImage.naturalWidth / roiCanvas.width;
+        const scaleY = roiCanvas.sourceImage.naturalHeight / roiCanvas.height;
         
         const roi = {
+            id: Date.now(),
             x: Math.min(startX, currentX) * scaleX,
             y: Math.min(startY, currentY) * scaleY,
-            width: width * scaleX,
-            height: height * scaleY
+            width: Math.abs(currentX - startX) * scaleX,
+            height: Math.abs(currentY - startY) * scaleY
         };
         
         roiRegions.push(roi);
-        console.log('ROI added:', roi);
-        console.log('Total ROI regions:', roiRegions);
         updateROICount();
+        
+        console.log('ROI region added:', roi);
     }
     
-    isAddingROI = false;
-    document.getElementById('add-roi-btn').classList.remove('active');
-    roiCanvas.style.cursor = 'default';
-    document.getElementById('roi-status').style.display = 'none';
-    redrawCanvas();
-}
-
-function redrawCanvas() {
-    roiCtx.clearRect(0, 0, roiCanvas.width, roiCanvas.height);
-    roiCtx.drawImage(cellImg, 0, 0, roiCanvas.width, roiCanvas.height);
-    
-    // Draw existing ROI regions
-    roiCtx.strokeStyle = '#007bff';
-    roiCtx.lineWidth = 2;
-    roiCtx.fillStyle = 'rgba(0, 123, 255, 0.1)';
-    
-    const scaleX = roiCanvas.width / cellImg.naturalWidth;
-    const scaleY = roiCanvas.height / cellImg.naturalHeight;
-    
-    roiRegions.forEach((roi, index) => {
-        const x = roi.x * scaleX;
-        const y = roi.y * scaleY;
-        const w = roi.width * scaleX;
-        const h = roi.height * scaleY;
+    function showRegionAddedFeedback() {
+        // Visual feedback for region addition
+        const feedback = document.createElement('div');
+        feedback.className = 'alert alert-success alert-dismissible fade show position-fixed';
+        feedback.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 250px;';
+        feedback.innerHTML = `
+            <i class="fas fa-check-circle me-2"></i>
+            Region ${roiRegions.length} added successfully
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
         
+        document.body.appendChild(feedback);
+        
+        setTimeout(() => {
+            feedback.remove();
+        }, 3000);
+    }
+    
+    function redrawCanvas() {
+        if (!roiCanvas.sourceImage) return;
+        
+        roiCtx.clearRect(0, 0, roiCanvas.width, roiCanvas.height);
+        roiCtx.drawImage(roiCanvas.sourceImage, 0, 0, roiCanvas.width, roiCanvas.height);
+        
+        // Draw existing ROI regions
+        roiRegions.forEach((roi, index) => {
+            drawROIRegion(roi, index);
+        });
+    }
+    
+    function drawROIRegion(roi, index) {
+        const x = roi.x * canvasScale;
+        const y = roi.y * canvasScale;
+        const w = roi.width * canvasScale;
+        const h = roi.height * canvasScale;
+        
+        // Fill
+        roiCtx.fillStyle = 'rgba(0, 123, 255, 0.15)';
         roiCtx.fillRect(x, y, w, h);
+        
+        // Border
+        roiCtx.strokeStyle = '#007bff';
+        roiCtx.lineWidth = 2;
         roiCtx.strokeRect(x, y, w, h);
         
-        // Draw region number
+        // Region label
         roiCtx.fillStyle = '#007bff';
-        roiCtx.font = '14px Arial';
-        roiCtx.fillText((index + 1).toString(), x + 5, y + 20);
-        roiCtx.fillStyle = 'rgba(0, 123, 255, 0.1)';
-    });
-}
-
-function updateROICount() {
-    const countElement = document.getElementById('roi-count');
-    if (countElement) {
-        countElement.textContent = roiRegions.length;
+        roiCtx.font = 'bold 14px Arial';
+        roiCtx.fillText(`${index + 1}`, x + 5, y + 20);
+        
+        // Corner handles for visual feedback
+        drawCornerHandles(x, y, w, h);
     }
-}
-
-})(); // End of encapsulating function
+    
+    function drawCornerHandles(x, y, w, h) {
+        roiCtx.fillStyle = '#007bff';
+        const handleSize = 6;
+        
+        // Corner squares
+        roiCtx.fillRect(x - handleSize/2, y - handleSize/2, handleSize, handleSize);
+        roiCtx.fillRect(x + w - handleSize/2, y - handleSize/2, handleSize, handleSize);
+        roiCtx.fillRect(x - handleSize/2, y + h - handleSize/2, handleSize, handleSize);
+        roiCtx.fillRect(x + w - handleSize/2, y + h - handleSize/2, handleSize, handleSize);
+    }
+    
+    function updateROICount() {
+        const countElement = document.getElementById('roi-count');
+        if (countElement) {
+            countElement.textContent = roiRegions.length;
+        }
+        
+        // Update button states
+        if (clearROIBtn) {
+            clearROIBtn.disabled = roiRegions.length === 0;
+        }
+    }
+    
+    function handleTouch(e) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent(e.type.replace('touch', 'mouse'), {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+        roiCanvas.dispatchEvent(mouseEvent);
+    }
+    
+    function setupFormHandling() {
+        if (!form || !submitBtn) return;
+        
+        form.addEventListener('submit', function(e) {
+            const analysisStatus = document.getElementById('analysis-status');
+            
+            // ROI validation
+            if (useROICheckbox && useROICheckbox.checked) {
+                if (roiRegions.length === 0) {
+                    e.preventDefault();
+                    showROIValidationError();
+                    return false;
+                }
+                
+                // Add ROI data to form
+                addROIDataToForm();
+            }
+            
+            // Show processing state
+            submitBtn.disabled = true;
+            submitBtn.value = 'Processing...';
+            
+            if (analysisStatus) {
+                analysisStatus.classList.remove('d-none');
+            }
+            
+            // Progressive feedback
+            setTimeout(() => {
+                if (submitBtn.disabled) {
+                    submitBtn.value = 'Analyzing cells...';
+                }
+            }, 2000);
+        });
+    }
+    
+    function addROIDataToForm() {
+        // Remove existing ROI inputs
+        const existingInputs = form.querySelectorAll('input[name="roi_data"], input[name="roi_count"]');
+        existingInputs.forEach(input => input.remove());
+        
+        // Add new ROI data
+        const roiInput = document.createElement('input');
+        roiInput.type = 'hidden';
+        roiInput.name = 'roi_data';
+        roiInput.value = JSON.stringify(roiRegions);
+        form.appendChild(roiInput);
+        
+        const roiCountInput = document.createElement('input');
+        roiCountInput.type = 'hidden';
+        roiCountInput.name = 'roi_count';
+        roiCountInput.value = roiRegions.length;
+        form.appendChild(roiCountInput);
+        
+        console.log(`Added ${roiRegions.length} ROI regions to form`);
+    }
+    
+    function showROIValidationError() {
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning text-dark">
+                        <h5 class="modal-title">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            ROI Selection Required
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>ROI selection is enabled but no regions have been drawn.</p>
+                        <p><strong>Please either:</strong></p>
+                        <ol>
+                            <li>Click "Add Region" and draw rectangles around cell areas</li>
+                            <li>Or uncheck "Use ROI Selection" to analyze the entire image</li>
+                        </ol>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+                            <i class="fas fa-check me-1"></i>
+                            Got it
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+        
+        modal.addEventListener('hidden.bs.modal', () => modal.remove());
+    }
+    
+    // Image fullscreen functionality
+    window.toggleImageFullscreen = function(img) {
+        if (!img) return;
+        
+        if (img.style.position === 'fixed') {
+            // Exit fullscreen
+            img.style.cssText = '';
+            img.classList.remove('img-fullscreen');
+        } else {
+            // Enter fullscreen
+            img.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                object-fit: contain;
+                background: rgba(0,0,0,0.9);
+                z-index: 9999;
+                cursor: zoom-out;
+            `;
+            img.classList.add('img-fullscreen');
+            
+            img.addEventListener('click', function() {
+                toggleImageFullscreen(this);
+            }, { once: true });
+        }
+    };
+    
+})();
 </script>
 {% endblock %}
 {% endblock %}

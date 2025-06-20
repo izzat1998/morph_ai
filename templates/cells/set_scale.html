@@ -7,7 +7,7 @@
 <div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-md-10">
-            <div class="card">
+            <div class="morph-card morph-card--professional">
                 <div class="card-header">
                     <h3 class="mb-0">
                         <i class="fas fa-ruler"></i> Scale Calibration - {{ cell.name }}
@@ -34,9 +34,9 @@
                             {% endif %}
                             
                             <!-- Image with measurement overlay -->
-                            <div class="position-relative" style="display: inline-block;">
-                                <canvas id="imageCanvas" style="border: 1px solid #ccc; cursor: crosshair;"></canvas>
-                                <img id="cellImage" src="{{ cell.image.url }}" style="display: none;" alt="{{ cell.name }}">
+                            <div class="morph-position-relative morph-d-inline-grid">
+                                <canvas id="imageCanvas" class="morph-border morph-border-light morph-cursor-pointer"></canvas>
+                                <img id="cellImage" src="{{ cell.image.url }}" class="morph-hide" alt="{{ cell.name }}">
                             </div>
                             
                             <!-- Measurement controls -->
@@ -61,7 +61,7 @@
                         <div class="col-md-4">
                             <h5>Set Scale</h5>
                             
-                            <div class="card bg-light mb-3">
+                            <div class="morph-card morph-bg-light morph-mb-4">
                                 <div class="card-body">
                                     <h6>Current Image Info</h6>
                                     <ul class="list-unstyled mb-0">

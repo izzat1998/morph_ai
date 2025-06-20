@@ -1,0 +1,423 @@
+/* ==========================================
+   MORPH AI - UTILITY CLASSES
+   Common Patterns and Helper Classes
+   ========================================== */
+
+/* ==========================================
+   IMAGE UTILITIES
+   ========================================== */
+
+.morph-img {
+  max-width: 100%;
+  height: auto;
+}
+
+.morph-img--cover {
+  object-fit: cover;
+}
+
+.morph-img--contain {
+  object-fit: contain;
+}
+
+.morph-img--circle {
+  border-radius: var(--radius-full);
+}
+
+.morph-img--rounded {
+  border-radius: var(--radius-md);
+}
+
+/* Image sizing utilities */
+.morph-img--xs { width: 32px; height: 32px; }
+.morph-img--sm { width: 48px; height: 48px; }
+.morph-img--md { width: 64px; height: 64px; }
+.morph-img--lg { width: 96px; height: 96px; }
+.morph-img--xl { width: 128px; height: 128px; }
+
+/* Image height utilities */
+.morph-img-h-150 { height: 150px; }
+.morph-img-h-200 { height: 200px; }
+.morph-img-h-250 { height: 250px; }
+.morph-img-h-300 { height: 300px; }
+.morph-img-h-400 { height: 400px; }
+
+/* ==========================================
+   DISPLAY UTILITIES
+   ========================================== */
+
+.morph-show { display: block !important; }
+.morph-hide { display: none !important; }
+
+.morph-show-mobile { display: none !important; }
+.morph-hide-mobile { display: block !important; }
+
+@media (max-width: 768px) {
+  .morph-show-mobile { display: block !important; }
+  .morph-hide-mobile { display: none !important; }
+}
+
+.morph-show-desktop { display: block !important; }
+.morph-hide-desktop { display: none !important; }
+
+@media (min-width: 769px) {
+  .morph-show-desktop { display: block !important; }
+  .morph-hide-desktop { display: none !important; }
+}
+
+/* Visibility utilities */
+.morph-visible { visibility: visible !important; }
+.morph-invisible { visibility: hidden !important; }
+
+/* Opacity utilities */
+.morph-opacity-0 { opacity: 0 !important; }
+.morph-opacity-25 { opacity: 0.25 !important; }
+.morph-opacity-50 { opacity: 0.5 !important; }
+.morph-opacity-75 { opacity: 0.75 !important; }
+.morph-opacity-100 { opacity: 1 !important; }
+
+/* ==========================================
+   SPACING UTILITIES
+   ========================================== */
+
+/* Margin utilities */
+.morph-m-0 { margin: 0 !important; }
+.morph-m-1 { margin: var(--spacing-xs) !important; }
+.morph-m-2 { margin: var(--spacing-sm) !important; }
+.morph-m-3 { margin: var(--spacing-md) !important; }
+.morph-m-4 { margin: var(--spacing-lg) !important; }
+.morph-m-5 { margin: var(--spacing-xl) !important; }
+
+.morph-mt-0 { margin-top: 0 !important; }
+.morph-mt-1 { margin-top: var(--spacing-xs) !important; }
+.morph-mt-2 { margin-top: var(--spacing-sm) !important; }
+.morph-mt-3 { margin-top: var(--spacing-md) !important; }
+.morph-mt-4 { margin-top: var(--spacing-lg) !important; }
+.morph-mt-5 { margin-top: var(--spacing-xl) !important; }
+
+.morph-mb-0 { margin-bottom: 0 !important; }
+.morph-mb-1 { margin-bottom: var(--spacing-xs) !important; }
+.morph-mb-2 { margin-bottom: var(--spacing-sm) !important; }
+.morph-mb-3 { margin-bottom: var(--spacing-md) !important; }
+.morph-mb-4 { margin-bottom: var(--spacing-lg) !important; }
+.morph-mb-5 { margin-bottom: var(--spacing-xl) !important; }
+
+.morph-ml-0 { margin-left: 0 !important; }
+.morph-ml-1 { margin-left: var(--spacing-xs) !important; }
+.morph-ml-2 { margin-left: var(--spacing-sm) !important; }
+.morph-ml-3 { margin-left: var(--spacing-md) !important; }
+.morph-ml-4 { margin-left: var(--spacing-lg) !important; }
+.morph-ml-5 { margin-left: var(--spacing-xl) !important; }
+
+.morph-mr-0 { margin-right: 0 !important; }
+.morph-mr-1 { margin-right: var(--spacing-xs) !important; }
+.morph-mr-2 { margin-right: var(--spacing-sm) !important; }
+.morph-mr-3 { margin-right: var(--spacing-md) !important; }
+.morph-mr-4 { margin-right: var(--spacing-lg) !important; }
+.morph-mr-5 { margin-right: var(--spacing-xl) !important; }
+
+/* Padding utilities */
+.morph-p-0 { padding: 0 !important; }
+.morph-p-1 { padding: var(--spacing-xs) !important; }
+.morph-p-2 { padding: var(--spacing-sm) !important; }
+.morph-p-3 { padding: var(--spacing-md) !important; }
+.morph-p-4 { padding: var(--spacing-lg) !important; }
+.morph-p-5 { padding: var(--spacing-xl) !important; }
+
+.morph-pt-0 { padding-top: 0 !important; }
+.morph-pt-1 { padding-top: var(--spacing-xs) !important; }
+.morph-pt-2 { padding-top: var(--spacing-sm) !important; }
+.morph-pt-3 { padding-top: var(--spacing-md) !important; }
+.morph-pt-4 { padding-top: var(--spacing-lg) !important; }
+.morph-pt-5 { padding-top: var(--spacing-xl) !important; }
+
+.morph-pb-0 { padding-bottom: 0 !important; }
+.morph-pb-1 { padding-bottom: var(--spacing-xs) !important; }
+.morph-pb-2 { padding-bottom: var(--spacing-sm) !important; }
+.morph-pb-3 { padding-bottom: var(--spacing-md) !important; }
+.morph-pb-4 { padding-bottom: var(--spacing-lg) !important; }
+.morph-pb-5 { padding-bottom: var(--spacing-xl) !important; }
+
+.morph-pl-0 { padding-left: 0 !important; }
+.morph-pl-1 { padding-left: var(--spacing-xs) !important; }
+.morph-pl-2 { padding-left: var(--spacing-sm) !important; }
+.morph-pl-3 { padding-left: var(--spacing-md) !important; }
+.morph-pl-4 { padding-left: var(--spacing-lg) !important; }
+.morph-pl-5 { padding-left: var(--spacing-xl) !important; }
+
+.morph-pr-0 { padding-right: 0 !important; }
+.morph-pr-1 { padding-right: var(--spacing-xs) !important; }
+.morph-pr-2 { padding-right: var(--spacing-sm) !important; }
+.morph-pr-3 { padding-right: var(--spacing-md) !important; }
+.morph-pr-4 { padding-right: var(--spacing-lg) !important; }
+.morph-pr-5 { padding-right: var(--spacing-xl) !important; }
+
+/* ==========================================
+   TEXT UTILITIES
+   ========================================== */
+
+.morph-text-left { text-align: left !important; }
+.morph-text-center { text-align: center !important; }
+.morph-text-right { text-align: right !important; }
+.morph-text-justify { text-align: justify !important; }
+
+.morph-text-lowercase { text-transform: lowercase !important; }
+.morph-text-uppercase { text-transform: uppercase !important; }
+.morph-text-capitalize { text-transform: capitalize !important; }
+
+.morph-text-wrap { white-space: normal !important; }
+.morph-text-nowrap { white-space: nowrap !important; }
+.morph-text-truncate { 
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.morph-text-break { word-wrap: break-word !important; word-break: break-word !important; }
+
+/* Font weight utilities */
+.morph-fw-light { font-weight: 300 !important; }
+.morph-fw-normal { font-weight: 400 !important; }
+.morph-fw-medium { font-weight: 500 !important; }
+.morph-fw-semibold { font-weight: 600 !important; }
+.morph-fw-bold { font-weight: 700 !important; }
+.morph-fw-bolder { font-weight: 900 !important; }
+
+/* Font size utilities */
+.morph-fs-xs { font-size: 0.75rem !important; }
+.morph-fs-sm { font-size: 0.875rem !important; }
+.morph-fs-base { font-size: 1rem !important; }
+.morph-fs-lg { font-size: 1.125rem !important; }
+.morph-fs-xl { font-size: 1.25rem !important; }
+.morph-fs-2xl { font-size: 1.5rem !important; }
+.morph-fs-3xl { font-size: 1.875rem !important; }
+.morph-fs-4xl { font-size: 2.25rem !important; }
+
+/* ==========================================
+   COLOR UTILITIES
+   ========================================== */
+
+/* Text colors */
+.morph-text-primary { color: var(--primary-blue) !important; }
+.morph-text-secondary { color: var(--secondary-green) !important; }
+.morph-text-success { color: var(--success-green) !important; }
+.morph-text-warning { color: var(--warning-amber) !important; }
+.morph-text-danger { color: var(--error-red) !important; }
+.morph-text-info { color: var(--info-cyan) !important; }
+.morph-text-light { color: var(--light-gray) !important; }
+.morph-text-dark { color: var(--dark-navy) !important; }
+.morph-text-muted { color: var(--medium-gray) !important; }
+.morph-text-white { color: var(--white) !important; }
+
+/* Background colors */
+.morph-bg-primary { background-color: var(--primary-blue) !important; }
+.morph-bg-secondary { background-color: var(--secondary-green) !important; }
+.morph-bg-success { background-color: var(--success-green) !important; }
+.morph-bg-warning { background-color: var(--warning-amber) !important; }
+.morph-bg-danger { background-color: var(--error-red) !important; }
+.morph-bg-info { background-color: var(--info-cyan) !important; }
+.morph-bg-light { background-color: var(--lighter-gray) !important; }
+.morph-bg-dark { background-color: var(--dark-navy) !important; }
+.morph-bg-white { background-color: var(--white) !important; }
+.morph-bg-transparent { background-color: transparent !important; }
+
+/* Gradient backgrounds */
+.morph-bg-gradient-primary { background: var(--primary-gradient) !important; }
+.morph-bg-gradient-secondary { background: var(--secondary-gradient) !important; }
+.morph-bg-gradient-success { background: var(--success-gradient) !important; }
+
+/* ==========================================
+   BORDER UTILITIES
+   ========================================== */
+
+.morph-border { border: 1px solid var(--light-gray) !important; }
+.morph-border-0 { border: 0 !important; }
+.morph-border-top { border-top: 1px solid var(--light-gray) !important; }
+.morph-border-bottom { border-bottom: 1px solid var(--light-gray) !important; }
+.morph-border-left { border-left: 1px solid var(--light-gray) !important; }
+.morph-border-right { border-right: 1px solid var(--light-gray) !important; }
+
+.morph-border-primary { border-color: var(--primary-blue) !important; }
+.morph-border-secondary { border-color: var(--secondary-green) !important; }
+.morph-border-success { border-color: var(--success-green) !important; }
+.morph-border-warning { border-color: var(--warning-amber) !important; }
+.morph-border-danger { border-color: var(--error-red) !important; }
+.morph-border-info { border-color: var(--info-cyan) !important; }
+.morph-border-light { border-color: var(--light-gray) !important; }
+.morph-border-dark { border-color: var(--dark-navy) !important; }
+
+/* Border radius utilities */
+.morph-rounded-0 { border-radius: 0 !important; }
+.morph-rounded-sm { border-radius: var(--radius-sm) !important; }
+.morph-rounded { border-radius: var(--radius-md) !important; }
+.morph-rounded-lg { border-radius: var(--radius-lg) !important; }
+.morph-rounded-xl { border-radius: var(--radius-xl) !important; }
+.morph-rounded-full { border-radius: var(--radius-full) !important; }
+
+.morph-rounded-top { border-top-left-radius: var(--radius-md) !important; border-top-right-radius: var(--radius-md) !important; }
+.morph-rounded-bottom { border-bottom-left-radius: var(--radius-md) !important; border-bottom-right-radius: var(--radius-md) !important; }
+.morph-rounded-left { border-top-left-radius: var(--radius-md) !important; border-bottom-left-radius: var(--radius-md) !important; }
+.morph-rounded-right { border-top-right-radius: var(--radius-md) !important; border-bottom-right-radius: var(--radius-md) !important; }
+
+/* ==========================================
+   SHADOW UTILITIES
+   ========================================== */
+
+.morph-shadow-none { box-shadow: none !important; }
+.morph-shadow-sm { box-shadow: var(--shadow-sm) !important; }
+.morph-shadow { box-shadow: var(--shadow-md) !important; }
+.morph-shadow-lg { box-shadow: var(--shadow-lg) !important; }
+.morph-shadow-xl { box-shadow: var(--shadow-xl) !important; }
+
+/* ==========================================
+   POSITION UTILITIES
+   ========================================== */
+
+.morph-position-static { position: static !important; }
+.morph-position-relative { position: relative !important; }
+.morph-position-absolute { position: absolute !important; }
+.morph-position-fixed { position: fixed !important; }
+.morph-position-sticky { position: sticky !important; }
+
+/* Position values */
+.morph-top-0 { top: 0 !important; }
+.morph-top-50 { top: 50% !important; }
+.morph-top-100 { top: 100% !important; }
+.morph-bottom-0 { bottom: 0 !important; }
+.morph-bottom-50 { bottom: 50% !important; }
+.morph-bottom-100 { bottom: 100% !important; }
+.morph-left-0 { left: 0 !important; }
+.morph-left-50 { left: 50% !important; }
+.morph-left-100 { left: 100% !important; }
+.morph-right-0 { right: 0 !important; }
+.morph-right-50 { right: 50% !important; }
+.morph-right-100 { right: 100% !important; }
+
+/* ==========================================
+   FLEXBOX UTILITIES
+   ========================================== */
+
+.morph-d-flex { display: flex !important; }
+.morph-d-inline-flex { display: inline-flex !important; }
+
+.morph-flex-row { flex-direction: row !important; }
+.morph-flex-column { flex-direction: column !important; }
+.morph-flex-row-reverse { flex-direction: row-reverse !important; }
+.morph-flex-column-reverse { flex-direction: column-reverse !important; }
+
+.morph-flex-wrap { flex-wrap: wrap !important; }
+.morph-flex-nowrap { flex-wrap: nowrap !important; }
+
+.morph-justify-start { justify-content: flex-start !important; }
+.morph-justify-end { justify-content: flex-end !important; }
+.morph-justify-center { justify-content: center !important; }
+.morph-justify-between { justify-content: space-between !important; }
+.morph-justify-around { justify-content: space-around !important; }
+.morph-justify-evenly { justify-content: space-evenly !important; }
+
+.morph-align-start { align-items: flex-start !important; }
+.morph-align-end { align-items: flex-end !important; }
+.morph-align-center { align-items: center !important; }
+.morph-align-baseline { align-items: baseline !important; }
+.morph-align-stretch { align-items: stretch !important; }
+
+.morph-flex-fill { flex: 1 1 auto !important; }
+.morph-flex-grow-0 { flex-grow: 0 !important; }
+.morph-flex-grow-1 { flex-grow: 1 !important; }
+.morph-flex-shrink-0 { flex-shrink: 0 !important; }
+.morph-flex-shrink-1 { flex-shrink: 1 !important; }
+
+/* ==========================================
+   GRID UTILITIES
+   ========================================== */
+
+.morph-d-grid { display: grid !important; }
+.morph-d-inline-grid { display: inline-grid !important; }
+
+.morph-grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+.morph-grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.morph-grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+.morph-grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+.morph-grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+.morph-grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)) !important; }
+
+.morph-gap-0 { gap: 0 !important; }
+.morph-gap-1 { gap: var(--spacing-xs) !important; }
+.morph-gap-2 { gap: var(--spacing-sm) !important; }
+.morph-gap-3 { gap: var(--spacing-md) !important; }
+.morph-gap-4 { gap: var(--spacing-lg) !important; }
+.morph-gap-5 { gap: var(--spacing-xl) !important; }
+
+/* ==========================================
+   ANIMATION UTILITIES
+   ========================================== */
+
+.morph-transition { transition: all var(--transition-normal) !important; }
+.morph-transition-fast { transition: all var(--transition-fast) !important; }
+.morph-transition-slow { transition: all var(--transition-slow) !important; }
+.morph-transition-none { transition: none !important; }
+
+.morph-transform { transform: var(--transform-none) !important; }
+.morph-transform-none { transform: none !important; }
+
+.morph-scale-50 { transform: scale(0.5) !important; }
+.morph-scale-75 { transform: scale(0.75) !important; }
+.morph-scale-90 { transform: scale(0.9) !important; }
+.morph-scale-95 { transform: scale(0.95) !important; }
+.morph-scale-100 { transform: scale(1) !important; }
+.morph-scale-105 { transform: scale(1.05) !important; }
+.morph-scale-110 { transform: scale(1.1) !important; }
+.morph-scale-125 { transform: scale(1.25) !important; }
+.morph-scale-150 { transform: scale(1.5) !important; }
+
+/* ==========================================
+   INTERACTION UTILITIES
+   ========================================== */
+
+.morph-cursor-auto { cursor: auto !important; }
+.morph-cursor-default { cursor: default !important; }
+.morph-cursor-pointer { cursor: pointer !important; }
+.morph-cursor-wait { cursor: wait !important; }
+.morph-cursor-text { cursor: text !important; }
+.morph-cursor-move { cursor: move !important; }
+.morph-cursor-help { cursor: help !important; }
+.morph-cursor-not-allowed { cursor: not-allowed !important; }
+
+.morph-select-none { user-select: none !important; }
+.morph-select-text { user-select: text !important; }
+.morph-select-all { user-select: all !important; }
+.morph-select-auto { user-select: auto !important; }
+
+.morph-pointer-events-none { pointer-events: none !important; }
+.morph-pointer-events-auto { pointer-events: auto !important; }
+
+/* ==========================================
+   OVERFLOW UTILITIES
+   ========================================== */
+
+.morph-overflow-auto { overflow: auto !important; }
+.morph-overflow-hidden { overflow: hidden !important; }
+.morph-overflow-visible { overflow: visible !important; }
+.morph-overflow-scroll { overflow: scroll !important; }
+
+.morph-overflow-x-auto { overflow-x: auto !important; }
+.morph-overflow-x-hidden { overflow-x: hidden !important; }
+.morph-overflow-x-visible { overflow-x: visible !important; }
+.morph-overflow-x-scroll { overflow-x: scroll !important; }
+
+.morph-overflow-y-auto { overflow-y: auto !important; }
+.morph-overflow-y-hidden { overflow-y: hidden !important; }
+.morph-overflow-y-visible { overflow-y: visible !important; }
+.morph-overflow-y-scroll { overflow-y: scroll !important; }
+
+/* ==========================================
+   Z-INDEX UTILITIES
+   ========================================== */
+
+.morph-z-0 { z-index: 0 !important; }
+.morph-z-10 { z-index: 10 !important; }
+.morph-z-20 { z-index: 20 !important; }
+.morph-z-30 { z-index: 30 !important; }
+.morph-z-40 { z-index: 40 !important; }
+.morph-z-50 { z-index: 50 !important; }
+.morph-z-auto { z-index: auto !important; }

@@ -1,0 +1,627 @@
+/* ==========================================
+   MORPH AI - COMPONENT LIBRARY
+   Modular CSS Components for Reusability
+   ========================================== */
+
+/* ==========================================
+   CARD COMPONENTS
+   ========================================== */
+
+/* Base Card Styling */
+.morph-card {
+  background: var(--white);
+  border: none;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-normal);
+  overflow: hidden;
+}
+
+.morph-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl);
+}
+
+/* Professional Card Variant */
+.morph-card--professional {
+  position: relative;
+  overflow: visible;
+}
+
+.morph-card--professional::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--primary-gradient);
+}
+
+/* Feature Cards */
+.morph-card--upload {
+  border-left: 4px solid var(--primary-blue);
+}
+
+.morph-card--analysis {
+  border-left: 4px solid var(--success-green);
+}
+
+.morph-card--data {
+  border-left: 4px solid var(--accent-purple);
+}
+
+/* Image Card Component */
+.morph-image-card {
+  transition: all var(--transition-normal);
+  border: none;
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.morph-image-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-xl);
+}
+
+.morph-image-card__container {
+  position: relative;
+  overflow: hidden;
+  height: 200px;
+}
+
+.morph-image-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: all var(--transition-normal);
+}
+
+.morph-image-card:hover .morph-image-card__image {
+  transform: scale(1.1);
+}
+
+.morph-image-card__overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all var(--transition-normal);
+}
+
+.morph-image-card:hover .morph-image-card__overlay {
+  opacity: 1;
+}
+
+.morph-image-card__actions {
+  display: flex;
+  gap: 0.5rem;
+  transform: translateY(20px);
+  transition: all var(--transition-normal);
+}
+
+.morph-image-card:hover .morph-image-card__actions {
+  transform: translateY(0);
+}
+
+.morph-image-card__badge-container {
+  position: absolute;
+  top: 0.75rem;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0 0.75rem;
+}
+
+.morph-image-card__badge {
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* ==========================================
+   STATISTICS COMPONENTS
+   ========================================== */
+
+/* Stats Overview Grid */
+.morph-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-2xl);
+}
+
+.morph-stats__item {
+  background: var(--white);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-normal);
+}
+
+.morph-stats__item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--primary-gradient);
+}
+
+.morph-stats__item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.morph-stats__number {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--primary-blue);
+  display: block;
+  margin-bottom: var(--spacing-sm);
+}
+
+.morph-stats__label {
+  font-size: 0.875rem;
+  color: var(--medium-gray);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.morph-stats__trend {
+  font-size: 0.75rem;
+  margin-top: var(--spacing-xs);
+}
+
+.morph-stats__trend--positive {
+  color: var(--success-green);
+}
+
+.morph-stats__trend--negative {
+  color: var(--error-red);
+}
+
+/* Stat Highlights */
+.morph-stat-highlight {
+  padding: var(--spacing-lg);
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  box-shadow: var(--shadow-md);
+}
+
+.morph-stat-highlight__number {
+  font-size: 2rem;
+  font-weight: 900;
+  display: block;
+  margin-bottom: var(--spacing-sm);
+}
+
+.morph-stat-highlight__label {
+  font-size: 0.875rem;
+  opacity: 0.8;
+}
+
+/* ==========================================
+   UPLOAD COMPONENTS
+   ========================================== */
+
+.morph-upload-zone {
+  border: 3px dashed var(--light-gray);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-3xl) var(--spacing-2xl);
+  text-align: center;
+  transition: all var(--transition-normal);
+  background: var(--white);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.morph-upload-zone:hover {
+  border-color: var(--primary-blue);
+  background: rgba(0, 102, 204, 0.02);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.morph-upload-zone--dragover {
+  border-color: var(--success-green);
+  background: rgba(0, 184, 148, 0.05);
+  transform: scale(1.02);
+}
+
+.morph-upload-zone__icon {
+  font-size: 4rem;
+  color: var(--primary-blue);
+  margin-bottom: var(--spacing-md);
+  display: block;
+}
+
+.morph-upload-zone__text {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--dark-navy);
+  margin-bottom: var(--spacing-sm);
+}
+
+.morph-upload-zone__hint {
+  color: var(--medium-gray);
+  margin-bottom: var(--spacing-lg);
+}
+
+.morph-upload-zone__input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.morph-upload-zone__formats {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.morph-upload-zone__format {
+  background: var(--lighter-gray);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--medium-gray);
+}
+
+/* Upload Progress */
+.morph-upload-progress {
+  margin-top: var(--spacing-md);
+}
+
+.morph-upload-progress__text {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm);
+  font-size: 0.875rem;
+  color: var(--medium-gray);
+}
+
+/* File Preview */
+.morph-file-preview {
+  margin-top: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  background: var(--lighter-gray);
+  border-radius: var(--radius-md);
+}
+
+.morph-file-preview__image {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+}
+
+.morph-file-preview__info {
+  margin-left: var(--spacing-md);
+}
+
+.morph-file-preview__name {
+  font-weight: 600;
+  margin-bottom: var(--spacing-xs);
+}
+
+.morph-file-preview__meta {
+  color: var(--medium-gray);
+  font-size: 0.875rem;
+}
+
+/* Upload Tips */
+.morph-upload-tips {
+  background: linear-gradient(135deg, var(--lighter-gray) 0%, var(--white) 100%);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-2xl);
+  margin-top: var(--spacing-xl);
+}
+
+.morph-upload-tips__title {
+  margin-bottom: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.morph-upload-tips__item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-md);
+}
+
+.morph-upload-tips__icon {
+  color: var(--success-green);
+  margin-right: 0.75rem;
+  margin-top: 0.25rem;
+  font-size: 1.1rem;
+}
+
+.morph-upload-tips__content h6 {
+  margin-bottom: var(--spacing-xs);
+  font-weight: 600;
+}
+
+.morph-upload-tips__content small {
+  color: var(--medium-gray);
+  line-height: 1.4;
+}
+
+/* ==========================================
+   WORKFLOW COMPONENTS
+   ========================================== */
+
+.morph-workflow {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.morph-workflow__step {
+  position: relative;
+  padding: var(--spacing-2xl) var(--spacing-md);
+  text-align: center;
+}
+
+.morph-workflow__step-number {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 40px;
+  background: var(--primary-gradient);
+  color: var(--white);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+  box-shadow: var(--shadow-md);
+}
+
+.morph-workflow__step-icon {
+  font-size: 3rem;
+  color: var(--primary-blue);
+  margin: var(--spacing-xl) 0 var(--spacing-md);
+}
+
+.morph-workflow__step-title {
+  color: var(--dark-navy);
+  margin-bottom: var(--spacing-md);
+  font-weight: 700;
+}
+
+.morph-workflow__step-description {
+  color: var(--medium-gray);
+  line-height: 1.6;
+}
+
+/* ==========================================
+   FILTER COMPONENTS
+   ========================================== */
+
+.morph-search-bar {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.morph-view-toggle {
+  display: flex;
+  background: var(--lighter-gray);
+  border-radius: var(--radius-md);
+  padding: 0.25rem;
+}
+
+.morph-view-toggle__button {
+  background: none;
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  color: var(--medium-gray);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.morph-view-toggle__button--active {
+  background: var(--white);
+  color: var(--primary-blue);
+  box-shadow: var(--shadow-sm);
+}
+
+.morph-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.morph-filter-chip {
+  background: var(--primary-blue);
+  color: var(--white);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.morph-filter-chip__remove {
+  background: none;
+  border: none;
+  color: var(--white);
+  cursor: pointer;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color var(--transition-fast);
+}
+
+.morph-filter-chip__remove:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ==========================================
+   DATA DISPLAY COMPONENTS
+   ========================================== */
+
+.morph-metadata-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
+  font-size: 0.875rem;
+}
+
+.morph-metadata-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--medium-gray);
+}
+
+.morph-metadata-item__icon {
+  width: 16px;
+  color: var(--primary-blue);
+  font-size: 0.8rem;
+}
+
+.morph-analysis-info {
+  background: rgba(0, 184, 148, 0.1);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.morph-analysis-info--success {
+  background: rgba(0, 184, 148, 0.1);
+  color: var(--success-green);
+}
+
+.morph-analysis-info--warning {
+  background: rgba(253, 203, 110, 0.1);
+  color: var(--warning-amber);
+}
+
+.morph-analysis-info--error {
+  background: rgba(225, 112, 85, 0.1);
+  color: var(--error-red);
+}
+
+/* ==========================================
+   EMPTY STATE COMPONENTS
+   ========================================== */
+
+.morph-empty-state {
+  text-align: center;
+  padding: var(--spacing-3xl) var(--spacing-xl);
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.morph-empty-state__icon {
+  font-size: 4rem;
+  color: var(--light-gray);
+  margin-bottom: var(--spacing-lg);
+}
+
+.morph-empty-state__title {
+  color: var(--medium-gray);
+  margin-bottom: var(--spacing-md);
+}
+
+.morph-empty-state__description {
+  color: var(--medium-gray);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* ==========================================
+   RESPONSIVE ADJUSTMENTS
+   ========================================== */
+
+@media (max-width: 768px) {
+  .morph-image-card__container {
+    height: 180px;
+  }
+  
+  .morph-metadata-grid {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+  
+  .morph-workflow__step {
+    padding: var(--spacing-lg) var(--spacing-sm);
+  }
+  
+  .morph-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .morph-upload-zone {
+    padding: var(--spacing-xl) var(--spacing-md);
+  }
+  
+  .morph-upload-zone__icon {
+    font-size: 3rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .morph-image-card__container {
+    height: 160px;
+  }
+  
+  .morph-image-card__badge-container {
+    padding: 0 var(--spacing-sm);
+  }
+  
+  .morph-image-card__badge {
+    font-size: 0.6rem;
+    padding: 0.2rem 0.4rem;
+  }
+  
+  .morph-upload-zone__text {
+    font-size: 1.1rem;
+  }
+  
+  .morph-workflow__step-icon {
+    font-size: 2.5rem;
+  }
+  
+  .morph-workflow__step-number {
+    width: 35px;
+    height: 35px;
+    font-size: 1rem;
+  }
+}

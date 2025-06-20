@@ -1,55 +1,511 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
+{% load i18n %}
 
-{% block title %}Upload Cell Image{% endblock %}
+{% block title %}{% trans "Upload Cell Image" %} - Morph AI{% endblock %}
+
+{% block extra_css %}
+<style>
+.upload-zone {
+    border: 3px dashed var(--light-gray);
+    border-radius: var(--radius-lg);
+    padding: 3rem 2rem;
+    text-align: center;
+    transition: all var(--transition-normal);
+    background: var(--white);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.upload-zone:hover {
+    border-color: var(--primary-blue);
+    background: rgba(0, 102, 204, 0.02);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.upload-zone.dragover {
+    border-color: var(--success-green);
+    background: rgba(0, 184, 148, 0.05);
+    transform: scale(1.02);
+}
+
+.upload-icon {
+    font-size: 4rem;
+    color: var(--primary-blue);
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.upload-text {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--dark-navy);
+    margin-bottom: 0.5rem;
+}
+
+.upload-hint {
+    color: var(--medium-gray);
+    margin-bottom: 1.5rem;
+}
+
+.file-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.upload-progress {
+    display: none;
+    margin-top: 1rem;
+}
+
+.file-preview {
+    display: none;
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: var(--lighter-gray);
+    border-radius: var(--radius-md);
+}
+
+.file-preview img {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: var(--radius-md);
+    object-fit: cover;
+}
+
+.file-info {
+    margin-left: 1rem;
+}
+
+.supported-formats {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.format-badge {
+    background: var(--lighter-gray);
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--medium-gray);
+}
+
+.recent-upload-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.recent-upload-card img {
+    transition: all var(--transition-normal);
+}
+
+.recent-upload-card:hover img {
+    transform: scale(1.05);
+}
+
+.upload-tips {
+    background: linear-gradient(135deg, var(--lighter-gray) 0%, var(--white) 100%);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    margin-top: 2rem;
+}
+
+.tip-item {
+    display: flex;
+    align-items: start;
+    margin-bottom: 1rem;
+}
+
+.tip-icon {
+    color: var(--success-green);
+    margin-right: 0.75rem;
+    margin-top: 0.25rem;
+}
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
+        <div class="col-lg-10">
+            <!-- Header -->
+            <div class="text-center mb-4">
+                <h1 class="display-5 fw-bold text-gradient mb-3">{% trans "Upload Cell Images" %}</h1>
+                <p class="lead text-muted">{% trans "Upload high-quality microscopy images for morphometric analysis" %}</p>
+            </div>
+            
+            <!-- Upload Section -->
+            <div class="card card-professional shadow-strong mb-4">
                 <div class="card-header">
-                    <h3 class="mb-0">Upload Cell Image</h3>
+                    <h3 class="mb-0">
+                        <i class="fas fa-cloud-upload-alt me-2"></i>
+                        {% trans "Image Upload" %}
+                    </h3>
                 </div>
                 <div class="card-body">
-                    {% crispy form %}
+                    <form method="post" enctype="multipart/form-data" id="upload-form">
+                        {% csrf_token %}
+                        
+                        <!-- Drag & Drop Upload Zone -->
+                        <div class="upload-zone" id="upload-zone">
+                            <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                            <div class="upload-text">{% trans "Drag & drop your images here" %}</div>
+                            <div class="upload-hint">{% trans "or click to browse files" %}</div>
+                            
+                            <!-- Hidden file input -->
+                            <input type="file" name="image" id="file-input" class="file-input" accept="image/*" multiple>
+                            
+                            <div class="supported-formats">
+                                <span class="format-badge">TIFF</span>
+                                <span class="format-badge">PNG</span>
+                                <span class="format-badge">JPEG</span>
+                                <span class="format-badge">BMP</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Upload Progress -->
+                        <div class="upload-progress" id="upload-progress">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="text-muted">{% trans "Uploading..." %}</span>
+                                <span class="text-muted" id="progress-text">0%</span>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- File Preview -->
+                        <div class="file-preview" id="file-preview">
+                            <div class="d-flex align-items-center">
+                                <img id="preview-image" src="" alt="Preview">
+                                <div class="file-info">
+                                    <h6 id="file-name"></h6>
+                                    <p class="text-muted mb-1" id="file-size"></p>
+                                    <p class="text-muted mb-0" id="file-dimensions"></p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Form Fields -->
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="id_name" class="form-label">{% trans "Image Name" %}</label>
+                                    <input type="text" name="name" class="form-control" id="id_name" placeholder="{% trans 'Enter descriptive name for your image' %}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="id_description" class="form-label">{% trans "Description (Optional)" %}</label>
+                                    <textarea name="description" class="form-control" id="id_description" rows="3" placeholder="{% trans 'Add any relevant notes about the image' %}"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg" id="submit-btn" disabled>
+                                <i class="fas fa-upload me-2"></i>
+                                {% trans "Upload Image" %}
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-lg ms-2" onclick="resetForm()">
+                                <i class="fas fa-times me-2"></i>
+                                {% trans "Clear" %}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
             
+            <!-- Upload Tips -->
+            <div class="upload-tips">
+                <h4 class="mb-3">
+                    <i class="fas fa-lightbulb me-2 text-warning"></i>
+                    {% trans "Upload Tips for Best Results" %}
+                </h4>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="tip-item">
+                            <i class="fas fa-check-circle tip-icon"></i>
+                            <div>
+                                <strong>{% trans "High Resolution" %}</strong><br>
+                                <small class="text-muted">{% trans "Use images with sufficient resolution for accurate cell detection" %}</small>
+                            </div>
+                        </div>
+                        <div class="tip-item">
+                            <i class="fas fa-check-circle tip-icon"></i>
+                            <div>
+                                <strong>{% trans "Good Contrast" %}</strong><br>
+                                <small class="text-muted">{% trans "Ensure clear distinction between cells and background" %}</small>
+                            </div>
+                        </div>
+                        <div class="tip-item">
+                            <i class="fas fa-check-circle tip-icon"></i>
+                            <div>
+                                <strong>{% trans "Proper Focus" %}</strong><br>
+                                <small class="text-muted">{% trans "Sharp, well-focused images improve segmentation accuracy" %}</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="tip-item">
+                            <i class="fas fa-check-circle tip-icon"></i>
+                            <div>
+                                <strong>{% trans "Scale Information" %}</strong><br>
+                                <small class="text-muted">{% trans "Include scale bars or prepare calibration data for accurate measurements" %}</small>
+                            </div>
+                        </div>
+                        <div class="tip-item">
+                            <i class="fas fa-check-circle tip-icon"></i>
+                            <div>
+                                <strong>{% trans "File Format" %}</strong><br>
+                                <small class="text-muted">{% trans "TIFF format preserves best image quality for analysis" %}</small>
+                            </div>
+                        </div>
+                        <div class="tip-item">
+                            <i class="fas fa-check-circle tip-icon"></i>
+                            <div>
+                                <strong>{% trans "Clean Background" %}</strong><br>
+                                <small class="text-muted">{% trans "Minimize debris and artifacts in the imaging field" %}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Uploads -->
             {% if user.cells.exists %}
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h4 class="mb-0">Your Recent Uploads</h4>
+            <div class="card card-professional mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        {% trans "Recent Uploads" %}
+                    </h4>
+                    <a href="{% url 'cells:list' %}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-eye me-1"></i>
+                        {% trans "View All" %} ({{ user.cells.count }})
+                    </a>
                 </div>
                 <div class="card-body">
-                    <div class="row">
+                    <div class="row g-3">
                         {% for cell in user.cells.all|slice:":6" %}
-                        <div class="col-md-4 mb-3">
-                            <div class="card h-100">
-                                <img src="{{ cell.image.url }}" class="card-img-top" alt="{{ cell.name }}" style="height: 200px; object-fit: cover;">
+                        <div class="col-lg-4 col-md-6">
+                            <div class="card recent-upload-card h-100">
+                                <div class="position-relative">
+                                    <img src="{{ cell.image.url }}" class="card-img-top" alt="{{ cell.name }}" style="height: 180px; object-fit: cover;">
+                                    <div class="position-absolute top-0 end-0 m-2">
+                                        {% if cell.has_analysis %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check me-1"></i>{% trans "Analyzed" %}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                <i class="fas fa-clock me-1"></i>{% trans "Pending" %}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
                                 <div class="card-body">
-                                    <h6 class="card-title">{{ cell.name }}</h6>
-                                    <small class="text-muted">
-                                        {{ cell.image_width }}x{{ cell.image_height }} | 
-                                        {{ cell.file_format|upper }} | 
-                                        {{ cell.file_size|filesizeformat }}
-                                    </small>
-                                    <br>
-                                    <small class="text-muted">{{ cell.created_at|date:"M d, Y H:i" }}</small>
+                                    <h6 class="card-title mb-2">{{ cell.name }}</h6>
+                                    <div class="small text-muted mb-3">
+                                        <div class="d-flex justify-content-between">
+                                            <span><i class="fas fa-ruler me-1"></i>{{ cell.image_width }}×{{ cell.image_height }}</span>
+                                            <span><i class="fas fa-file me-1"></i>{{ cell.file_format|upper }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mt-1">
+                                            <span><i class="fas fa-weight me-1"></i>{{ cell.file_size|filesizeformat }}</span>
+                                            <span><i class="fas fa-clock me-1"></i>{{ cell.created_at|timesince }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="btn-group w-100" role="group">
+                                        <a href="{% url 'cells:cell_detail' cell.id %}" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success btn-sm">
+                                            <i class="fas fa-microscope"></i>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
-                    {% if user.cells.count > 6 %}
-                    <div class="text-center">
-                        <a href="{% url 'cells:list' %}" class="btn btn-outline-primary">View All ({{ user.cells.count }} total)</a>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
             {% endif %}
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadZone = document.getElementById('upload-zone');
+    const fileInput = document.getElementById('file-input');
+    const uploadForm = document.getElementById('upload-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const filePreview = document.getElementById('file-preview');
+    const uploadProgress = document.getElementById('upload-progress');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    
+    // Drag and drop functionality
+    uploadZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadZone.classList.add('dragover');
+    });
+    
+    uploadZone.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+    });
+    
+    uploadZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            handleFileSelect(files[0]);
+        }
+    });
+    
+    // File input change
+    fileInput.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+    
+    // Handle file selection
+    function handleFileSelect(file) {
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/png', 'image/tiff', 'image/bmp'];
+        if (!validTypes.includes(file.type)) {
+            alert('{% trans "Please select a valid image file (JPEG, PNG, TIFF, BMP)" %}');
+            return;
+        }
+        
+        // Validate file size (max 50MB)
+        if (file.size > 50 * 1024 * 1024) {
+            alert('{% trans "File size must be less than 50MB" %}');
+            return;
+        }
+        
+        // Show file preview
+        showFilePreview(file);
+        
+        // Enable submit button
+        submitBtn.disabled = false;
+        
+        // Auto-fill name if empty
+        const nameInput = document.getElementById('id_name');
+        if (!nameInput.value) {
+            nameInput.value = file.name.replace(/\.[^/.]+$/, "");
+        }
+    }
+    
+    // Show file preview
+    function showFilePreview(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('preview-image').src = e.target.result;
+            document.getElementById('file-name').textContent = file.name;
+            document.getElementById('file-size').textContent = formatFileSize(file.size);
+            
+            // Get image dimensions
+            const img = new Image();
+            img.onload = function() {
+                document.getElementById('file-dimensions').textContent = `${this.width} × ${this.height} pixels`;
+            };
+            img.src = e.target.result;
+            
+            filePreview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    // Format file size
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // Form submission with progress
+    uploadForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (!fileInput.files.length) {
+            alert('{% trans "Please select a file to upload" %}');
+            return;
+        }
+        
+        const formData = new FormData(uploadForm);
+        
+        // Show progress
+        uploadProgress.style.display = 'block';
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>{% trans "Uploading..." %}';
+        
+        // Simulate upload progress (in real implementation, use XMLHttpRequest for real progress)
+        let progress = 0;
+        const progressInterval = setInterval(function() {
+            progress += Math.random() * 15;
+            if (progress > 90) progress = 90;
+            
+            progressBar.style.width = progress + '%';
+            progressText.textContent = Math.round(progress) + '%';
+        }, 200);
+        
+        // Submit form
+        fetch(uploadForm.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        }).then(response => {
+            clearInterval(progressInterval);
+            progressBar.style.width = '100%';
+            progressText.textContent = '100%';
+            
+            if (response.ok) {
+                // Redirect on success
+                window.location.href = response.url || '{% url "cells:list" %}';
+            } else {
+                throw new Error('Upload failed');
+            }
+        }).catch(error => {
+            clearInterval(progressInterval);
+            alert('{% trans "Upload failed. Please try again." %}');
+            resetForm();
+        });
+    });
+    
+    // Reset form function
+    window.resetForm = function() {
+        uploadForm.reset();
+        filePreview.style.display = 'none';
+        uploadProgress.style.display = 'none';
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-upload me-2"></i>{% trans "Upload Image" %}';
+        progressBar.style.width = '0%';
+        progressText.textContent = '0%';
+    };
+});
+</script>
 {% endblock %}

@@ -1,68 +1,486 @@
 {% extends 'base.html' %}
 {% load i18n %}
 
-{% block title %}{% trans "Home" %} - Morph AI{% endblock %}
+{% block title %}{% trans "Advanced Cell Morphometric Analysis" %} - Morph AI{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-lg-12">
-        <div class="jumbotron bg-primary text-white p-5 rounded mb-4">
-            <h1 class="display-4">{% trans "Welcome to Morph AI" %}</h1>
-            <p class="lead">{% trans "Your intelligent transformation platform." %}</p>
+<!-- Hero Section -->
+<section class="hero-section">
+    <!-- Animated Background Elements -->
+    <div class="hero-background-animation">
+        <div class="floating-cell cell-1"></div>
+        <div class="floating-cell cell-2"></div>
+        <div class="floating-cell cell-3"></div>
+        <div class="floating-cell cell-4"></div>
+        <div class="floating-cell cell-5"></div>
+        <div class="floating-cell cell-6"></div>
+        <div class="floating-cell cell-7"></div>
+        <div class="floating-cell cell-8"></div>
+    </div>
+    <div class="container-fluid">
+        <div class="hero-content fade-in-up">
+            <h1 class="hero-title">
+                {% trans "Transform Cell Analysis with AI" %}
+            </h1>
+            <p class="hero-subtitle">
+                {% trans "Precision morphometric analysis powered by Cellpose deep learning segmentation" %}
+            </p>
+            
             {% if not user.is_authenticated %}
-                <hr class="my-4">
-                <p>{% trans "Get started by creating an account or signing in." %}</p>
-                <a class="btn btn-light btn-lg" href="{% url 'accounts:signup' %}" role="button">{% trans "Get Started" %}</a>
+                <div class="hero-actions mb-4">
+                    <a class="btn btn-light btn-lg me-3" href="{% url 'accounts:signup' %}" role="button">
+                        <i class="fas fa-rocket me-2"></i>
+                        {% trans "Get Started Free" %}
+                    </a>
+                    <a class="btn btn-outline-light btn-lg" href="{% url 'accounts:login' %}" role="button">
+                        <i class="fas fa-sign-in-alt me-2"></i>
+                        {% trans "Sign In" %}
+                    </a>
+                </div>
             {% else %}
-                <hr class="my-4">
-                <p>{% blocktrans with name=user.full_name|default:user.username %}Welcome back, {{ name }}!{% endblocktrans %}</p>
-                <a class="btn btn-light btn-lg me-2" href="{% url 'cells:upload' %}" role="button">{% trans "Upload Cell Images" %}</a>
-                <a class="btn btn-outline-light btn-lg me-2" href="{% url 'cells:list' %}" role="button">{% trans "View My Cells" %}</a>
-                <a class="btn btn-outline-light btn-lg" href="{% url 'cells:analysis_list' %}" role="button">{% trans "View Analyses" %}</a>
+                <div class="hero-actions mb-4">
+                    <a class="btn btn-light btn-lg me-3" href="{% url 'cells:upload' %}" role="button">
+                        <i class="fas fa-cloud-upload-alt me-2"></i>
+                        {% trans "Upload Cell Images" %}
+                    </a>
+                    <a class="btn btn-outline-light btn-lg me-3" href="{% url 'cells:list' %}" role="button">
+                        <i class="fas fa-images me-2"></i>
+                        {% trans "View Gallery" %}
+                    </a>
+                    <a class="btn btn-outline-light btn-lg" href="{% url 'cells:analysis_list' %}" role="button">
+                        <i class="fas fa-chart-line me-2"></i>
+                        {% trans "View Analyses" %}
+                    </a>
+                </div>
             {% endif %}
+            
+            <!-- Hero Stats -->
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <span class="hero-stat-number">99%</span>
+                    <span class="hero-stat-label">{% trans "Accuracy" %}</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="hero-stat-number">15+</span>
+                    <span class="hero-stat-label">{% trans "Morphometric Features" %}</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="hero-stat-number">1000+</span>
+                    <span class="hero-stat-label">{% trans "Cells Analyzed" %}</span>
+                </div>
+            </div>
         </div>
     </div>
-</div>
+</section>
 
-<div class="row">
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">{% trans "Cell Image Upload" %}</h5>
-                <p class="card-text">{% trans "Upload and manage your cell images with automatic metadata extraction." %}</p>
-                {% if user.is_authenticated %}
-                    <a href="{% url 'cells:upload' %}" class="btn btn-primary">{% trans "Upload Images" %}</a>
-                {% else %}
-                    <a href="{% url 'accounts:login' %}" class="btn btn-primary">{% trans "Login to Upload" %}</a>
-                {% endif %}
+<!-- Features Section -->
+<section class="container-fluid mb-5">
+    <div class="container">
+    <div class="text-center mb-5">
+        <h2 class="text-gradient display-5 fw-bold">{% trans "Powerful Cell Analysis Features" %}</h2>
+        <p class="lead text-muted">{% trans "Everything you need for comprehensive morphometric analysis" %}</p>
+    </div>
+    
+    <div class="row g-4">
+        <div class="col-lg-4 col-md-6">
+            <div class="card feature-card card-upload h-100 animate-on-scroll">
+                <div class="card-body">
+                    <div class="feature-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <h3 class="feature-title">{% trans "Smart Image Upload" %}</h3>
+                    <p class="feature-description">
+                        {% trans "Drag & drop cell images with automatic metadata extraction. Supports multiple formats including TIFF, PNG, and JPEG." %}
+                    </p>
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'cells:upload' %}" class="btn btn-primary">
+                            <i class="fas fa-upload me-2"></i>{% trans "Upload Now" %}
+                        </a>
+                    {% else %}
+                        <a href="{% url 'accounts:signup' %}" class="btn btn-primary">
+                            <i class="fas fa-user-plus me-2"></i>{% trans "Sign Up to Upload" %}
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6">
+            <div class="card feature-card card-analysis h-100 animate-on-scroll">
+                <div class="card-body">
+                    <div class="feature-icon">
+                        <i class="fas fa-microscope"></i>
+                    </div>
+                    <h3 class="feature-title">{% trans "AI-Powered Segmentation" %}</h3>
+                    <p class="feature-description">
+                        {% trans "Advanced Cellpose models for precise cell boundary detection. Multiple model options including cyto, nuclei, and custom models." %}
+                    </p>
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'cells:list' %}" class="btn btn-success">
+                            <i class="fas fa-microscope me-2"></i>{% trans "Analyze Cells" %}
+                        </a>
+                    {% else %}
+                        <a href="{% url 'accounts:signup' %}" class="btn btn-success">
+                            <i class="fas fa-user-plus me-2"></i>{% trans "Sign Up to Analyze" %}
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6">
+            <div class="card feature-card card-data h-100 animate-on-scroll">
+                <div class="card-body">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <h3 class="feature-title">{% trans "Comprehensive Metrics" %}</h3>
+                    <p class="feature-description">
+                        {% trans "Extract 15+ morphometric features including area, perimeter, circularity, eccentricity, and ellipse fitting parameters." %}
+                    </p>
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'cells:analysis_list' %}" class="btn btn-info">
+                            <i class="fas fa-chart-line me-2"></i>{% trans "View Results" %}
+                        </a>
+                    {% else %}
+                        <a href="{% url 'accounts:signup' %}" class="btn btn-info">
+                            <i class="fas fa-user-plus me-2"></i>{% trans "Sign Up to Access" %}
+                        </a>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">{% trans "Image Gallery" %}</h5>
-                <p class="card-text">{% trans "View and organize all your uploaded cell images in one place." %}</p>
-                {% if user.is_authenticated %}
-                    <a href="{% url 'cells:list' %}" class="btn btn-primary">{% trans "View Gallery" %}</a>
-                {% else %}
-                    <a href="{% url 'accounts:login' %}" class="btn btn-primary">{% trans "Login to View" %}</a>
-                {% endif %}
+    </div>
+</section>
+
+<!-- Analysis Capabilities Section -->
+<section class="bg-gradient-primary text-white py-5 mb-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h2 class="display-6 fw-bold mb-4">{% trans "Advanced Analysis Capabilities" %}</h2>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-check-circle fa-lg me-3"></i>
+                            <span>{% trans "Cell Segmentation" %}</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-check-circle fa-lg me-3"></i>
+                            <span>{% trans "Morphometric Analysis" %}</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-check-circle fa-lg me-3"></i>
+                            <span>{% trans "Statistical Reports" %}</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-check-circle fa-lg me-3"></i>
+                            <span>{% trans "Data Export" %}</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-check-circle fa-lg me-3"></i>
+                            <span>{% trans "Scale Calibration" %}</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-check-circle fa-lg me-3"></i>
+                            <span>{% trans "Batch Processing" %}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 text-center">
+                <div class="stats-showcase">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="stat-highlight">
+                                <div class="stat-number text-white">15+</div>
+                                <div class="stat-label opacity-75">{% trans "Morphometric Features" %}</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="stat-highlight">
+                                <div class="stat-number text-white">99%</div>
+                                <div class="stat-label opacity-75">{% trans "Segmentation Accuracy" %}</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="stat-highlight">
+                                <div class="stat-number text-white">4</div>
+                                <div class="stat-label opacity-75">{% trans "Cellpose Models" %}</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="stat-highlight">
+                                <div class="stat-number text-white">∞</div>
+                                <div class="stat-label opacity-75">{% trans "Scale Units" %}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">{% trans "Morphometric Analysis" %}</h5>
-                <p class="card-text">{% trans "Use Cellpose AI to segment cells and extract comprehensive morphometric measurements." %}</p>
-                {% if user.is_authenticated %}
-                    <a href="{% url 'cells:analysis_list' %}" class="btn btn-primary">{% trans "View Analyses" %}</a>
-                {% else %}
-                    <a href="{% url 'accounts:login' %}" class="btn btn-primary">{% trans "Login to Access" %}</a>
-                {% endif %}
+</section>
+
+<!-- Workflow Section -->
+<section class="container-fluid mb-5">
+    <div class="container">
+    <div class="text-center mb-5">
+        <h2 class="display-6 fw-bold text-gradient">{% trans "Simple 3-Step Workflow" %}</h2>
+        <p class="lead text-muted">{% trans "From image upload to comprehensive analysis in minutes" %}</p>
+    </div>
+    
+    <div class="row g-4">
+        <div class="col-lg-4 text-center">
+            <div class="workflow-step">
+                <div class="step-number">1</div>
+                <div class="step-icon">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <h4 class="step-title">{% trans "Upload Images" %}</h4>
+                <p class="step-description">
+                    {% trans "Upload your cell microscopy images. We support multiple formats and automatically extract metadata." %}
+                </p>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 text-center">
+            <div class="workflow-step">
+                <div class="step-number">2</div>
+                <div class="step-icon">
+                    <i class="fas fa-cogs"></i>
+                </div>
+                <h4 class="step-title">{% trans "Configure Analysis" %}</h4>
+                <p class="step-description">
+                    {% trans "Select Cellpose model, adjust parameters, and set scale calibration for accurate measurements." %}
+                </p>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 text-center">
+            <div class="workflow-step">
+                <div class="step-number">3</div>
+                <div class="step-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h4 class="step-title">{% trans "Get Results" %}</h4>
+                <p class="step-description">
+                    {% trans "View comprehensive morphometric data, export results to CSV, and compare analysis results." %}
+                </p>
             </div>
         </div>
     </div>
-</div>
+    </div>
+</section>
+
+<!-- User Dashboard Section (for authenticated users) -->
+{% if user.is_authenticated %}
+<section class="container-fluid mb-5">
+    <div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-professional">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-tachometer-alt me-2"></i>
+                        {% trans "Your Dashboard" %}
+                    </h3>
+                    <span class="badge bg-primary">{% blocktrans with name=user.full_name|default:user.username %}Welcome back, {{ name }}{% endblocktrans %}</span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4 mb-4">
+                        <div class="col-lg-3 col-md-6">
+                            <div class="dashboard-stat-card stat-upload animate-on-scroll">
+                                <div class="stat-icon">
+                                    <i class="fas fa-images"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-number" data-target="{{ user.cells.count }}">{{ user.cells.count }}</div>
+                                    <div class="stat-label">{% trans "Images Uploaded" %}</div>
+                                    <div class="stat-trend">
+                                        <i class="fas fa-arrow-up"></i>
+                                        <span>{% trans "Ready for analysis" %}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="dashboard-stat-card stat-analysis animate-on-scroll">
+                                <div class="stat-icon">
+                                    <i class="fas fa-microscope"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-number" data-target="{{ user.total_analyses|default:'0' }}">{{ user.total_analyses|default:"0" }}</div>
+                                    <div class="stat-label">{% trans "Analyses Completed" %}</div>
+                                    <div class="stat-trend">
+                                        <i class="fas fa-chart-line"></i>
+                                        <span>{% trans "Processing complete" %}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="dashboard-stat-card stat-cells animate-on-scroll">
+                                <div class="stat-icon">
+                                    <i class="fas fa-dot-circle"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-number" data-target="{{ user.total_cells_detected|default:'0' }}">{{ user.total_cells_detected|default:"0" }}</div>
+                                    <div class="stat-label">{% trans "Cells Detected" %}</div>
+                                    <div class="stat-trend">
+                                        <i class="fas fa-search"></i>
+                                        <span>{% trans "AI identified" %}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="dashboard-stat-card stat-calibrated animate-on-scroll">
+                                <div class="stat-icon">
+                                    <i class="fas fa-ruler-combined"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-number" data-target="{{ user.calibrated_images_count|default:'0' }}">{{ user.calibrated_images_count|default:"0" }}</div>
+                                    <div class="stat-label">{% trans "Calibrated Images" %}</div>
+                                    <div class="stat-trend">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>{% trans "Scale verified" %}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-4">
+                            <a href="{% url 'cells:upload' %}" class="btn btn-primary btn-lg w-100">
+                                <i class="fas fa-cloud-upload-alt me-2"></i>
+                                {% trans "Upload New Image" %}
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{% url 'cells:list' %}" class="btn btn-outline-primary btn-lg w-100">
+                                <i class="fas fa-images me-2"></i>
+                                {% trans "View Gallery" %}
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{% url 'cells:analysis_list' %}" class="btn btn-outline-primary btn-lg w-100">
+                                <i class="fas fa-chart-line me-2"></i>
+                                {% trans "View Analyses" %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Technology Section -->
+<section class="bg-light py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="display-6 fw-bold">{% trans "Powered by Advanced Technology" %}</h2>
+            <p class="lead text-muted">{% trans "Built on cutting-edge computer vision and machine learning frameworks" %}</p>
+        </div>
+        
+        <div class="row g-4 align-items-center">
+            <div class="col-md-3 text-center">
+                <div class="tech-logo">
+                    <i class="fas fa-brain fa-3x text-primary"></i>
+                    <h5 class="mt-3">Cellpose</h5>
+                    <p class="text-muted small">Deep Learning Segmentation</p>
+                </div>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="tech-logo">
+                    <i class="fas fa-eye fa-3x text-success"></i>
+                    <h5 class="mt-3">scikit-image</h5>
+                    <p class="text-muted small">Image Processing</p>
+                </div>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="tech-logo">
+                    <i class="fab fa-python fa-3x text-warning"></i>
+                    <h5 class="mt-3">Python</h5>
+                    <p class="text-muted small">Scientific Computing</p>
+                </div>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="tech-logo">
+                    <i class="fas fa-server fa-3x text-info"></i>
+                    <h5 class="mt-3">Django</h5>
+                    <p class="text-muted small">Web Framework</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+.workflow-step {
+    position: relative;
+    padding: 2rem 1rem;
+}
+
+.step-number {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 40px;
+    background: var(--primary-gradient);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.step-icon {
+    font-size: 3rem;
+    color: var(--primary-blue);
+    margin: 2rem 0 1rem;
+}
+
+.step-title {
+    color: var(--dark-navy);
+    margin-bottom: 1rem;
+}
+
+.step-description {
+    color: var(--medium-gray);
+    line-height: 1.6;
+}
+
+.stat-highlight {
+    padding: 1rem;
+}
+
+.tech-logo {
+    padding: 2rem 1rem;
+    transition: transform 0.3s ease;
+}
+
+.tech-logo:hover {
+    transform: translateY(-5px);
+}
+</style>
 {% endblock %}

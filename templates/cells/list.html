@@ -1,79 +1,433 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
-{% block title %}My Cell Images{% endblock %}
+{% block title %}{% trans "Cell Image Gallery" %} - Morph AI{% endblock %}
+
+{% block extra_css %}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>My Cell Images</h2>
-        <div>
-            <a href="{% url 'cells:analysis_list' %}" class="btn btn-outline-success me-2">
-                <i class="fas fa-chart-bar"></i> View Analyses
-            </a>
-            <a href="{% url 'cells:upload' %}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Upload New Image
-            </a>
+    <!-- Gallery Header -->
+    <div class="morph-card morph-bg-light morph-mb-5 morph-p-5">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="display-5 fw-bold text-gradient mb-2">{% trans "Cell Image Gallery" %}</h1>
+                <p class="lead mb-0">{% trans "Manage and analyze your microscopy image collection" %}</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a href="{% url 'cells:upload' %}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-plus me-2"></i>
+                    {% trans "Upload New Image" %}
+                </a>
+            </div>
         </div>
     </div>
     
+    <!-- Statistics Overview -->
     {% if cells %}
-    <div class="row">
-        {% for cell in cells %}
-        <div class="col-md-4 col-lg-3 mb-4">
-            <div class="card h-100">
-                <img src="{{ cell.image.url }}" class="card-img-top" alt="{{ cell.name }}" style="height: 200px; object-fit: cover;">
-                <div class="card-body">
-                    <h6 class="card-title">{{ cell.name }}</h6>
-                    <div class="small text-muted mb-3">
-                        <p class="mb-1"><strong>Dimensions:</strong> {{ cell.image_width }}×{{ cell.image_height }}</p>
-                        <p class="mb-1"><strong>Format:</strong> {{ cell.file_format|upper }}</p>
-                        <p class="mb-1"><strong>Size:</strong> {{ cell.file_size|filesizeformat }}</p>
-                        <p class="mb-1"><strong>Uploaded:</strong> {{ cell.created_at|date:"M d, Y" }}</p>
-                        <p class="mb-0">
-                            <span class="badge bg-{{ cell.has_analysis|yesno:'success,secondary' }}">
-                                {{ cell.analysis_count }} analysis{{ cell.analysis_count|pluralize:"es" }}
-                            </span>
-                        </p>
-                    </div>
-                    
-                    <div class="btn-group w-100" role="group">
-                        <a href="{% url 'cells:cell_detail' cell.id %}" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-eye"></i> View
-                        </a>
-                        <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success btn-sm">
-                            <i class="fas fa-microscope"></i> Analyze
-                        </a>
-                    </div>
-                    
-                    {% if cell.latest_analysis %}
-                    <div class="mt-2">
-                        <small class="text-muted">Latest: </small>
-                        <span class="badge bg-{% if cell.latest_analysis.status == 'completed' %}success{% elif cell.latest_analysis.status == 'failed' %}danger{% else %}warning{% endif %}">
-                            {% if cell.latest_analysis.status == 'completed' %}
-                                {{ cell.latest_analysis.num_cells_detected }} cells
-                            {% else %}
-                                {{ cell.latest_analysis.get_status_display }}
-                            {% endif %}
-                        </span>
-                    </div>
-                    {% endif %}
+    <div class="morph-stats">
+        <div class="morph-stats__item">
+            <div class="morph-stats__number">{{ cells|length }}</div>
+            <div class="morph-stats__label">{% trans "Total Images" %}</div>
+        </div>
+        <div class="morph-stats__item">
+            <div class="morph-stats__number">{{ analyzed_count|default:0 }}</div>
+            <div class="morph-stats__label">{% trans "Analyzed" %}</div>
+        </div>
+        <div class="morph-stats__item">
+            <div class="morph-stats__number">{{ total_cells_detected|default:0 }}</div>
+            <div class="morph-stats__label">{% trans "Cells Detected" %}</div>
+        </div>
+        <div class="morph-stats__item">
+            <div class="morph-stats__number">{{ calibrated_count|default:0 }}</div>
+            <div class="morph-stats__label">{% trans "Calibrated" %}</div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Search and Filter Bar -->
+    <div class="morph-search-bar">
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" class="form-control" placeholder="{% trans 'Search images...' %}" id="search-input">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select sort-dropdown" id="sort-select">
+                    <option value="newest">{% trans "Newest First" %}</option>
+                    <option value="oldest">{% trans "Oldest First" %}</option>
+                    <option value="name">{% trans "Name A-Z" %}</option>
+                    <option value="size">{% trans "File Size" %}</option>
+                    <option value="analyzed">{% trans "Analyzed First" %}</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="filter-select">
+                    <option value="all">{% trans "All Images" %}</option>
+                    <option value="analyzed">{% trans "Analyzed Only" %}</option>
+                    <option value="unanalyzed">{% trans "Not Analyzed" %}</option>
+                    <option value="calibrated">{% trans "Calibrated" %}</option>
+                    <option value="uncalibrated">{% trans "Not Calibrated" %}</option>
+                </select>
+            </div>
+            <div class="col-md-2 text-end">
+                <div class="morph-view-toggle">
+                    <button type="button" class="morph-view-toggle__button morph-view-toggle__button--active" data-view="grid" title="{% trans 'Grid View' %}">
+                        <i class="fas fa-th"></i>
+                    </button>
+                    <button type="button" class="morph-view-toggle__button" data-view="list" title="{% trans 'List View' %}">
+                        <i class="fas fa-list"></i>
+                    </button>
                 </div>
             </div>
         </div>
-        {% endfor %}
+        
+        <!-- Active Filters -->
+        <div class="morph-filter-chips morph-hide" id="active-filters">
+            <!-- Dynamically populated by JavaScript -->
+        </div>
     </div>
+    
+    <!-- Image Gallery -->
+    {% if cells %}
+    <div class="image-gallery" id="image-gallery">
+        <div class="row">
+            {% for cell in cells %}
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4 gallery-item" 
+                 data-name="{{ cell.name|lower }}" 
+                 data-analyzed="{{ cell.has_analysis|yesno:'true,false' }}" 
+                 data-calibrated="{{ cell.scale_set|yesno:'true,false' }}"
+                 data-date="{{ cell.created_at|date:'c' }}"
+                 data-size="{{ cell.file_size }}">
+                
+                <div class="morph-image-card h-100">
+                    <!-- Image Container -->
+                    <div class="morph-image-card__container">
+                        <img src="{{ cell.image.url }}" class="morph-image-card__image" alt="{{ cell.name }}">
+                        
+                        <!-- Status Badges -->
+                        <div class="morph-image-card__badge-container">
+                            {% if cell.has_analysis %}
+                            <span class="badge bg-success morph-image-card__badge">
+                                <i class="fas fa-check-circle me-1"></i>{% trans "Analyzed" %}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-warning morph-image-card__badge">
+                                <i class="fas fa-clock me-1"></i>{% trans "Pending" %}
+                            </span>
+                            {% endif %}
+                            
+                            {% if cell.scale_set %}
+                            <span class="badge bg-info morph-image-card__badge">
+                                <i class="fas fa-ruler me-1"></i>{% trans "Calibrated" %}
+                            </span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Hover Overlay -->
+                        <div class="morph-image-card__overlay">
+                            <div class="morph-image-card__actions">
+                                <a href="{% url 'cells:cell_detail' cell.id %}" class="btn btn-light btn-sm" title="{% trans 'View Details' %}">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success btn-sm" title="{% trans 'Analyze' %}">
+                                    <i class="fas fa-microscope"></i>
+                                </a>
+                                {% if cell.has_analysis %}
+                                <a href="{% url 'cells:analysis_list' %}?cell={{ cell.id }}" class="btn btn-info btn-sm" title="{% trans 'View Results' %}">
+                                    <i class="fas fa-chart-line"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Card Body -->
+                    <div class="card-body p-3">
+                        <h6 class="card-title mb-2 text-truncate fw-bold">{{ cell.name }}</h6>
+                        
+                        <!-- Metadata Grid -->
+                        <div class="morph-metadata-grid">
+                            <div class="morph-metadata-item">
+                                <i class="fas fa-expand-arrows-alt text-primary"></i>
+                                <span>{{ cell.image_width }}×{{ cell.image_height }}</span>
+                            </div>
+                            <div class="morph-metadata-item">
+                                <i class="fas fa-file-image text-primary"></i>
+                                <span>{{ cell.file_format|upper }}</span>
+                            </div>
+                            <div class="morph-metadata-item">
+                                <i class="fas fa-hdd text-primary"></i>
+                                <span>{{ cell.file_size|filesizeformat }}</span>
+                            </div>
+                            <div class="morph-metadata-item">
+                                <i class="fas fa-clock text-primary"></i>
+                                <span>{{ cell.created_at|timesince }}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Analysis Info -->
+                        {% if cell.latest_analysis and cell.latest_analysis.status == 'completed' %}
+                        <div class="morph-analysis-info morph-analysis-info--success morph-mt-2">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <small class="text-success fw-bold">
+                                    <i class="fas fa-microscope me-1"></i>
+                                    {{ cell.latest_analysis.num_cells_detected }} {% trans "cells detected" %}
+                                </small>
+                                <small class="text-muted">{{ cell.latest_analysis.analysis_date|timesince }}</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Card Actions -->
+                    <div class="card-footer bg-transparent p-2">
+                        <div class="d-grid gap-1">
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'cells:cell_detail' cell.id %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-eye me-1"></i>{% trans "View" %}
+                                </a>
+                                <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success btn-sm">
+                                    <i class="fas fa-microscope me-1"></i>{% trans "Analyze" %}
+                                </a>
+                            </div>
+                            {% if not cell.scale_set %}
+                            <a href="{% url 'cells:set_scale_calibration' cell.id %}" class="btn btn-warning btn-sm">
+                                <i class="fas fa-ruler me-1"></i>{% trans "Set Scale" %}
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Load More Button (if needed for pagination) -->
+    <div class="text-center mt-4">
+        <button class="btn btn-outline-primary morph-hide" id="load-more">
+            <i class="fas fa-plus me-2"></i>
+            {% trans "Load More Images" %}
+        </button>
+    </div>
+    
     {% else %}
-    <div class="text-center py-5">
-        <i class="fas fa-images fa-3x text-muted mb-3"></i>
-        <h4 class="text-muted">No cell images uploaded yet</h4>
-        <p class="text-muted">Upload your first cell image to get started with morphometric analysis!</p>
-        <a href="{% url 'cells:upload' %}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Upload Image
+    <!-- Empty State -->
+    <div class="morph-empty-state">
+        <div class="morph-empty-state__icon">
+            <i class="fas fa-images"></i>
+        </div>
+        <h3 class="text-muted mb-3">{% trans "No cell images uploaded yet" %}</h3>
+        <p class="text-muted mb-4">
+            {% trans "Upload your first cell image to get started with morphometric analysis!" %}
+        </p>
+        <a href="{% url 'cells:upload' %}" class="btn btn-primary btn-lg">
+            <i class="fas fa-cloud-upload-alt me-2"></i>
+            {% trans "Upload Your First Image" %}
         </a>
     </div>
     {% endif %}
 </div>
 
-<!-- Font Awesome for icons -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-input');
+    const sortSelect = document.getElementById('sort-select');
+    const filterSelect = document.getElementById('filter-select');
+    const galleryItems = document.querySelectorAll('.gallery-item');
+    const viewToggle = document.querySelectorAll('.view-toggle button');
+    const activeFilters = document.getElementById('active-filters');
+    
+    let currentFilters = {
+        search: '',
+        sort: 'newest',
+        filter: 'all'
+    };
+    
+    // Search functionality
+    searchInput.addEventListener('input', function() {
+        currentFilters.search = this.value.toLowerCase();
+        applyFilters();
+    });
+    
+    // Sort functionality
+    sortSelect.addEventListener('change', function() {
+        currentFilters.sort = this.value;
+        applyFilters();
+    });
+    
+    // Filter functionality
+    filterSelect.addEventListener('change', function() {
+        currentFilters.filter = this.value;
+        applyFilters();
+        updateFilterChips();
+    });
+    
+    // View toggle
+    viewToggle.forEach(button => {
+        button.addEventListener('click', function() {
+            viewToggle.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            
+            const view = this.dataset.view;
+            toggleView(view);
+        });
+    });
+    
+    // Apply all filters
+    function applyFilters() {
+        let visibleItems = Array.from(galleryItems);
+        
+        // Apply search filter
+        if (currentFilters.search) {
+            visibleItems = visibleItems.filter(item => 
+                item.dataset.name.includes(currentFilters.search)
+            );
+        }
+        
+        // Apply category filter
+        if (currentFilters.filter !== 'all') {
+            visibleItems = visibleItems.filter(item => {
+                switch (currentFilters.filter) {
+                    case 'analyzed':
+                        return item.dataset.analyzed === 'true';
+                    case 'unanalyzed':
+                        return item.dataset.analyzed === 'false';
+                    case 'calibrated':
+                        return item.dataset.calibrated === 'true';
+                    case 'uncalibrated':
+                        return item.dataset.calibrated === 'false';
+                    default:
+                        return true;
+                }
+            });
+        }
+        
+        // Apply sorting
+        visibleItems.sort((a, b) => {
+            switch (currentFilters.sort) {
+                case 'newest':
+                    return new Date(b.dataset.date) - new Date(a.dataset.date);
+                case 'oldest':
+                    return new Date(a.dataset.date) - new Date(b.dataset.date);
+                case 'name':
+                    return a.dataset.name.localeCompare(b.dataset.name);
+                case 'size':
+                    return parseInt(b.dataset.size) - parseInt(a.dataset.size);
+                case 'analyzed':
+                    return b.dataset.analyzed.localeCompare(a.dataset.analyzed);
+                default:
+                    return 0;
+            }
+        });
+        
+        // Hide all items first
+        galleryItems.forEach(item => {
+            item.style.display = 'none';
+        });
+        
+        // Show filtered and sorted items
+        visibleItems.forEach((item, index) => {
+            item.style.display = 'block';
+            item.style.order = index;
+        });
+        
+        // Add animation
+        visibleItems.forEach((item, index) => {
+            setTimeout(() => {
+                item.classList.add('fade-in-up');
+            }, index * 50);
+        });
+    }
+    
+    // Toggle view (grid/list)
+    function toggleView(view) {
+        const gallery = document.getElementById('image-gallery');
+        const row = gallery.querySelector('.row');
+        
+        if (view === 'list') {
+            row.classList.remove('g-4');
+            row.classList.add('g-2');
+            galleryItems.forEach(item => {
+                item.className = 'col-12 gallery-item';
+                item.querySelector('.image-card').style.display = 'flex';
+                item.querySelector('.image-container').style.width = '200px';
+                item.querySelector('.image-container').style.flexShrink = '0';
+            });
+        } else {
+            row.classList.remove('g-2');
+            row.classList.add('g-4');
+            galleryItems.forEach(item => {
+                item.className = 'col-xl-3 col-lg-4 col-md-6 gallery-item';
+                item.querySelector('.image-card').style.display = 'block';
+                item.querySelector('.image-container').style.width = 'auto';
+            });
+        }
+    }
+    
+    // Update filter chips
+    function updateFilterChips() {
+        const chips = [];
+        
+        if (currentFilters.search) {
+            chips.push({
+                type: 'search',
+                label: `{% trans "Search" %}: ${currentFilters.search}`,
+                value: currentFilters.search
+            });
+        }
+        
+        if (currentFilters.filter !== 'all') {
+            const filterLabels = {
+                'analyzed': '{% trans "Analyzed" %}',
+                'unanalyzed': '{% trans "Not Analyzed" %}',
+                'calibrated': '{% trans "Calibrated" %}',
+                'uncalibrated': '{% trans "Not Calibrated" %}'
+            };
+            
+            chips.push({
+                type: 'filter',
+                label: filterLabels[currentFilters.filter],
+                value: currentFilters.filter
+            });
+        }
+        
+        if (chips.length > 0) {
+            activeFilters.style.display = 'flex';
+            activeFilters.innerHTML = chips.map(chip => `
+                <div class="filter-chip">
+                    ${chip.label}
+                    <button onclick="removeFilter('${chip.type}', '${chip.value}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `).join('');
+        } else {
+            activeFilters.style.display = 'none';
+        }
+    }
+    
+    // Remove filter chip
+    window.removeFilter = function(type, value) {
+        if (type === 'search') {
+            searchInput.value = '';
+            currentFilters.search = '';
+        } else if (type === 'filter') {
+            filterSelect.value = 'all';
+            currentFilters.filter = 'all';
+        }
+        
+        applyFilters();
+        updateFilterChips();
+    };
+    
+    // Initialize
+    applyFilters();
+});
+</script>
 {% endblock %}

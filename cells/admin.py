@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
 from .models import Cell, CellAnalysis, DetectedCell
 
 
@@ -39,17 +40,17 @@ class CellAnalysisAdmin(admin.ModelAdmin):
     inlines = [DetectedCellInline]
     
     fieldsets = (
-        ('Basic Information', {
+        (_('Basic Information'), {
             'fields': ('cell', 'status')
         }),
-        ('Analysis Parameters', {
+        (_('Analysis Parameters'), {
             'fields': ('cellpose_model', 'cellpose_diameter', 'flow_threshold', 'cellprob_threshold')
         }),
-        ('Results', {
+        (_('Results'), {
             'fields': ('segmentation_image', 'num_cells_detected', 'processing_time'),
             'classes': ('collapse',)
         }),
-        ('Status & Timestamps', {
+        (_('Status & Timestamps'), {
             'fields': ('analysis_date', 'completed_at', 'error_message'),
             'classes': ('collapse',)
         }),
@@ -57,11 +58,11 @@ class CellAnalysisAdmin(admin.ModelAdmin):
     
     def cell_name(self, obj):
         return obj.cell.name
-    cell_name.short_description = 'Cell Name'
+    cell_name.short_description = _('Cell Name')
     
     def user(self, obj):
         return obj.cell.user.email
-    user.short_description = 'User'
+    user.short_description = _('User')
     
     def get_readonly_fields(self, request, obj=None):
         if obj and obj.status in ['completed', 'failed']:
