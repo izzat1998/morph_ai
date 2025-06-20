@@ -131,4 +131,4 @@ static_collected/
 Thumbs.db
 
 # Django migrations (optional - uncomment if you don't want to track migrations)
-# */migrations/
+*/migrations/
