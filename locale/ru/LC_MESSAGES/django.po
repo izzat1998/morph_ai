@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-20 06:03+0000\n"
+"POT-Creation-Date: 2025-06-20 10:01+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -25,7 +25,7 @@ msgstr ""
 msgid "Sign Up"
 msgstr "Регистрация"
 
-#: accounts/forms.py:53 templates/accounts/login.html:12 templates/home.html:26
+#: accounts/forms.py:53 templates/accounts/login.html:12 templates/home.html:37
 #, fuzzy
 #| msgid "Sign Up"
 msgid "Sign In"
@@ -223,7 +223,7 @@ msgstr "Порог вероятности клетки"
 msgid "Use Region of Interest (ROI) Selection"
 msgstr ""
 
-#: cells/forms.py:176 templates/cells/analyze.html:72
+#: cells/forms.py:176 templates/cells/analyze.html:195
 msgid "Analysis Configuration"
 msgstr "Настройки анализа"
 
@@ -355,12 +355,11 @@ msgstr ""
 msgid "Enter the actual length of the measured object in microns"
 msgstr ""
 
-#: cells/forms.py:353 templates/home.html:178
+#: cells/forms.py:353 templates/home.html:191
 msgid "Scale Calibration"
 msgstr ""
 
-#: cells/forms.py:368 templates/cells/analyze.html:62
-#: templates/cells/list.html:200
+#: cells/forms.py:368 templates/cells/list.html:200
 #, fuzzy
 #| msgid "Get Started"
 msgid "Set Scale"
@@ -384,7 +383,8 @@ msgstr ""
 msgid "Image"
 msgstr "Название изображения"
 
-#: cells/models.py:14 templates/cells/list.html:64
+#: cells/models.py:14 templates/cells/analyze.html:160
+#: templates/cells/list.html:64
 msgid "File Size"
 msgstr ""
 
@@ -463,7 +463,7 @@ msgstr "Обработка"
 msgid "Completed"
 msgstr "Завершено"
 
-#: cells/models.py:99
+#: cells/models.py:99 templates/cells/analyze.html:364
 msgid "Failed"
 msgstr "Ошибка"
 
@@ -596,7 +596,7 @@ msgid "Quality category: excellent, good, fair, poor"
 msgstr ""
 
 #: cells/models.py:135 templates/cells/analysis_detail.html:107
-#: templates/cells/list.html:39 templates/home.html:297
+#: templates/cells/list.html:39 templates/home.html:340
 msgid "Cells Detected"
 msgstr "Обнаружено клеток"
 
@@ -612,7 +612,7 @@ msgstr "Время обработки:"
 msgid "Processing time in seconds"
 msgstr "Время обработки:"
 
-#: cells/models.py:139 templates/cells/analyze.html:113
+#: cells/models.py:139 templates/cells/analyze.html:299
 #, fuzzy
 #| msgid "Status:"
 msgid "Status"
@@ -962,6 +962,11 @@ msgstr ""
 msgid "Sign in here"
 msgstr ""
 
+#: templates/base.html:7 templates/base.html:34 templates/base.html:41
+#: templates/base.html:199 templates/base.html:229 templates/cells/list.html:4
+msgid "Morph AI"
+msgstr ""
+
 #: templates/base.html:32
 msgid ""
 "Advanced cell morphometric analysis using AI-powered segmentation with "
@@ -970,10 +975,6 @@ msgstr ""
 
 #: templates/base.html:33
 msgid "cell analysis, morphometry, microscopy, Cellpose, AI, image analysis"
-msgstr ""
-
-#: templates/base.html:34
-msgid "Morph AI"
 msgstr ""
 
 #: templates/base.html:44
@@ -1030,22 +1031,22 @@ msgstr ""
 msgid "Features"
 msgstr ""
 
-#: templates/base.html:211 templates/home.html:154
+#: templates/base.html:211 templates/home.html:167
 #, fuzzy
 #| msgid "Segmentation Results"
 msgid "Cell Segmentation"
 msgstr "Результаты сегментации"
 
-#: templates/base.html:212 templates/cells/analyze.html:13
-#: templates/home.html:160
+#: templates/base.html:212 templates/cells/analyze.html:20
+#: templates/home.html:173
 msgid "Morphometric Analysis"
 msgstr "Морфометрический анализ"
 
-#: templates/base.html:213 templates/home.html:172
+#: templates/base.html:213 templates/home.html:185
 msgid "Data Export"
 msgstr ""
 
-#: templates/base.html:214 templates/home.html:184
+#: templates/base.html:214 templates/home.html:197
 #, fuzzy
 #| msgid "Processing"
 msgid "Batch Processing"
@@ -1077,6 +1078,16 @@ msgstr "Все права защищены."
 
 #: templates/base.html:233
 msgid "Powered by"
+msgstr ""
+
+#: templates/base.html:233 templates/home.html:405
+#, fuzzy
+#| msgid "Cellpose Model"
+msgid "Cellpose"
+msgstr "Модель Cellpose"
+
+#: templates/base.html:234 templates/home.html:412
+msgid "scikit-image"
 msgstr ""
 
 #: templates/base.html:256 templates/cells/analysis_detail.html:119
@@ -1124,7 +1135,7 @@ msgstr "секунд"
 msgid "Cellpose Model:"
 msgstr "Модель Cellpose:"
 
-#: templates/cells/analysis_detail.html:71 templates/cells/analyze.html:91
+#: templates/cells/analysis_detail.html:71 templates/cells/analyze.html:260
 msgid "Diameter:"
 msgstr "Диаметр:"
 
@@ -1132,7 +1143,7 @@ msgstr "Диаметр:"
 msgid "px"
 msgstr "пикс"
 
-#: templates/cells/analysis_detail.html:75 templates/cells/analyze.html:92
+#: templates/cells/analysis_detail.html:75 templates/cells/analyze.html:261
 msgid "Flow Threshold:"
 msgstr "Порог потока:"
 
@@ -1144,7 +1155,7 @@ msgstr "Порог вер. клетки:"
 msgid "Scale Calibration:"
 msgstr ""
 
-#: templates/cells/analysis_detail.html:88 templates/cells/analyze.html:60
+#: templates/cells/analysis_detail.html:88
 msgid "Not calibrated"
 msgstr ""
 
@@ -1318,7 +1329,7 @@ msgid "Analysis in progress..."
 msgstr ""
 
 #: templates/cells/analysis_list.html:116 templates/cells/list.html:141
-#: templates/home.html:131
+#: templates/home.html:143
 #, fuzzy
 #| msgid "View My Cells"
 msgid "View Results"
@@ -1336,7 +1347,7 @@ msgstr ""
 msgid "Details"
 msgstr ""
 
-#: templates/cells/analysis_list.html:130 templates/cells/analyze.html:134
+#: templates/cells/analysis_list.html:130 templates/cells/analyze.html:354
 #: templates/cells/list.html:192
 msgid "View"
 msgstr ""
@@ -1369,157 +1380,237 @@ msgid "Start by uploading cell images and running morphometric analysis."
 msgstr ""
 
 #: templates/cells/analysis_list.html:196 templates/cells/upload.html:143
-#: templates/home.html:33
+#: templates/home.html:44
 msgid "Upload Cell Images"
 msgstr "Загрузить изображения клеток"
 
-#: templates/cells/analyze.html:5 templates/cells/list.html:137
-#: templates/cells/list.html:195
+#: templates/cells/analyze.html:5 templates/cells/analyze.html:17
+#: templates/cells/list.html:137 templates/cells/list.html:195
 #, fuzzy
 #| msgid "Analyses"
 msgid "Analyze"
 msgstr "Анализы"
 
-#: templates/cells/analyze.html:18
+#: templates/cells/analyze.html:15
+#, fuzzy
+#| msgid "Image Gallery"
+msgid "Images"
+msgstr "Название изображения"
+
+#: templates/cells/analyze.html:32
+msgid "Scale calibrated"
+msgstr ""
+
+#: templates/cells/analyze.html:37
+msgid "Scale not calibrated"
+msgstr ""
+
+#: templates/cells/analyze.html:57
 #, fuzzy
 #| msgid "Image Gallery"
 msgid "Image Preview"
 msgstr "Название изображения"
 
-#: templates/cells/analyze.html:25
-msgid "Add Region"
-msgstr ""
-
-#: templates/cells/analyze.html:28
-msgid "Clear All"
-msgstr ""
-
-#: templates/cells/analyze.html:32
-msgid "region(s) selected."
-msgstr ""
-
-#: templates/cells/analyze.html:33
-msgid ""
-"Instructions: Click \"Add Region\", then click and drag to draw rectangles "
-"around areas with cells."
-msgstr ""
-
-#: templates/cells/analyze.html:40
-msgid "Click and drag to draw rectangle"
-msgstr ""
-
-#: templates/cells/analyze.html:52
-msgid "Image Information"
-msgstr ""
-
-#: templates/cells/analyze.html:54
-msgid "Dimensions:"
-msgstr ""
-
-#: templates/cells/analyze.html:55
-msgid "Format:"
-msgstr ""
-
-#: templates/cells/analyze.html:56
-msgid "File Size:"
-msgstr ""
-
-#: templates/cells/analyze.html:58 templates/cells/analyze.html:60
-msgid "Scale:"
+#: templates/cells/analyze.html:62
+msgid "ROI Mode Active"
 msgstr ""
 
 #: templates/cells/analyze.html:75
+msgid "Add Region"
+msgstr ""
+
+#: templates/cells/analyze.html:78
+msgid "Clear All"
+msgstr ""
+
+#: templates/cells/analyze.html:81
+#, fuzzy
+#| msgid "Login to View"
+msgid "Fit to View"
+msgstr "Войти для просмотра"
+
+#: templates/cells/analyze.html:89
+msgid "Regions"
+msgstr ""
+
+#: templates/cells/analyze.html:97
+msgid "ROI Instructions"
+msgstr ""
+
+#: templates/cells/analyze.html:100
+msgid "Click \"Add Region\" to enable drawing mode"
+msgstr ""
+
+#: templates/cells/analyze.html:101
+msgid "Click and drag to draw rectangles around cell areas"
+msgstr ""
+
+#: templates/cells/analyze.html:102
+msgid "Multiple regions can be selected for analysis"
+msgstr ""
+
+#: templates/cells/analyze.html:103
+msgid "Use \"Clear All\" to remove all regions"
+msgstr ""
+
+#: templates/cells/analyze.html:114
+msgid "Click and drag to draw rectangle"
+msgstr ""
+
+#: templates/cells/analyze.html:125
+msgid "Toggle Fullscreen"
+msgstr ""
+
+#: templates/cells/analyze.html:142
+msgid "Dimensions"
+msgstr ""
+
+#: templates/cells/analyze.html:151
+msgid "Format"
+msgstr ""
+
+#: templates/cells/analyze.html:175
+msgid "Not Set"
+msgstr ""
+
+#: templates/cells/analyze.html:178
+#, fuzzy
+#| msgid "Upload Images"
+msgid "Calibrate"
+msgstr "Загрузить изображения"
+
+#: templates/cells/analyze.html:206
 #, fuzzy
 #| msgid "View Analyses"
 msgid "About Cellpose Analysis"
 msgstr "Посмотреть анализы"
 
-#: templates/cells/analyze.html:76
+#: templates/cells/analyze.html:207
 msgid ""
-"This analysis will use Cellpose to automatically segment individual cells "
+"This analysis will use Cellpose AI to automatically segment individual cells "
 "and extract morphometric features including area, perimeter, circularity, "
 "and shape descriptors."
 msgstr ""
 
-#: templates/cells/analyze.html:83
+#: templates/cells/analyze.html:225
+#, fuzzy
+#| msgid "Analyses"
+msgid "Analysis in Progress"
+msgstr "Дата анализа:"
+
+#: templates/cells/analyze.html:226
+msgid "This may take a few minutes depending on image size and complexity..."
+msgstr ""
+
+#: templates/cells/analyze.html:240
 msgid "Parameter Guide"
 msgstr ""
 
-#: templates/cells/analyze.html:88
+#: templates/cells/analyze.html:248
+#, fuzzy
+#| msgid "Segmentation Results"
+msgid "Model Selection"
+msgstr "Результаты сегментации"
+
+#: templates/cells/analyze.html:250
 #, fuzzy
 #| msgid "Cytoplasm"
 msgid "Cytoplasm:"
 msgstr "Цитоплазма"
 
-#: templates/cells/analyze.html:88
+#: templates/cells/analyze.html:250
 msgid "Best for cytoplasmic staining"
 msgstr ""
 
-#: templates/cells/analyze.html:89
+#: templates/cells/analyze.html:251
 #, fuzzy
 #| msgid "Nuclei"
 msgid "Nuclei:"
 msgstr "Ядра"
 
-#: templates/cells/analyze.html:89
+#: templates/cells/analyze.html:251
 msgid "Best for nuclear staining"
 msgstr ""
 
-#: templates/cells/analyze.html:90
+#: templates/cells/analyze.html:252
 #, fuzzy
 #| msgid "Cytoplasm 2.0"
 msgid "Cytoplasm 2.0:"
 msgstr "Цитоплазма 2.0"
 
-#: templates/cells/analyze.html:90
+#: templates/cells/analyze.html:252
 msgid "Improved cytoplasm model"
 msgstr ""
 
-#: templates/cells/analyze.html:91
+#: templates/cells/analyze.html:258
+#, fuzzy
+#| msgid "Analyses"
+msgid "Parameters"
+msgstr "Дата анализа:"
+
+#: templates/cells/analyze.html:260
 #, fuzzy
 #| msgid "Diameter must be positive or 0 for auto-detection"
 msgid "Set to 0 for automatic detection"
 msgstr "Диаметр должен быть положительным или 0 для автоопределения"
 
-#: templates/cells/analyze.html:92
+#: templates/cells/analyze.html:261
 msgid "Lower values detect more cells"
 msgstr ""
 
-#: templates/cells/analyze.html:105
+#: templates/cells/analyze.html:262
+#, fuzzy
+#| msgid "Cell Probability Threshold"
+msgid "Cell Probability:"
+msgstr "Порог вероятности клетки"
+
+#: templates/cells/analyze.html:262
+msgid "Higher values for cleaner segmentation"
+msgstr ""
+
+#: templates/cells/analyze.html:286
 #, fuzzy
 #| msgid "View Analyses"
 msgid "Previous Analyses"
 msgstr "Посмотреть анализы"
 
-#: templates/cells/analyze.html:112
+#: templates/cells/analyze.html:289
+msgid "Total"
+msgstr ""
+
+#: templates/cells/analyze.html:298
 msgid "Date"
 msgstr ""
 
-#: templates/cells/analyze.html:114
+#: templates/cells/analyze.html:300
 msgid "Model"
 msgstr ""
 
-#: templates/cells/analyze.html:115
+#: templates/cells/analyze.html:301
 #, fuzzy
 #| msgid "Diameter:"
 msgid "Diameter"
 msgstr "Диаметр:"
 
-#: templates/cells/analyze.html:116
+#: templates/cells/analyze.html:302
 #, fuzzy
 #| msgid "Cellpose Model"
 msgid "Cells Found"
 msgstr "Модель Cellpose"
 
-#: templates/cells/analyze.html:117
+#: templates/cells/analyze.html:303
 msgid "Actions"
 msgstr ""
 
-#: templates/cells/analyze.html:143
+#: templates/cells/analyze.html:359
+msgid "In progress..."
+msgstr ""
+
+#: templates/cells/analyze.html:376
 msgid "Showing 5 most recent analyses."
 msgstr ""
 
-#: templates/cells/analyze.html:143
+#: templates/cells/analyze.html:378
 #, fuzzy
 #| msgid "View Gallery"
 msgid "View all"
@@ -1535,7 +1626,7 @@ msgstr "Галерея изображений"
 msgid "Manage and analyze your microscopy image collection"
 msgstr ""
 
-#: templates/cells/list.html:20 templates/home.html:309
+#: templates/cells/list.html:20 templates/home.html:369
 #, fuzzy
 #| msgid "Upload Cell Images"
 msgid "Upload New Image"
@@ -1647,6 +1738,10 @@ msgstr "Загрузить изображения"
 
 #: templates/cells/list.html:380
 msgid "Search"
+msgstr ""
+
+#: templates/cells/list.html:405
+msgid "Remove filter"
 msgstr ""
 
 #: templates/cells/upload.html:144
@@ -1774,214 +1869,262 @@ msgstr ""
 msgid "Advanced Cell Morphometric Analysis"
 msgstr "Морфометрический анализ"
 
-#: templates/home.html:12
+#: templates/home.html:23
 msgid "Transform Cell Analysis with AI"
 msgstr ""
 
-#: templates/home.html:15
+#: templates/home.html:26
 msgid ""
 "Precision morphometric analysis powered by Cellpose deep learning "
 "segmentation"
 msgstr ""
 
-#: templates/home.html:22
+#: templates/home.html:33
 #, fuzzy
 #| msgid "Get Started"
 msgid "Get Started Free"
 msgstr "Начать"
 
-#: templates/home.html:37 templates/home.html:315
+#: templates/home.html:48 templates/home.html:375
 msgid "View Gallery"
 msgstr "Посмотреть галерею"
 
-#: templates/home.html:41 templates/home.html:321
+#: templates/home.html:52 templates/home.html:381
 msgid "View Analyses"
 msgstr "Посмотреть анализы"
 
-#: templates/home.html:50
+#: templates/home.html:61
 msgid "Accuracy"
 msgstr ""
 
-#: templates/home.html:54 templates/home.html:195
+#: templates/home.html:65 templates/home.html:208
 #, fuzzy
 #| msgid "Morphometric Analysis"
 msgid "Morphometric Features"
 msgstr "Морфометрический анализ"
 
-#: templates/home.html:58
+#: templates/home.html:69
 #, fuzzy
 #| msgid "View Analyses"
 msgid "Cells Analyzed"
 msgstr "Посмотреть анализы"
 
-#: templates/home.html:68
+#: templates/home.html:80
 msgid "Powerful Cell Analysis Features"
 msgstr ""
 
-#: templates/home.html:69
+#: templates/home.html:81
 msgid "Everything you need for comprehensive morphometric analysis"
 msgstr ""
 
-#: templates/home.html:79
+#: templates/home.html:91
 #, fuzzy
 #| msgid "Cell Image Upload"
 msgid "Smart Image Upload"
 msgstr "Загрузка изображений клеток"
 
-#: templates/home.html:81
+#: templates/home.html:93
 msgid ""
 "Drag & drop cell images with automatic metadata extraction. Supports "
 "multiple formats including TIFF, PNG, and JPEG."
 msgstr ""
 
-#: templates/home.html:85
+#: templates/home.html:97
 #, fuzzy
 #| msgid "Upload Cells"
 msgid "Upload Now"
 msgstr "Загрузить клетки"
 
-#: templates/home.html:89
+#: templates/home.html:101
 #, fuzzy
 #| msgid "Login to Upload"
 msgid "Sign Up to Upload"
 msgstr "Войти для загрузки"
 
-#: templates/home.html:102
+#: templates/home.html:114
 msgid "AI-Powered Segmentation"
 msgstr ""
 
-#: templates/home.html:104
+#: templates/home.html:116
 msgid ""
 "Advanced Cellpose models for precise cell boundary detection. Multiple model "
 "options including cyto, nuclei, and custom models."
 msgstr ""
 
-#: templates/home.html:108
+#: templates/home.html:120
 #, fuzzy
 #| msgid "My Cells"
 msgid "Analyze Cells"
 msgstr "Мои клетки"
 
-#: templates/home.html:112
+#: templates/home.html:124
 msgid "Sign Up to Analyze"
 msgstr ""
 
-#: templates/home.html:125
+#: templates/home.html:137
 msgid "Comprehensive Metrics"
 msgstr ""
 
-#: templates/home.html:127
+#: templates/home.html:139
 msgid ""
 "Extract 15+ morphometric features including area, perimeter, circularity, "
 "eccentricity, and ellipse fitting parameters."
 msgstr ""
 
-#: templates/home.html:135
+#: templates/home.html:147
 #, fuzzy
 #| msgid "Login to Access"
 msgid "Sign Up to Access"
 msgstr "Войти для доступа"
 
-#: templates/home.html:149
+#: templates/home.html:162
 msgid "Advanced Analysis Capabilities"
 msgstr ""
 
-#: templates/home.html:166
+#: templates/home.html:179
 msgid "Statistical Reports"
 msgstr ""
 
-#: templates/home.html:201
+#: templates/home.html:214
 #, fuzzy
 #| msgid "Segmentation Overlay"
 msgid "Segmentation Accuracy"
 msgstr "Наложение сегментации"
 
-#: templates/home.html:207
+#: templates/home.html:220
 #, fuzzy
 #| msgid "Cellpose Model"
 msgid "Cellpose Models"
 msgstr "Модель Cellpose"
 
-#: templates/home.html:213
+#: templates/home.html:226
 msgid "Scale Units"
 msgstr ""
 
-#: templates/home.html:226
+#: templates/home.html:240
 msgid "Simple 3-Step Workflow"
 msgstr ""
 
-#: templates/home.html:227
+#: templates/home.html:241
 msgid "From image upload to comprehensive analysis in minutes"
 msgstr ""
 
-#: templates/home.html:237
+#: templates/home.html:251
 msgid "Upload Images"
 msgstr "Загрузить изображения"
 
-#: templates/home.html:239
+#: templates/home.html:253
 msgid ""
 "Upload your cell microscopy images. We support multiple formats and "
 "automatically extract metadata."
 msgstr ""
 
-#: templates/home.html:250
+#: templates/home.html:264
 #, fuzzy
 #| msgid "View Analyses"
 msgid "Configure Analysis"
 msgstr "Посмотреть анализы"
 
-#: templates/home.html:252
+#: templates/home.html:266
 msgid ""
 "Select Cellpose model, adjust parameters, and set scale calibration for "
 "accurate measurements."
 msgstr ""
 
-#: templates/home.html:263
+#: templates/home.html:277
 #, fuzzy
 #| msgid "View My Cells"
 msgid "Get Results"
 msgstr "Посмотреть мои клетки"
 
-#: templates/home.html:265
+#: templates/home.html:279
 msgid ""
 "View comprehensive morphometric data, export results to CSV, and compare "
 "analysis results."
 msgstr ""
 
-#: templates/home.html:281
+#: templates/home.html:297
 msgid "Your Dashboard"
 msgstr ""
 
-#: templates/home.html:283
+#: templates/home.html:299
 #, fuzzy, python-format
 #| msgid "Welcome back, %(name)s!"
 msgid "Welcome back, %(name)s"
 msgstr "Добро пожаловать, %(name)s!"
 
-#: templates/home.html:289
+#: templates/home.html:310
 #, fuzzy
 #| msgid "Cell Image Upload"
 msgid "Images Uploaded"
 msgstr "Загрузка изображений клеток"
 
-#: templates/home.html:293
+#: templates/home.html:313
+#, fuzzy
+#| msgid "Analyses"
+msgid "Ready for analysis"
+msgstr "Начать анализ"
+
+#: templates/home.html:325
 #, fuzzy
 #| msgid "Completed"
 msgid "Analyses Completed"
 msgstr "Завершено"
 
-#: templates/home.html:301
+#: templates/home.html:328
+#, fuzzy
+#| msgid "Processing Time:"
+msgid "Processing complete"
+msgstr "Время обработки:"
+
+#: templates/home.html:343
+msgid "AI identified"
+msgstr ""
+
+#: templates/home.html:355
 #, fuzzy
 #| msgid "Upload Images"
 msgid "Calibrated Images"
 msgstr "Загрузить изображения"
 
-#: templates/home.html:336
+#: templates/home.html:358
+msgid "Scale verified"
+msgstr ""
+
+#: templates/home.html:397
 msgid "Powered by Advanced Technology"
 msgstr ""
 
-#: templates/home.html:337
+#: templates/home.html:398
 msgid "Built on cutting-edge computer vision and machine learning frameworks"
+msgstr ""
+
+#: templates/home.html:406
+#, fuzzy
+#| msgid "Segmentation Results"
+msgid "Deep Learning Segmentation"
+msgstr "Результаты сегментации"
+
+#: templates/home.html:413
+#, fuzzy
+#| msgid "Processing"
+msgid "Image Processing"
+msgstr "Обработка"
+
+#: templates/home.html:419
+msgid "Python"
+msgstr ""
+
+#: templates/home.html:420
+msgid "Scientific Computing"
+msgstr ""
+
+#: templates/home.html:426
+msgid "Django"
+msgstr ""
+
+#: templates/home.html:427
+msgid "Web Framework"
 msgstr ""
 
 #~ msgid "Home"

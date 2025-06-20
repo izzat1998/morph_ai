@@ -1,86 +1,117 @@
 {% extends 'base.html' %}
 {% load i18n %}
+{% load static %}
 
 {% block title %}{% trans "Advanced Cell Morphometric Analysis" %} - Morph AI{% endblock %}
 
 {% block content %}
 <!-- Hero Section -->
-<section class="hero-section">
-    <!-- Animated Background Elements -->
-    <div class="hero-background-animation">
-        <div class="floating-cell cell-1"></div>
-        <div class="floating-cell cell-2"></div>
-        <div class="floating-cell cell-3"></div>
-        <div class="floating-cell cell-4"></div>
-        <div class="floating-cell cell-5"></div>
-        <div class="floating-cell cell-6"></div>
-        <div class="floating-cell cell-7"></div>
-        <div class="floating-cell cell-8"></div>
-    </div>
-    <div class="container-fluid">
-        <div class="hero-content fade-in-up">
-            <h1 class="hero-title">
-                {% trans "Transform Cell Analysis with AI" %}
-            </h1>
-            <p class="hero-subtitle">
-                {% trans "Precision morphometric analysis powered by Cellpose deep learning segmentation" %}
-            </p>
-            
-            {% if not user.is_authenticated %}
-                <div class="hero-actions mb-4">
-                    <a class="btn btn-light btn-lg me-3" href="{% url 'accounts:signup' %}" role="button">
-                        <i class="fas fa-rocket me-2"></i>
-                        {% trans "Get Started Free" %}
-                    </a>
-                    <a class="btn btn-outline-light btn-lg" href="{% url 'accounts:login' %}" role="button">
-                        <i class="fas fa-sign-in-alt me-2"></i>
-                        {% trans "Sign In" %}
-                    </a>
+<section class="hero-section-redesigned">
+    <div class="container">
+        <div class="row align-items-center min-vh-75">
+            <div class="col-lg-6">
+                <div class="hero-content">
+                    <div class="hero-badge mb-3">
+                        <i class="fas fa-microscope me-2"></i>
+                        <span>Научная точность с ИИ</span>
+                    </div>
+                    <h1 class="hero-title-new">
+                        Трансформируйте анализ клеток с помощью 
+                        <span class="text-gradient-primary">искусственного интеллекта</span>
+                    </h1>
+                    <p class="hero-subtitle-new">
+                        Профессиональный морфометрический анализ с использованием передовых моделей глубокого обучения Cellpose. Получайте точные результаты за минуты, а не часы.
+                    </p>
+
+                    {% if not user.is_authenticated %}
+                        <div class="hero-actions-new">
+                            <a class="btn btn-primary-custom btn-lg" href="{% url 'accounts:signup' %}" role="button">
+                                <i class="fas fa-rocket me-2"></i>
+                                Начать бесплатно
+                                <i class="fas fa-arrow-right ms-2"></i>
+                            </a>
+                            <a class="btn btn-outline-primary-custom btn-lg" href="{% url 'accounts:login' %}" role="button">
+                                <i class="fas fa-sign-in-alt me-2"></i>
+                                Войти
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="hero-actions-new">
+                            <a class="btn btn-primary-custom btn-lg" href="{% url 'cells:upload' %}" role="button">
+                                <i class="fas fa-cloud-upload-alt me-2"></i>
+                                Загрузить изображения
+                                <i class="fas fa-arrow-right ms-2"></i>
+                            </a>
+                            <a class="btn btn-outline-primary-custom btn-lg" href="{% url 'cells:list' %}" role="button">
+                                <i class="fas fa-images me-2"></i>
+                                Просмотр галереи
+                            </a>
+                        </div>
+                    {% endif %}
                 </div>
-            {% else %}
-                <div class="hero-actions mb-4">
-                    <a class="btn btn-light btn-lg me-3" href="{% url 'cells:upload' %}" role="button">
-                        <i class="fas fa-cloud-upload-alt me-2"></i>
-                        {% trans "Upload Cell Images" %}
-                    </a>
-                    <a class="btn btn-outline-light btn-lg me-3" href="{% url 'cells:list' %}" role="button">
-                        <i class="fas fa-images me-2"></i>
-                        {% trans "View Gallery" %}
-                    </a>
-                    <a class="btn btn-outline-light btn-lg" href="{% url 'cells:analysis_list' %}" role="button">
-                        <i class="fas fa-chart-line me-2"></i>
-                        {% trans "View Analyses" %}
-                    </a>
-                </div>
-            {% endif %}
-            
-            <!-- Hero Stats -->
-            <div class="hero-stats">
-                <div class="hero-stat">
-                    <span class="hero-stat-number">99%</span>
-                    <span class="hero-stat-label">{% trans "Accuracy" %}</span>
-                </div>
-                <div class="hero-stat">
-                    <span class="hero-stat-number">15+</span>
-                    <span class="hero-stat-label">{% trans "Morphometric Features" %}</span>
-                </div>
-                <div class="hero-stat">
-                    <span class="hero-stat-number">1000+</span>
-                    <span class="hero-stat-label">{% trans "Cells Analyzed" %}</span>
+            </div>
+            <div class="col-lg-6">
+                <div class="hero-visual">
+                    <!-- Hero Stats Cards -->
+                    <div class="stats-grid">
+                        <div class="stat-card-new stat-primary">
+                            <div class="stat-icon-new">
+                                <i class="fas fa-bullseye"></i>
+                            </div>
+                            <div class="stat-content-new">
+                                <div class="stat-number-new" data-target="99">0</div>
+                                <div class="stat-suffix-new">%</div>
+                            </div>
+                            <div class="stat-label-new">Точность сегментации</div>
+                        </div>
+                        <div class="stat-card-new stat-secondary">
+                            <div class="stat-icon-new">
+                                <i class="fas fa-list-ul"></i>
+                            </div>
+                            <div class="stat-content-new">
+                                <div class="stat-number-new" data-target="15">0</div>
+                                <div class="stat-suffix-new">+</div>
+                            </div>
+                            <div class="stat-label-new">Морфометрических параметров</div>
+                        </div>
+                        <div class="stat-card-new stat-success">
+                            <div class="stat-icon-new">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stat-content-new">
+                                <div class="stat-number-new">&lt;5</div>
+                                <div class="stat-suffix-new">мин</div>
+                            </div>
+                            <div class="stat-label-new">Время анализа</div>
+                        </div>
+                        <div class="stat-card-new stat-info">
+                            <div class="stat-icon-new">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                            <div class="stat-content-new">
+                                <div class="stat-number-new" data-target="4">0</div>
+                                <div class="stat-suffix-new"></div>
+                            </div>
+                            <div class="stat-label-new">ИИ модели</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+    
+    <!-- Subtle Background Pattern -->
+    <div class="hero-pattern"></div>
 </section>
 
 <!-- Features Section -->
 <section class="container-fluid mb-5">
     <div class="container">
     <div class="text-center mb-5">
-        <h2 class="text-gradient display-5 fw-bold">{% trans "Powerful Cell Analysis Features" %}</h2>
-        <p class="lead text-muted">{% trans "Everything you need for comprehensive morphometric analysis" %}</p>
+        <h2 class="text-gradient display-5 fw-bold">Мощные возможности анализа клеток</h2>
+        <p class="lead text-muted">Все необходимое для комплексного морфометрического анализа</p>
     </div>
-    
+
     <div class="row g-4">
         <div class="col-lg-4 col-md-6">
             <div class="card feature-card card-upload h-100 animate-on-scroll">
@@ -88,63 +119,63 @@
                     <div class="feature-icon">
                         <i class="fas fa-cloud-upload-alt"></i>
                     </div>
-                    <h3 class="feature-title">{% trans "Smart Image Upload" %}</h3>
+                    <h3 class="feature-title">Умная загрузка изображений</h3>
                     <p class="feature-description">
-                        {% trans "Drag & drop cell images with automatic metadata extraction. Supports multiple formats including TIFF, PNG, and JPEG." %}
+                        Перетаскивание изображений клеток с автоматическим извлечением метаданных. Поддержка множества форматов, включая TIFF, PNG и JPEG.
                     </p>
                     {% if user.is_authenticated %}
                         <a href="{% url 'cells:upload' %}" class="btn btn-primary">
-                            <i class="fas fa-upload me-2"></i>{% trans "Upload Now" %}
+                            <i class="fas fa-upload me-2"></i>Загрузить сейчас
                         </a>
                     {% else %}
                         <a href="{% url 'accounts:signup' %}" class="btn btn-primary">
-                            <i class="fas fa-user-plus me-2"></i>{% trans "Sign Up to Upload" %}
+                            <i class="fas fa-user-plus me-2"></i>Регистрация для загрузки
                         </a>
                     {% endif %}
                 </div>
             </div>
         </div>
-        
+
         <div class="col-lg-4 col-md-6">
             <div class="card feature-card card-analysis h-100 animate-on-scroll">
                 <div class="card-body">
                     <div class="feature-icon">
                         <i class="fas fa-microscope"></i>
                     </div>
-                    <h3 class="feature-title">{% trans "AI-Powered Segmentation" %}</h3>
+                    <h3 class="feature-title">Сегментация на основе ИИ</h3>
                     <p class="feature-description">
-                        {% trans "Advanced Cellpose models for precise cell boundary detection. Multiple model options including cyto, nuclei, and custom models." %}
+                        Продвинутые модели Cellpose для точного обнаружения границ клеток. Несколько вариантов моделей, включая цитоплазму, ядра и пользовательские модели.
                     </p>
                     {% if user.is_authenticated %}
                         <a href="{% url 'cells:list' %}" class="btn btn-success">
-                            <i class="fas fa-microscope me-2"></i>{% trans "Analyze Cells" %}
+                            <i class="fas fa-microscope me-2"></i>Анализировать клетки
                         </a>
                     {% else %}
                         <a href="{% url 'accounts:signup' %}" class="btn btn-success">
-                            <i class="fas fa-user-plus me-2"></i>{% trans "Sign Up to Analyze" %}
+                            <i class="fas fa-user-plus me-2"></i>Регистрация для анализа
                         </a>
                     {% endif %}
                 </div>
             </div>
         </div>
-        
+
         <div class="col-lg-4 col-md-6">
             <div class="card feature-card card-data h-100 animate-on-scroll">
                 <div class="card-body">
                     <div class="feature-icon">
                         <i class="fas fa-chart-pie"></i>
                     </div>
-                    <h3 class="feature-title">{% trans "Comprehensive Metrics" %}</h3>
+                    <h3 class="feature-title">Комплексные метрики</h3>
                     <p class="feature-description">
-                        {% trans "Extract 15+ morphometric features including area, perimeter, circularity, eccentricity, and ellipse fitting parameters." %}
+                        Извлечение более 15 морфометрических параметров, включая площадь, периметр, круглость, эксцентриситет и параметры аппроксимации эллипсом.
                     </p>
                     {% if user.is_authenticated %}
                         <a href="{% url 'cells:analysis_list' %}" class="btn btn-info">
-                            <i class="fas fa-chart-line me-2"></i>{% trans "View Results" %}
+                            <i class="fas fa-chart-line me-2"></i>Посмотреть результаты
                         </a>
                     {% else %}
                         <a href="{% url 'accounts:signup' %}" class="btn btn-info">
-                            <i class="fas fa-user-plus me-2"></i>{% trans "Sign Up to Access" %}
+                            <i class="fas fa-user-plus me-2"></i>Регистрация для доступа
                         </a>
                     {% endif %}
                 </div>
@@ -154,78 +185,170 @@
     </div>
 </section>
 
-<!-- Analysis Capabilities Section -->
-<section class="bg-gradient-primary text-white py-5 mb-5">
+<!-- Analysis Capabilities Section - Redesigned -->
+<section class="capabilities-section-redesigned py-5 mb-5">
     <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-6">
-                <h2 class="display-6 fw-bold mb-4">{% trans "Advanced Analysis Capabilities" %}</h2>
-                <div class="row g-3">
-                    <div class="col-6">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-check-circle fa-lg me-3"></i>
-                            <span>{% trans "Cell Segmentation" %}</span>
-                        </div>
+        <!-- Section Header -->
+        <div class="text-center mb-5">
+            <div class="section-badge mb-3">
+                <i class="fas fa-brain me-2"></i>
+                <span>Передовые технологии ИИ</span>
+            </div>
+            <h2 class="display-5 fw-bold mb-3">
+                Расширенные возможности 
+                <span class="text-gradient-primary">анализа клеток</span>
+            </h2>
+            <p class="lead text-muted col-lg-8 mx-auto">
+                Профессиональные инструменты для комплексного морфометрического анализа с высокой точностью и воспроизводимостью результатов
+            </p>
+        </div>
+
+        <!-- Capabilities Grid -->
+        <div class="row g-4">
+            <div class="col-lg-4 col-md-6">
+                <div class="capability-card-new animate-on-scroll">
+                    <div class="capability-icon-new">
+                        <i class="fas fa-cut"></i>
                     </div>
-                    <div class="col-6">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-check-circle fa-lg me-3"></i>
-                            <span>{% trans "Morphometric Analysis" %}</span>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-check-circle fa-lg me-3"></i>
-                            <span>{% trans "Statistical Reports" %}</span>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-check-circle fa-lg me-3"></i>
-                            <span>{% trans "Data Export" %}</span>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-check-circle fa-lg me-3"></i>
-                            <span>{% trans "Scale Calibration" %}</span>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-check-circle fa-lg me-3"></i>
-                            <span>{% trans "Batch Processing" %}</span>
-                        </div>
-                    </div>
+                    <h4 class="capability-title-new">Автоматическая сегментация</h4>
+                    <p class="capability-desc-new">
+                        Точное обнаружение границ клеток с помощью моделей глубокого обучения Cellpose
+                    </p>
+                    <ul class="capability-features">
+                        <li><i class="fas fa-check text-success me-2"></i>Модели cyto, nuclei, cyto2</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Настраиваемые параметры</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Высокая точность</li>
+                    </ul>
                 </div>
             </div>
-            <div class="col-lg-6 text-center">
-                <div class="stats-showcase">
-                    <div class="row g-3">
-                        <div class="col-6">
-                            <div class="stat-highlight">
-                                <div class="stat-number text-white">15+</div>
-                                <div class="stat-label opacity-75">{% trans "Morphometric Features" %}</div>
-                            </div>
+
+            <div class="col-lg-4 col-md-6">
+                <div class="capability-card-new animate-on-scroll">
+                    <div class="capability-icon-new">
+                        <i class="fas fa-ruler-combined"></i>
+                    </div>
+                    <h4 class="capability-title-new">Морфометрический анализ</h4>
+                    <p class="capability-desc-new">
+                        Извлечение более 15 морфологических параметров для каждой обнаруженной клетки
+                    </p>
+                    <ul class="capability-features">
+                        <li><i class="fas fa-check text-success me-2"></i>Площадь и периметр</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Форма и эксцентриситет</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Эллиптическая аппроксимация</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+                <div class="capability-card-new animate-on-scroll">
+                    <div class="capability-icon-new">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h4 class="capability-title-new">Статистический анализ</h4>
+                    <p class="capability-desc-new">
+                        Комплексная обработка данных с возможностью экспорта в различные форматы
+                    </p>
+                    <ul class="capability-features">
+                        <li><i class="fas fa-check text-success me-2"></i>CSV, Excel, JSON</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Визуализация результатов</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Сравнительный анализ</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+                <div class="capability-card-new animate-on-scroll">
+                    <div class="capability-icon-new">
+                        <i class="fas fa-balance-scale"></i>
+                    </div>
+                    <h4 class="capability-title-new">Калибровка масштаба</h4>
+                    <p class="capability-desc-new">
+                        Точные измерения с возможностью настройки единиц измерения
+                    </p>
+                    <ul class="capability-features">
+                        <li><i class="fas fa-check text-success me-2"></i>Микрометры, пиксели</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Автоматическое определение</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Ручная настройка</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+                <div class="capability-card-new animate-on-scroll">
+                    <div class="capability-icon-new">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <h4 class="capability-title-new">Пакетная обработка</h4>
+                    <p class="capability-desc-new">
+                        Анализ множества изображений с едиными параметрами для повышения производительности
+                    </p>
+                    <ul class="capability-features">
+                        <li><i class="fas fa-check text-success me-2"></i>Множественные файлы</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Единые настройки</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Автоматизация процесса</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+                <div class="capability-card-new animate-on-scroll">
+                    <div class="capability-icon-new">
+                        <i class="fas fa-vector-square"></i>
+                    </div>
+                    <h4 class="capability-title-new">ROI анализ</h4>
+                    <p class="capability-desc-new">
+                        Выборочный анализ определенных областей интереса на изображении
+                    </p>
+                    <ul class="capability-features">
+                        <li><i class="fas fa-check text-success me-2"></i>Выделение областей</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Множественный выбор</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Точечный анализ</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <div class="performance-metrics-new mt-5">
+            <div class="row">
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="metric-card-new text-center">
+                        <div class="metric-icon-new">
+                            <i class="fas fa-bullseye"></i>
                         </div>
-                        <div class="col-6">
-                            <div class="stat-highlight">
-                                <div class="stat-number text-white">99%</div>
-                                <div class="stat-label opacity-75">{% trans "Segmentation Accuracy" %}</div>
-                            </div>
+                        <div class="metric-number-new" data-target="99">0</div>
+                        <div class="metric-suffix-new">%</div>
+                        <div class="metric-label-new">Точность</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="metric-card-new text-center">
+                        <div class="metric-icon-new">
+                            <i class="fas fa-clock"></i>
                         </div>
-                        <div class="col-6">
-                            <div class="stat-highlight">
-                                <div class="stat-number text-white">4</div>
-                                <div class="stat-label opacity-75">{% trans "Cellpose Models" %}</div>
-                            </div>
+                        <div class="metric-number-new">&lt;5</div>
+                        <div class="metric-suffix-new">мин</div>
+                        <div class="metric-label-new">Время анализа</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="metric-card-new text-center">
+                        <div class="metric-icon-new">
+                            <i class="fas fa-brain"></i>
                         </div>
-                        <div class="col-6">
-                            <div class="stat-highlight">
-                                <div class="stat-number text-white">∞</div>
-                                <div class="stat-label opacity-75">{% trans "Scale Units" %}</div>
-                            </div>
+                        <div class="metric-number-new" data-target="4">0</div>
+                        <div class="metric-suffix-new"></div>
+                        <div class="metric-label-new">ИИ модели</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="metric-card-new text-center">
+                        <div class="metric-icon-new">
+                            <i class="fas fa-shield-alt"></i>
                         </div>
+                        <div class="metric-number-new">100</div>
+                        <div class="metric-suffix-new">%</div>
+                        <div class="metric-label-new">Безопасность</div>
                     </div>
                 </div>
             </div>
@@ -237,10 +360,10 @@
 <section class="container-fluid mb-5">
     <div class="container">
     <div class="text-center mb-5">
-        <h2 class="display-6 fw-bold text-gradient">{% trans "Simple 3-Step Workflow" %}</h2>
-        <p class="lead text-muted">{% trans "From image upload to comprehensive analysis in minutes" %}</p>
+        <h2 class="display-6 fw-bold text-gradient">Простой рабочий процесс в 3 этапа</h2>
+        <p class="lead text-muted">От загрузки изображения до комплексного анализа за минуты</p>
     </div>
-    
+
     <div class="row g-4">
         <div class="col-lg-4 text-center">
             <div class="workflow-step">
@@ -248,35 +371,35 @@
                 <div class="step-icon">
                     <i class="fas fa-cloud-upload-alt"></i>
                 </div>
-                <h4 class="step-title">{% trans "Upload Images" %}</h4>
+                <h4 class="step-title">Загрузите изображения</h4>
                 <p class="step-description">
-                    {% trans "Upload your cell microscopy images. We support multiple formats and automatically extract metadata." %}
+                    Загрузите снимки клеток с микроскопа. Мы поддерживаем множество форматов и автоматически извлекаем метаданные.
                 </p>
             </div>
         </div>
-        
+
         <div class="col-lg-4 text-center">
             <div class="workflow-step">
                 <div class="step-number">2</div>
                 <div class="step-icon">
                     <i class="fas fa-cogs"></i>
                 </div>
-                <h4 class="step-title">{% trans "Configure Analysis" %}</h4>
+                <h4 class="step-title">Настройте анализ</h4>
                 <p class="step-description">
-                    {% trans "Select Cellpose model, adjust parameters, and set scale calibration for accurate measurements." %}
+                    Выберите модель Cellpose, настройте параметры и установите калибровку масштаба для точных измерений.
                 </p>
             </div>
         </div>
-        
+
         <div class="col-lg-4 text-center">
             <div class="workflow-step">
                 <div class="step-number">3</div>
                 <div class="step-icon">
                     <i class="fas fa-chart-line"></i>
                 </div>
-                <h4 class="step-title">{% trans "Get Results" %}</h4>
+                <h4 class="step-title">Получите результаты</h4>
                 <p class="step-description">
-                    {% trans "View comprehensive morphometric data, export results to CSV, and compare analysis results." %}
+                    Просматривайте комплексные морфометрические данные, экспортируйте результаты в CSV и сравнивайте результаты анализа.
                 </p>
             </div>
         </div>
@@ -294,7 +417,7 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h3 class="mb-0">
                         <i class="fas fa-tachometer-alt me-2"></i>
-                        {% trans "Your Dashboard" %}
+                        Ваша панель управления
                     </h3>
                     <span class="badge bg-primary">{% blocktrans with name=user.full_name|default:user.username %}Welcome back, {{ name }}{% endblocktrans %}</span>
                 </div>
@@ -305,13 +428,10 @@
                                 <div class="stat-icon">
                                     <i class="fas fa-images"></i>
                                 </div>
+                                <div class="stat-number" data-target="{{ user.cells.count }}">{{ user.cells.count }}</div>
                                 <div class="stat-content">
-                                    <div class="stat-number" data-target="{{ user.cells.count }}">{{ user.cells.count }}</div>
-                                    <div class="stat-label">{% trans "Images Uploaded" %}</div>
-                                    <div class="stat-trend">
-                                        <i class="fas fa-arrow-up"></i>
-                                        <span>{% trans "Ready for analysis" %}</span>
-                                    </div>
+
+                                    <div class="stat-label">Загруженных изображений</div>
                                 </div>
                             </div>
                         </div>
@@ -320,13 +440,10 @@
                                 <div class="stat-icon">
                                     <i class="fas fa-microscope"></i>
                                 </div>
+                                <div class="stat-number" data-target="{{ user.total_analyses|default:'0' }}">{{ user.total_analyses|default:"0" }}</div>
                                 <div class="stat-content">
-                                    <div class="stat-number" data-target="{{ user.total_analyses|default:'0' }}">{{ user.total_analyses|default:"0" }}</div>
-                                    <div class="stat-label">{% trans "Analyses Completed" %}</div>
-                                    <div class="stat-trend">
-                                        <i class="fas fa-chart-line"></i>
-                                        <span>{% trans "Processing complete" %}</span>
-                                    </div>
+
+                                    <div class="stat-label">Анализов завершено</div>
                                 </div>
                             </div>
                         </div>
@@ -335,13 +452,10 @@
                                 <div class="stat-icon">
                                     <i class="fas fa-dot-circle"></i>
                                 </div>
+                                <div class="stat-number" data-target="{{ user.total_cells_detected|default:'0' }}">{{ user.total_cells_detected|default:"0" }}</div>
                                 <div class="stat-content">
-                                    <div class="stat-number" data-target="{{ user.total_cells_detected|default:'0' }}">{{ user.total_cells_detected|default:"0" }}</div>
-                                    <div class="stat-label">{% trans "Cells Detected" %}</div>
-                                    <div class="stat-trend">
-                                        <i class="fas fa-search"></i>
-                                        <span>{% trans "AI identified" %}</span>
-                                    </div>
+
+                                    <div class="stat-label">Обнаружено клеток</div>
                                 </div>
                             </div>
                         </div>
@@ -349,36 +463,34 @@
                             <div class="dashboard-stat-card stat-calibrated animate-on-scroll">
                                 <div class="stat-icon">
                                     <i class="fas fa-ruler-combined"></i>
+
                                 </div>
+                                <div class="stat-number" data-target="{{ user.calibrated_images_count|default:'0' }}">{{ user.calibrated_images_count|default:"0" }}</div>
                                 <div class="stat-content">
-                                    <div class="stat-number" data-target="{{ user.calibrated_images_count|default:'0' }}">{{ user.calibrated_images_count|default:"0" }}</div>
-                                    <div class="stat-label">{% trans "Calibrated Images" %}</div>
-                                    <div class="stat-trend">
-                                        <i class="fas fa-check-circle"></i>
-                                        <span>{% trans "Scale verified" %}</span>
-                                    </div>
+
+                                    <div class="stat-label">Калиброванных изображений</div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row mt-4">
                         <div class="col-md-4">
                             <a href="{% url 'cells:upload' %}" class="btn btn-primary btn-lg w-100">
                                 <i class="fas fa-cloud-upload-alt me-2"></i>
-                                {% trans "Upload New Image" %}
+                                Загрузить новое изображение
                             </a>
                         </div>
                         <div class="col-md-4">
                             <a href="{% url 'cells:list' %}" class="btn btn-outline-primary btn-lg w-100">
                                 <i class="fas fa-images me-2"></i>
-                                {% trans "View Gallery" %}
+                                Просмотр галереи
                             </a>
                         </div>
                         <div class="col-md-4">
                             <a href="{% url 'cells:analysis_list' %}" class="btn btn-outline-primary btn-lg w-100">
                                 <i class="fas fa-chart-line me-2"></i>
-                                {% trans "View Analyses" %}
+                                Просмотр анализов
                             </a>
                         </div>
                     </div>
@@ -394,37 +506,37 @@
 <section class="bg-light py-5">
     <div class="container">
         <div class="text-center mb-5">
-            <h2 class="display-6 fw-bold">{% trans "Powered by Advanced Technology" %}</h2>
-            <p class="lead text-muted">{% trans "Built on cutting-edge computer vision and machine learning frameworks" %}</p>
+            <h2 class="display-6 fw-bold">Основано на передовых технологиях</h2>
+            <p class="lead text-muted">Построено на передовых технологиях компьютерного зрения и машинного обучения</p>
         </div>
-        
+
         <div class="row g-4 align-items-center">
             <div class="col-md-3 text-center">
                 <div class="tech-logo">
                     <i class="fas fa-brain fa-3x text-primary"></i>
                     <h5 class="mt-3">Cellpose</h5>
-                    <p class="text-muted small">Deep Learning Segmentation</p>
+                    <p class="text-muted small">Глубокое обучение сегментации</p>
                 </div>
             </div>
             <div class="col-md-3 text-center">
                 <div class="tech-logo">
                     <i class="fas fa-eye fa-3x text-success"></i>
                     <h5 class="mt-3">scikit-image</h5>
-                    <p class="text-muted small">Image Processing</p>
+                    <p class="text-muted small">Обработка изображений</p>
                 </div>
             </div>
             <div class="col-md-3 text-center">
                 <div class="tech-logo">
                     <i class="fab fa-python fa-3x text-warning"></i>
                     <h5 class="mt-3">Python</h5>
-                    <p class="text-muted small">Scientific Computing</p>
+                    <p class="text-muted small">Научные вычисления</p>
                 </div>
             </div>
             <div class="col-md-3 text-center">
                 <div class="tech-logo">
                     <i class="fas fa-server fa-3x text-info"></i>
                     <h5 class="mt-3">Django</h5>
-                    <p class="text-muted small">Web Framework</p>
+                    <p class="text-muted small">Веб-фреймворк</p>
                 </div>
             </div>
         </div>
@@ -482,5 +594,266 @@
 .tech-logo:hover {
     transform: translateY(-5px);
 }
+
+/* Enhanced Hero Stats */
+.hero-stats {
+    display: flex;
+    justify-content: center;
+    gap: 3rem;
+    margin-top: 3rem;
+    flex-wrap: wrap;
+}
+
+.hero-stat {
+    text-align: center;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    min-width: 180px;
+}
+
+.hero-stat:hover {
+    transform: translateY(-5px);
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.hero-stat-icon {
+    display: block;
+    font-size: 2rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 0.5rem;
+}
+
+.hero-stat-number {
+    display: inline-block;
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: white;
+    line-height: 1;
+}
+
+.hero-stat-suffix {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.8);
+    margin-left: 0.2rem;
+}
+
+.hero-stat-label {
+    display: block;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 0.5rem;
+    font-weight: 500;
+}
+
+/* Feature Card Enhancements */
+.feature-card {
+    transition: all 0.3s ease;
+    border: none;
+    overflow: hidden;
+    position: relative;
+}
+
+.feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--primary-gradient);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.feature-card:hover::before {
+    transform: scaleX(1);
+}
+
+.feature-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.feature-icon {
+    font-size: 3rem;
+    margin-bottom: 1.5rem;
+    background: var(--primary-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    transition: all 0.3s ease;
+}
+
+.feature-card:hover .feature-icon {
+    transform: scale(1.1);
+}
+
+.feature-title {
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--dark-navy);
+}
+
+.feature-description {
+    color: var(--medium-gray);
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+/* Enhanced Mobile Responsiveness */
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 2.5rem !important;
+        line-height: 1.2;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .hero-stats {
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    
+    .hero-stat {
+        min-width: 140px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .hero-stat-number {
+        font-size: 1.8rem;
+    }
+    
+    .hero-stat-icon {
+        font-size: 1.5rem;
+    }
+    
+    .hero-stat-label {
+        font-size: 0.8rem;
+    }
+    
+    .hero-actions {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .hero-actions .btn {
+        width: 100%;
+        margin: 0 !important;
+    }
+    
+    /* Feature cards mobile optimization */
+    .feature-card {
+        margin-bottom: 1.5rem;
+    }
+    
+    .feature-icon {
+        font-size: 2.5rem;
+    }
+    
+    .feature-title {
+        font-size: 1.25rem;
+    }
+    
+    .feature-description {
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+    
+    /* Capabilities section mobile */
+    .capabilities-content {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .capability-item {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .stats-showcase-enhanced {
+        margin-top: 2rem;
+    }
+    
+    /* Workflow section mobile */
+    .workflow-step {
+        margin-bottom: 2rem;
+    }
+    
+    .step-icon {
+        font-size: 2.5rem;
+    }
+    
+    .step-title {
+        font-size: 1.25rem;
+    }
+    
+    /* Dashboard section mobile */
+    .dashboard-stat-card {
+        margin-bottom: 1rem;
+    }
+    
+    /* Technology section mobile */
+    .tech-logo {
+        padding: 1.5rem 1rem;
+    }
+    
+    .tech-logo i {
+        font-size: 2.5rem !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .hero-title {
+        font-size: 2rem !important;
+    }
+    
+    .hero-subtitle {
+        font-size: 1rem;
+    }
+    
+    .hero-stats {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .hero-stat {
+        width: 100%;
+        max-width: 280px;
+    }
+    
+    .display-5 {
+        font-size: 2rem !important;
+    }
+    
+    .display-6 {
+        font-size: 1.5rem !important;
+    }
+    
+    .container-fluid {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
 </style>
+
+{% endblock %}
+
+{% block extra_css %}
+<!-- Home page specific styles -->
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+<!-- Home page specific scripts -->
+<script src="{% static 'js/home.js' %}"></script>
 {% endblock %}

@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load i18n %}
 
-{% block title %}{% trans "Cell Image Gallery" %} - Morph AI{% endblock %}
+{% block title %}{% trans "Cell Image Gallery" %} - {% trans "Morph AI" %}{% endblock %}
 
 {% block extra_css %}{% endblock %}
 
@@ -22,7 +22,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Statistics Overview -->
     {% if cells %}
     <div class="morph-stats">
@@ -44,7 +44,7 @@
         </div>
     </div>
     {% endif %}
-    
+
     <!-- Search and Filter Bar -->
     <div class="morph-search-bar">
         <div class="row align-items-center">
@@ -85,13 +85,13 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Active Filters -->
         <div class="morph-filter-chips morph-hide" id="active-filters">
             <!-- Dynamically populated by JavaScript -->
         </div>
     </div>
-    
+
     <!-- Image Gallery -->
     {% if cells %}
     <div class="image-gallery" id="image-gallery">
@@ -103,12 +103,12 @@
                  data-calibrated="{{ cell.scale_set|yesno:'true,false' }}"
                  data-date="{{ cell.created_at|date:'c' }}"
                  data-size="{{ cell.file_size }}">
-                
+
                 <div class="morph-image-card h-100">
                     <!-- Image Container -->
                     <div class="morph-image-card__container">
                         <img src="{{ cell.image.url }}" class="morph-image-card__image" alt="{{ cell.name }}">
-                        
+
                         <!-- Status Badges -->
                         <div class="morph-image-card__badge-container">
                             {% if cell.has_analysis %}
@@ -120,14 +120,14 @@
                                 <i class="fas fa-clock me-1"></i>{% trans "Pending" %}
                             </span>
                             {% endif %}
-                            
+
                             {% if cell.scale_set %}
                             <span class="badge bg-info morph-image-card__badge">
                                 <i class="fas fa-ruler me-1"></i>{% trans "Calibrated" %}
                             </span>
                             {% endif %}
                         </div>
-                        
+
                         <!-- Hover Overlay -->
                         <div class="morph-image-card__overlay">
                             <div class="morph-image-card__actions">
@@ -145,11 +145,11 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Card Body -->
                     <div class="card-body p-3">
                         <h6 class="card-title mb-2 text-truncate fw-bold">{{ cell.name }}</h6>
-                        
+
                         <!-- Metadata Grid -->
                         <div class="morph-metadata-grid">
                             <div class="morph-metadata-item">
@@ -169,7 +169,7 @@
                                 <span>{{ cell.created_at|timesince }}</span>
                             </div>
                         </div>
-                        
+
                         <!-- Analysis Info -->
                         {% if cell.latest_analysis and cell.latest_analysis.status == 'completed' %}
                         <div class="morph-analysis-info morph-analysis-info--success morph-mt-2">
@@ -183,7 +183,7 @@
                         </div>
                         {% endif %}
                     </div>
-                    
+
                     <!-- Card Actions -->
                     <div class="card-footer bg-transparent p-2">
                         <div class="d-grid gap-1">
@@ -207,7 +207,7 @@
             {% endfor %}
         </div>
     </div>
-    
+
     <!-- Load More Button (if needed for pagination) -->
     <div class="text-center mt-4">
         <button class="btn btn-outline-primary morph-hide" id="load-more">
@@ -215,7 +215,7 @@
             {% trans "Load More Images" %}
         </button>
     </div>
-    
+
     {% else %}
     <!-- Empty State -->
     <div class="morph-empty-state">
@@ -242,54 +242,54 @@ document.addEventListener('DOMContentLoaded', function() {
     const galleryItems = document.querySelectorAll('.gallery-item');
     const viewToggle = document.querySelectorAll('.view-toggle button');
     const activeFilters = document.getElementById('active-filters');
-    
+
     let currentFilters = {
         search: '',
         sort: 'newest',
         filter: 'all'
     };
-    
+
     // Search functionality
     searchInput.addEventListener('input', function() {
         currentFilters.search = this.value.toLowerCase();
         applyFilters();
     });
-    
+
     // Sort functionality
     sortSelect.addEventListener('change', function() {
         currentFilters.sort = this.value;
         applyFilters();
     });
-    
+
     // Filter functionality
     filterSelect.addEventListener('change', function() {
         currentFilters.filter = this.value;
         applyFilters();
         updateFilterChips();
     });
-    
+
     // View toggle
     viewToggle.forEach(button => {
         button.addEventListener('click', function() {
             viewToggle.forEach(btn => btn.classList.remove('active'));
             this.classList.add('active');
-            
+
             const view = this.dataset.view;
             toggleView(view);
         });
     });
-    
+
     // Apply all filters
     function applyFilters() {
         let visibleItems = Array.from(galleryItems);
-        
+
         // Apply search filter
         if (currentFilters.search) {
             visibleItems = visibleItems.filter(item => 
                 item.dataset.name.includes(currentFilters.search)
             );
         }
-        
+
         // Apply category filter
         if (currentFilters.filter !== 'all') {
             visibleItems = visibleItems.filter(item => {
@@ -307,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
-        
+
         // Apply sorting
         visibleItems.sort((a, b) => {
             switch (currentFilters.sort) {
@@ -325,18 +325,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     return 0;
             }
         });
-        
+
         // Hide all items first
         galleryItems.forEach(item => {
             item.style.display = 'none';
         });
-        
+
         // Show filtered and sorted items
         visibleItems.forEach((item, index) => {
             item.style.display = 'block';
             item.style.order = index;
         });
-        
+
         // Add animation
         visibleItems.forEach((item, index) => {
             setTimeout(() => {
@@ -344,12 +344,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }, index * 50);
         });
     }
-    
+
     // Toggle view (grid/list)
     function toggleView(view) {
         const gallery = document.getElementById('image-gallery');
         const row = gallery.querySelector('.row');
-        
+
         if (view === 'list') {
             row.classList.remove('g-4');
             row.classList.add('g-2');
@@ -369,11 +369,11 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
-    
+
     // Update filter chips
     function updateFilterChips() {
         const chips = [];
-        
+
         if (currentFilters.search) {
             chips.push({
                 type: 'search',
@@ -381,7 +381,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 value: currentFilters.search
             });
         }
-        
+
         if (currentFilters.filter !== 'all') {
             const filterLabels = {
                 'analyzed': '{% trans "Analyzed" %}',
@@ -389,20 +389,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 'calibrated': '{% trans "Calibrated" %}',
                 'uncalibrated': '{% trans "Not Calibrated" %}'
             };
-            
+
             chips.push({
                 type: 'filter',
                 label: filterLabels[currentFilters.filter],
                 value: currentFilters.filter
             });
         }
-        
+
         if (chips.length > 0) {
             activeFilters.style.display = 'flex';
             activeFilters.innerHTML = chips.map(chip => `
                 <div class="filter-chip">
                     ${chip.label}
-                    <button onclick="removeFilter('${chip.type}', '${chip.value}')">
+                    <button onclick="removeFilter('${chip.type}', '${chip.value}')" aria-label="{% trans 'Remove filter' %}">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -411,7 +411,7 @@ document.addEventListener('DOMContentLoaded', function() {
             activeFilters.style.display = 'none';
         }
     }
-    
+
     // Remove filter chip
     window.removeFilter = function(type, value) {
         if (type === 'search') {
@@ -421,11 +421,11 @@ document.addEventListener('DOMContentLoaded', function() {
             filterSelect.value = 'all';
             currentFilters.filter = 'all';
         }
-        
+
         applyFilters();
         updateFilterChips();
     };
-    
+
     // Initialize
     applyFilters();
 });
