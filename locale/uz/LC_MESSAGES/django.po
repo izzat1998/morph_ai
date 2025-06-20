@@ -1,0 +1,603 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-06-19 10:25+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: cells/forms.py:13
+msgid "Enter image name"
+msgstr "Rasm nomini kiriting"
+
+#: cells/forms.py:17
+#, fuzzy
+#| msgid "Image Gallery"
+msgid "Image Name"
+msgstr "Rasm nomi"
+
+#: cells/forms.py:18
+#, fuzzy
+#| msgid "Cell Image Upload"
+msgid "Cell Image"
+msgstr "Hujayra rasmi"
+
+#: cells/forms.py:29
+#, fuzzy
+#| msgid "Upload Cell Images"
+msgid "Upload Cell Image"
+msgstr "Hujayra rasmini yuklash"
+
+#: cells/forms.py:37
+msgid "Image file too large (max 10MB)"
+msgstr ""
+
+#: cells/forms.py:41
+msgid "Please upload a valid image file"
+msgstr ""
+
+#: cells/forms.py:51
+msgid "Cellpose Model"
+msgstr "Cellpose modeli"
+
+#: cells/forms.py:52
+msgid "Cell Diameter (pixels)"
+msgstr "Hujayra diametri (piksellar)"
+
+#: cells/forms.py:53
+msgid "Flow Threshold"
+msgstr "Oqim chegarasi"
+
+#: cells/forms.py:54
+msgid "Cell Probability Threshold"
+msgstr "Hujayra ehtimollik chegarasi"
+
+#: cells/forms.py:86
+msgid "Analysis Configuration"
+msgstr "Tahlil sozlamalari"
+
+#: cells/forms.py:87
+msgid ""
+"Configure the parameters for cellpose analysis. Default values work well for "
+"most cases."
+msgstr ""
+
+#: cells/forms.py:96
+#, fuzzy
+#| msgid "Analyses"
+msgid "Start Analysis"
+msgstr "Tahlilni boshlash"
+
+#: cells/forms.py:97
+msgid "Cancel"
+msgstr "Bekor qilish"
+
+#: cells/forms.py:101
+msgid "Choose the appropriate cellpose model for your images"
+msgstr ""
+
+#: cells/forms.py:102
+msgid "Expected cell diameter in pixels (leave 0 for auto-detection)"
+msgstr ""
+
+#: cells/forms.py:103
+msgid "Flow error threshold (0.4 is default, lower = more cells)"
+msgstr ""
+
+#: cells/forms.py:104
+msgid "Cell probability threshold (0.0 is default)"
+msgstr ""
+
+#: cells/forms.py:109
+msgid "Diameter must be positive or 0 for auto-detection"
+msgstr ""
+
+#: cells/forms.py:115
+msgid "Flow threshold must be between 0 and 3"
+msgstr ""
+
+#: cells/forms.py:121
+msgid "Cell probability threshold must be between -6 and 6"
+msgstr ""
+
+#: cells/models.py:69
+msgid "Pending"
+msgstr "Kutilmoqda"
+
+#: cells/models.py:70
+msgid "Processing"
+msgstr "Ishlanmoqda"
+
+#: cells/models.py:71
+msgid "Completed"
+msgstr "Tugallandi"
+
+#: cells/models.py:72
+msgid "Failed"
+msgstr "Xatolik"
+
+#: cells/models.py:76
+msgid "Cytoplasm"
+msgstr "Sitoplazma"
+
+#: cells/models.py:77
+msgid "Nuclei"
+msgstr "Yadrolar"
+
+#: cells/models.py:78
+msgid "Cytoplasm 2.0"
+msgstr "Sitoplazma 2.0"
+
+#: cells/models.py:79
+msgid "Custom"
+msgstr "Maxsus"
+
+#: cells/views.py:22
+#, python-format
+msgid "Cell image \"%(name)s\" uploaded successfully!"
+msgstr ""
+
+#: cells/views.py:65
+msgid "Analysis completed successfully!"
+msgstr "Tahlil muvaffaqiyatli tugallandi!"
+
+#: cells/views.py:68
+msgid "Analysis failed. Please check the error details."
+msgstr "Tahlil muvaffaqiyatsiz tugadi. Xatolik tafsilotlarini tekshiring."
+
+#: cells/views.py:144
+msgid "Analysis must be completed before export."
+msgstr "Eksport qilishdan oldin tahlil tugallanishi kerak."
+
+#: cells/views.py:154 templates/cells/analysis_detail.html:218
+msgid "Cell ID"
+msgstr "Hujayra ID"
+
+#: cells/views.py:154
+msgid "Area (px²)"
+msgstr "Maydon (px²)"
+
+#: cells/views.py:154
+msgid "Perimeter (px)"
+msgstr "Perimetr (px)"
+
+#: cells/views.py:154 templates/cells/analysis_detail.html:180
+#: templates/cells/analysis_detail.html:221
+msgid "Circularity"
+msgstr "Aylansimonlik"
+
+#: cells/views.py:154 templates/cells/analysis_detail.html:190
+#: templates/cells/analysis_detail.html:222
+msgid "Eccentricity"
+msgstr "Eksentriklik"
+
+#: cells/views.py:155 templates/cells/analysis_detail.html:223
+msgid "Solidity"
+msgstr ""
+
+#: cells/views.py:155
+msgid "Extent"
+msgstr ""
+
+#: cells/views.py:155
+msgid "Major Axis (px)"
+msgstr ""
+
+#: cells/views.py:155
+msgid "Minor Axis (px)"
+msgstr ""
+
+#: cells/views.py:155 templates/cells/analysis_detail.html:224
+msgid "Aspect Ratio"
+msgstr ""
+
+#: cells/views.py:156
+msgid "Centroid X"
+msgstr ""
+
+#: cells/views.py:156
+msgid "Centroid Y"
+msgstr ""
+
+#: cells/views.py:156
+msgid "Bbox X"
+msgstr ""
+
+#: cells/views.py:156
+msgid "Bbox Y"
+msgstr ""
+
+#: cells/views.py:156
+msgid "Bbox Width"
+msgstr ""
+
+#: cells/views.py:156
+msgid "Bbox Height"
+msgstr ""
+
+#: cells/views.py:179
+msgid "Analysis deleted successfully."
+msgstr ""
+
+#: templates/base.html:32
+msgid "Upload Cells"
+msgstr "Hujayralarni yuklash"
+
+#: templates/base.html:35
+msgid "My Cells"
+msgstr "Mening hujayralrim"
+
+#: templates/base.html:38
+msgid "Analyses"
+msgstr "Tahlillar"
+
+#: templates/base.html:81
+msgid "Logout"
+msgstr "Chiqish"
+
+#: templates/base.html:86
+msgid "Login"
+msgstr "Kirish"
+
+#: templates/base.html:89
+msgid "Sign Up"
+msgstr "Ro'yxatdan o'tish"
+
+#: templates/base.html:117
+msgid "All rights reserved."
+msgstr "Barcha huquqlar himoyalangan."
+
+#: templates/cells/analysis_detail.html:4
+#: templates/cells/analysis_detail.html:12
+#, fuzzy
+#| msgid "Analyses"
+msgid "Analysis Results"
+msgstr "Tahlillar"
+
+#: templates/cells/analysis_detail.html:16
+msgid "Export CSV"
+msgstr "CSV eksport"
+
+#: templates/cells/analysis_detail.html:20
+msgid "Back to Cell"
+msgstr "Hujayrağa qaytish"
+
+#: templates/cells/analysis_detail.html:39
+msgid "Status:"
+msgstr "Holat:"
+
+#: templates/cells/analysis_detail.html:47
+#, fuzzy
+#| msgid "Analyses"
+msgid "Analysis Date:"
+msgstr "Tahlillar"
+
+#: templates/cells/analysis_detail.html:52
+msgid "Completed:"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:58
+msgid "Processing Time:"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:59
+msgid "seconds"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:67
+msgid "Cellpose Model:"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:71
+msgid "Diameter:"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:72
+msgid "px"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:75
+msgid "Flow Threshold:"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:79
+msgid "Cell Prob Threshold:"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:92
+msgid "Quick Stats"
+msgstr "Tezkor statistika"
+
+#: templates/cells/analysis_detail.html:97
+msgid "Cells Detected"
+msgstr "Topilgan hujayralar"
+
+#: templates/cells/analysis_detail.html:101
+#, fuzzy
+#| msgid "Analyses"
+msgid "Analysis Failed"
+msgstr "Tahlil xato"
+
+#: templates/cells/analysis_detail.html:109
+msgid "Processing..."
+msgstr "Ishlanmoqda..."
+
+#: templates/cells/analysis_detail.html:123
+msgid "Segmentation Results"
+msgstr "Segmentatsiya natijalari"
+
+#: templates/cells/analysis_detail.html:128
+msgid "Original Image"
+msgstr "Asl rasm"
+
+#: templates/cells/analysis_detail.html:132
+msgid "Segmentation Overlay"
+msgstr "Segmentatsiya qoplamasi"
+
+#: templates/cells/analysis_detail.html:137
+msgid "Segmentation image not available"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:153
+msgid "Summary Statistics"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:160
+#: templates/cells/analysis_detail.html:219
+msgid "Area"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:161
+#: templates/cells/analysis_detail.html:171
+#: templates/cells/analysis_detail.html:181
+#: templates/cells/analysis_detail.html:191
+msgid "Mean:"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:162
+#: templates/cells/analysis_detail.html:172
+#: templates/cells/analysis_detail.html:182
+#: templates/cells/analysis_detail.html:192
+msgid "Std:"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:163
+#: templates/cells/analysis_detail.html:173
+#: templates/cells/analysis_detail.html:183
+#: templates/cells/analysis_detail.html:193
+msgid "Range:"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:170
+#: templates/cells/analysis_detail.html:220
+msgid "Perimeter"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:210
+msgid "Individual Cell Measurements"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:211
+msgid "cells total"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:225
+msgid "Centroid"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:251
+#: templates/cells/analysis_list.html:150
+msgid "Previous"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:269
+#: templates/cells/analysis_list.html:178
+msgid "Next"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:286
+msgid "Are you sure you want to delete this analysis?"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:289
+#, fuzzy
+#| msgid "View Analyses"
+msgid "Delete Analysis"
+msgstr "Tahlillarni ko'rish"
+
+#: templates/cells/analysis_list.html:4 templates/cells/analysis_list.html:9
+#, fuzzy
+#| msgid "Analyses"
+msgid "My Analyses"
+msgstr "Tahlillar"
+
+#: templates/cells/analysis_list.html:11 templates/home.html:20
+msgid "View My Cells"
+msgstr "Hujayralamni ko'rish"
+
+#: templates/cells/analysis_list.html:22
+msgid "All Statuses"
+msgstr ""
+
+#: templates/cells/analysis_list.html:29
+msgid "Filter"
+msgstr ""
+
+#: templates/cells/analysis_list.html:31
+msgid "Clear"
+msgstr ""
+
+#: templates/cells/analysis_list.html:43
+#, fuzzy
+#| msgid "Analyses"
+msgid "Total Analyses"
+msgstr "Tahlillar"
+
+#: templates/cells/analysis_list.html:47
+msgid "On This Page"
+msgstr ""
+
+#: templates/cells/analysis_list.html:77
+msgid "Date:"
+msgstr ""
+
+#: templates/cells/analysis_list.html:82
+msgid "Model:"
+msgstr ""
+
+#: templates/cells/analysis_list.html:91
+msgid "Cells Found:"
+msgstr ""
+
+#: templates/cells/analysis_list.html:95
+msgid "Time:"
+msgstr ""
+
+#: templates/cells/analysis_list.html:107
+msgid "Analysis in progress..."
+msgstr ""
+
+#: templates/cells/analysis_list.html:116
+#, fuzzy
+#| msgid "View My Cells"
+msgid "View Results"
+msgstr "Hujayralamni ko'rish"
+
+#: templates/cells/analysis_list.html:119
+msgid "CSV"
+msgstr ""
+
+#: templates/cells/analysis_list.html:123
+msgid "Retry"
+msgstr ""
+
+#: templates/cells/analysis_list.html:126
+msgid "Details"
+msgstr ""
+
+#: templates/cells/analysis_list.html:130
+msgid "View"
+msgstr ""
+
+#: templates/cells/analysis_list.html:134
+#, fuzzy
+#| msgid "My Cells"
+msgid "Cell"
+msgstr "Mening hujayralrim"
+
+#: templates/cells/analysis_list.html:190
+#, fuzzy
+#| msgid "Analyses"
+msgid "No Analyses Found"
+msgstr "Tahlillar"
+
+#: templates/cells/analysis_list.html:192
+#, python-format
+msgid "No analyses found with status \"%(status)s\"."
+msgstr ""
+
+#: templates/cells/analysis_list.html:193
+#, fuzzy
+#| msgid "View Analyses"
+msgid "View All Analyses"
+msgstr "Tahlillarni ko'rish"
+
+#: templates/cells/analysis_list.html:195
+msgid "Start by uploading cell images and running morphometric analysis."
+msgstr ""
+
+#: templates/cells/analysis_list.html:196 templates/home.html:19
+msgid "Upload Cell Images"
+msgstr "Hujayra rasmlarini yuklash"
+
+#: templates/home.html:4
+msgid "Home"
+msgstr "Bosh sahifa"
+
+#: templates/home.html:10
+msgid "Welcome to Morph AI"
+msgstr "Morph AI ga xush kelibsiz"
+
+#: templates/home.html:11
+msgid "Your intelligent transformation platform."
+msgstr "Sizning aqlli transformatsiya platformangiz."
+
+#: templates/home.html:14
+msgid "Get started by creating an account or signing in."
+msgstr "Hisob yaratish yoki tizimga kirish orqali boshlang."
+
+#: templates/home.html:15
+msgid "Get Started"
+msgstr "Boshlash"
+
+#: templates/home.html:18
+#, python-format
+msgid "Welcome back, %(name)s!"
+msgstr "Xush kelibsiz, %(name)s!"
+
+#: templates/home.html:21 templates/home.html:60
+msgid "View Analyses"
+msgstr "Tahlillarni ko'rish"
+
+#: templates/home.html:31
+msgid "Cell Image Upload"
+msgstr "Hujayra rasmlarini yuklash"
+
+#: templates/home.html:32
+msgid "Upload and manage your cell images with automatic metadata extraction."
+msgstr ""
+"Avtomatik metadata chiqarish bilan hujayra rasmlaringizni yuklang va "
+"boshqaring."
+
+#: templates/home.html:34
+msgid "Upload Images"
+msgstr "Rasmlarni yuklash"
+
+#: templates/home.html:36
+msgid "Login to Upload"
+msgstr "Yuklash uchun kiring"
+
+#: templates/home.html:44
+msgid "Image Gallery"
+msgstr "Rasm galereyasi"
+
+#: templates/home.html:45
+msgid "View and organize all your uploaded cell images in one place."
+msgstr ""
+"Barcha yuklangan hujayra rasmlaringizni bir joyda ko'ring va tartibga soling."
+
+#: templates/home.html:47
+msgid "View Gallery"
+msgstr "Galereyani ko'rish"
+
+#: templates/home.html:49
+msgid "Login to View"
+msgstr "Ko'rish uchun kiring"
+
+#: templates/home.html:57
+msgid "Morphometric Analysis"
+msgstr "Morfometrik tahlil"
+
+#: templates/home.html:58
+msgid ""
+"Use Cellpose AI to segment cells and extract comprehensive morphometric "
+"measurements."
+msgstr ""
+"Hujayralarni segmentatsiya qilish va keng qamrovli morfometrik o'lchashlarni "
+"chiqarish uchun Cellpose AI dan foydalaning."
+
+#: templates/home.html:62
+msgid "Login to Access"
+msgstr "Kirish uchun kiring"

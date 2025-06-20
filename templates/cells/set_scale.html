@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Set Scale - {{ cell.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">
+                        <i class="fas fa-ruler"></i> Scale Calibration - {{ cell.name }}
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5>Image with Measurement Tool</h5>
+                            
+                            {% if cell.scale_set %}
+                            <div class="alert alert-success">
+                                <h6><i class="fas fa-check-circle"></i> Scale Already Set</h6>
+                                <p class="mb-0">
+                                    Current scale: <strong>{{ cell.pixels_per_micron|floatformat:2 }} pixels/μm</strong><br>
+                                    Reference: {{ cell.scale_reference_length_pixels|floatformat:1 }} pixels = {{ cell.scale_reference_length_microns|floatformat:2 }} μm
+                                </p>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-warning">
+                                <h6><i class="fas fa-exclamation-triangle"></i> Scale Not Set</h6>
+                                <p class="mb-0">Set scale calibration to get measurements in real-world units (microns).</p>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Image with measurement overlay -->
+                            <div class="position-relative" style="display: inline-block;">
+                                <canvas id="imageCanvas" style="border: 1px solid #ccc; cursor: crosshair;"></canvas>
+                                <img id="cellImage" src="{{ cell.image.url }}" style="display: none;" alt="{{ cell.name }}">
+                            </div>
+                            
+                            <!-- Measurement controls -->
+                            <div class="mt-3">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-outline-primary" id="measureBtn" onclick="startMeasuring()">
+                                        <i class="fas fa-ruler"></i> Measure
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" id="clearBtn" onclick="clearMeasurement()">
+                                        <i class="fas fa-eraser"></i> Clear
+                                    </button>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        Click and drag to measure distance. Current measurement: 
+                                        <span id="currentMeasurement" class="fw-bold">0.0 pixels</span>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <h5>Set Scale</h5>
+                            
+                            <div class="card bg-light mb-3">
+                                <div class="card-body">
+                                    <h6>Current Image Info</h6>
+                                    <ul class="list-unstyled mb-0">
+                                        <li><strong>Dimensions:</strong> {{ cell.image_width }}×{{ cell.image_height }} px</li>
+                                        <li><strong>Format:</strong> {{ cell.file_format|upper }}</li>
+                                        {% if cell.scale_set %}
+                                        <li><strong>Scale:</strong> {{ cell.pixels_per_micron|floatformat:2 }} px/μm</li>
+                                        {% else %}
+                                        <li><strong>Scale:</strong> <span class="text-muted">Not set</span></li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            {% crispy form %}
+                            
+                            <div class="mt-3">
+                                <a href="{% url 'cells:cell_detail' cell.id %}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left"></i> Back to Cell Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+{% block extra_js %}
+<script>
+let canvas, ctx, img;
+let isDrawing = false;
+let startX, startY, endX, endY;
+let currentDistance = 0;
+
+document.addEventListener('DOMContentLoaded', function() {
+    canvas = document.getElementById('imageCanvas');
+    ctx = canvas.getContext('2d');
+    img = document.getElementById('cellImage');
+    
+    // Load image and setup canvas
+    img.onload = function() {
+        // Scale image to fit in reasonable size while maintaining aspect ratio
+        const maxWidth = 600;
+        const maxHeight = 400;
+        let width = img.naturalWidth;
+        let height = img.naturalHeight;
+        
+        if (width > maxWidth || height > maxHeight) {
+            const ratio = Math.min(maxWidth / width, maxHeight / height);
+            width *= ratio;
+            height *= ratio;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw image
+        ctx.drawImage(img, 0, 0, width, height);
+    };
+    
+    // Mouse events for measurement
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    
+    // Auto-fill measured distance
+    const pixelInput = document.getElementById('id_reference_length_pixels');
+    if (pixelInput) {
+        const observer = new MutationObserver(function() {
+            if (currentDistance > 0) {
+                pixelInput.value = currentDistance.toFixed(1);
+            }
+        });
+    }
+});
+
+function startMeasuring() {
+    document.getElementById('measureBtn').classList.add('active');
+    canvas.style.cursor = 'crosshair';
+}
+
+function clearMeasurement() {
+    currentDistance = 0;
+    document.getElementById('currentMeasurement').textContent = '0.0 pixels';
+    document.getElementById('id_reference_length_pixels').value = '';
+    redrawCanvas();
+}
+
+function startDrawing(e) {
+    if (!document.getElementById('measureBtn').classList.contains('active')) return;
+    
+    isDrawing = true;
+    const rect = canvas.getBoundingClientRect();
+    startX = e.clientX - rect.left;
+    startY = e.clientY - rect.top;
+}
+
+function draw(e) {
+    if (!isDrawing) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    endX = e.clientX - rect.left;
+    endY = e.clientY - rect.top;
+    
+    redrawCanvas();
+    
+    // Draw measurement line
+    ctx.strokeStyle = '#ff0000';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+    
+    // Calculate and display distance
+    const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+    
+    // Scale distance to original image size
+    const scaleX = img.naturalWidth / canvas.width;
+    const scaleY = img.naturalHeight / canvas.height;
+    const avgScale = (scaleX + scaleY) / 2;
+    currentDistance = distance * avgScale;
+    
+    document.getElementById('currentMeasurement').textContent = currentDistance.toFixed(1) + ' pixels';
+    
+    // Draw distance text
+    ctx.fillStyle = '#ff0000';
+    ctx.font = '12px Arial';
+    ctx.fillText(currentDistance.toFixed(1) + ' px', endX + 5, endY - 5);
+}
+
+function stopDrawing() {
+    if (!isDrawing) return;
+    
+    isDrawing = false;
+    document.getElementById('measureBtn').classList.remove('active');
+    canvas.style.cursor = 'default';
+    
+    // Auto-fill the form field
+    if (currentDistance > 0) {
+        document.getElementById('id_reference_length_pixels').value = currentDistance.toFixed(1);
+    }
+}
+
+function redrawCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+}
+
+function hideScaleCalibration() {
+    window.history.back();
+}
+</script>
+{% endblock %}
+{% endblock %}

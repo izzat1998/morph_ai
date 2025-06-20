@@ -1,0 +1,607 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-06-19 10:25+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || "
+"(n%100>=11 && n%100<=14)? 2 : 3);\n"
+
+#: cells/forms.py:13
+msgid "Enter image name"
+msgstr "Введите название изображения"
+
+#: cells/forms.py:17
+#, fuzzy
+#| msgid "Image Gallery"
+msgid "Image Name"
+msgstr "Название изображения"
+
+#: cells/forms.py:18
+#, fuzzy
+#| msgid "Cell Image Upload"
+msgid "Cell Image"
+msgstr "Изображение клетки"
+
+#: cells/forms.py:29
+#, fuzzy
+#| msgid "Upload Cell Images"
+msgid "Upload Cell Image"
+msgstr "Загрузить изображение клетки"
+
+#: cells/forms.py:37
+msgid "Image file too large (max 10MB)"
+msgstr "Файл изображения слишком большой (макс. 10МБ)"
+
+#: cells/forms.py:41
+msgid "Please upload a valid image file"
+msgstr "Пожалуйста, загрузите корректный файл изображения"
+
+#: cells/forms.py:51
+msgid "Cellpose Model"
+msgstr "Модель Cellpose"
+
+#: cells/forms.py:52
+msgid "Cell Diameter (pixels)"
+msgstr "Диаметр клетки (пиксели)"
+
+#: cells/forms.py:53
+msgid "Flow Threshold"
+msgstr "Порог потока"
+
+#: cells/forms.py:54
+msgid "Cell Probability Threshold"
+msgstr "Порог вероятности клетки"
+
+#: cells/forms.py:86
+msgid "Analysis Configuration"
+msgstr "Настройки анализа"
+
+#: cells/forms.py:87
+msgid ""
+"Configure the parameters for cellpose analysis. Default values work well for "
+"most cases."
+msgstr ""
+"Настройте параметры для анализа Cellpose. Значения по умолчанию подходят для большинства случаев."
+
+#: cells/forms.py:96
+#, fuzzy
+#| msgid "Analyses"
+msgid "Start Analysis"
+msgstr "Начать анализ"
+
+#: cells/forms.py:97
+msgid "Cancel"
+msgstr "Отмена"
+
+#: cells/forms.py:101
+msgid "Choose the appropriate cellpose model for your images"
+msgstr "Выберите подходящую модель Cellpose для ваших изображений"
+
+#: cells/forms.py:102
+msgid "Expected cell diameter in pixels (leave 0 for auto-detection)"
+msgstr "Ожидаемый диаметр клетки в пикселях (оставьте 0 для автоопределения)"
+
+#: cells/forms.py:103
+msgid "Flow error threshold (0.4 is default, lower = more cells)"
+msgstr "Порог ошибки потока (0.4 по умолчанию, меньше = больше клеток)"
+
+#: cells/forms.py:104
+msgid "Cell probability threshold (0.0 is default)"
+msgstr "Порог вероятности клетки (0.0 по умолчанию)"
+
+#: cells/forms.py:109
+msgid "Diameter must be positive or 0 for auto-detection"
+msgstr "Диаметр должен быть положительным или 0 для автоопределения"
+
+#: cells/forms.py:115
+msgid "Flow threshold must be between 0 and 3"
+msgstr "Порог потока должен быть между 0 и 3"
+
+#: cells/forms.py:121
+msgid "Cell probability threshold must be between -6 and 6"
+msgstr "Порог вероятности клетки должен быть между -6 и 6"
+
+#: cells/models.py:69
+msgid "Pending"
+msgstr "Ожидание"
+
+#: cells/models.py:70
+msgid "Processing"
+msgstr "Обработка"
+
+#: cells/models.py:71
+msgid "Completed"
+msgstr "Завершено"
+
+#: cells/models.py:72
+msgid "Failed"
+msgstr "Ошибка"
+
+#: cells/models.py:76
+msgid "Cytoplasm"
+msgstr "Цитоплазма"
+
+#: cells/models.py:77
+msgid "Nuclei"
+msgstr "Ядра"
+
+#: cells/models.py:78
+msgid "Cytoplasm 2.0"
+msgstr "Цитоплазма 2.0"
+
+#: cells/models.py:79
+msgid "Custom"
+msgstr "Пользовательская"
+
+#: cells/views.py:22
+#, python-format
+msgid "Cell image \"%(name)s\" uploaded successfully!"
+msgstr "Изображение клетки \"%(name)s\" успешно загружено!"
+
+#: cells/views.py:65
+msgid "Analysis completed successfully!"
+msgstr "Анализ завершен успешно!"
+
+#: cells/views.py:68
+msgid "Analysis failed. Please check the error details."
+msgstr "Анализ не удался. Пожалуйста, проверьте детали ошибки."
+
+#: cells/views.py:144
+msgid "Analysis must be completed before export."
+msgstr "Анализ должен быть завершен перед экспортом."
+
+#: cells/views.py:154 templates/cells/analysis_detail.html:218
+msgid "Cell ID"
+msgstr "ID клетки"
+
+#: cells/views.py:154
+msgid "Area (px²)"
+msgstr "Площадь (пикс²)"
+
+#: cells/views.py:154
+msgid "Perimeter (px)"
+msgstr "Периметр (пикс)"
+
+#: cells/views.py:154 templates/cells/analysis_detail.html:180
+#: templates/cells/analysis_detail.html:221
+msgid "Circularity"
+msgstr "Круглость"
+
+#: cells/views.py:154 templates/cells/analysis_detail.html:190
+#: templates/cells/analysis_detail.html:222
+msgid "Eccentricity"
+msgstr "Эксцентриситет"
+
+#: cells/views.py:155 templates/cells/analysis_detail.html:223
+msgid "Solidity"
+msgstr "Плотность"
+
+#: cells/views.py:155
+msgid "Extent"
+msgstr "Протяженность"
+
+#: cells/views.py:155
+msgid "Major Axis (px)"
+msgstr "Большая ось (пикс)"
+
+#: cells/views.py:155
+msgid "Minor Axis (px)"
+msgstr "Малая ось (пикс)"
+
+#: cells/views.py:155 templates/cells/analysis_detail.html:224
+msgid "Aspect Ratio"
+msgstr "Соотношение сторон"
+
+#: cells/views.py:156
+msgid "Centroid X"
+msgstr "Центроид X"
+
+#: cells/views.py:156
+msgid "Centroid Y"
+msgstr "Центроид Y"
+
+#: cells/views.py:156
+msgid "Bbox X"
+msgstr "Рамка X"
+
+#: cells/views.py:156
+msgid "Bbox Y"
+msgstr "Рамка Y"
+
+#: cells/views.py:156
+msgid "Bbox Width"
+msgstr "Ширина рамки"
+
+#: cells/views.py:156
+msgid "Bbox Height"
+msgstr "Высота рамки"
+
+#: cells/views.py:179
+msgid "Analysis deleted successfully."
+msgstr "Анализ успешно удален."
+
+#: templates/base.html:32
+msgid "Upload Cells"
+msgstr "Загрузить клетки"
+
+#: templates/base.html:35
+msgid "My Cells"
+msgstr "Мои клетки"
+
+#: templates/base.html:38
+msgid "Analyses"
+msgstr "Анализы"
+
+#: templates/base.html:81
+msgid "Logout"
+msgstr "Выход"
+
+#: templates/base.html:86
+msgid "Login"
+msgstr "Вход"
+
+#: templates/base.html:89
+msgid "Sign Up"
+msgstr "Регистрация"
+
+#: templates/base.html:117
+msgid "All rights reserved."
+msgstr "Все права защищены."
+
+#: templates/cells/analysis_detail.html:4
+#: templates/cells/analysis_detail.html:12
+#, fuzzy
+#| msgid "Analyses"
+msgid "Analysis Results"
+msgstr "Анализы"
+
+#: templates/cells/analysis_detail.html:16
+msgid "Export CSV"
+msgstr "Экспорт CSV"
+
+#: templates/cells/analysis_detail.html:20
+msgid "Back to Cell"
+msgstr "Назад к клетке"
+
+#: templates/cells/analysis_detail.html:39
+msgid "Status:"
+msgstr "Статус:"
+
+#: templates/cells/analysis_detail.html:47
+#, fuzzy
+#| msgid "Analyses"
+msgid "Analysis Date:"
+msgstr "Дата анализа:"
+
+#: templates/cells/analysis_detail.html:52
+msgid "Completed:"
+msgstr "Завершено:"
+
+#: templates/cells/analysis_detail.html:58
+msgid "Processing Time:"
+msgstr "Время обработки:"
+
+#: templates/cells/analysis_detail.html:59
+msgid "seconds"
+msgstr "секунд"
+
+#: templates/cells/analysis_detail.html:67
+msgid "Cellpose Model:"
+msgstr "Модель Cellpose:"
+
+#: templates/cells/analysis_detail.html:71
+msgid "Diameter:"
+msgstr "Диаметр:"
+
+#: templates/cells/analysis_detail.html:72
+msgid "px"
+msgstr "пикс"
+
+#: templates/cells/analysis_detail.html:75
+msgid "Flow Threshold:"
+msgstr "Порог потока:"
+
+#: templates/cells/analysis_detail.html:79
+msgid "Cell Prob Threshold:"
+msgstr "Порог вер. клетки:"
+
+#: templates/cells/analysis_detail.html:92
+msgid "Quick Stats"
+msgstr "Краткая статистика"
+
+#: templates/cells/analysis_detail.html:97
+msgid "Cells Detected"
+msgstr "Обнаружено клеток"
+
+#: templates/cells/analysis_detail.html:101
+#, fuzzy
+#| msgid "Analyses"
+msgid "Analysis Failed"
+msgstr "Ошибка анализа"
+
+#: templates/cells/analysis_detail.html:109
+msgid "Processing..."
+msgstr "Обработка..."
+
+#: templates/cells/analysis_detail.html:123
+msgid "Segmentation Results"
+msgstr "Результаты сегментации"
+
+#: templates/cells/analysis_detail.html:128
+msgid "Original Image"
+msgstr "Оригинальное изображение"
+
+#: templates/cells/analysis_detail.html:132
+msgid "Segmentation Overlay"
+msgstr "Наложение сегментации"
+
+#: templates/cells/analysis_detail.html:137
+msgid "Segmentation image not available"
+msgstr "Изображение сегментации недоступно"
+
+#: templates/cells/analysis_detail.html:153
+msgid "Summary Statistics"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:160
+#: templates/cells/analysis_detail.html:219
+msgid "Area"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:161
+#: templates/cells/analysis_detail.html:171
+#: templates/cells/analysis_detail.html:181
+#: templates/cells/analysis_detail.html:191
+msgid "Mean:"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:162
+#: templates/cells/analysis_detail.html:172
+#: templates/cells/analysis_detail.html:182
+#: templates/cells/analysis_detail.html:192
+msgid "Std:"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:163
+#: templates/cells/analysis_detail.html:173
+#: templates/cells/analysis_detail.html:183
+#: templates/cells/analysis_detail.html:193
+msgid "Range:"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:170
+#: templates/cells/analysis_detail.html:220
+msgid "Perimeter"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:210
+msgid "Individual Cell Measurements"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:211
+msgid "cells total"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:225
+msgid "Centroid"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:251
+#: templates/cells/analysis_list.html:150
+msgid "Previous"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:269
+#: templates/cells/analysis_list.html:178
+msgid "Next"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:286
+msgid "Are you sure you want to delete this analysis?"
+msgstr ""
+
+#: templates/cells/analysis_detail.html:289
+#, fuzzy
+#| msgid "View Analyses"
+msgid "Delete Analysis"
+msgstr "Посмотреть анализы"
+
+#: templates/cells/analysis_list.html:4 templates/cells/analysis_list.html:9
+#, fuzzy
+#| msgid "Analyses"
+msgid "My Analyses"
+msgstr "Анализы"
+
+#: templates/cells/analysis_list.html:11 templates/home.html:20
+msgid "View My Cells"
+msgstr "Посмотреть мои клетки"
+
+#: templates/cells/analysis_list.html:22
+msgid "All Statuses"
+msgstr ""
+
+#: templates/cells/analysis_list.html:29
+msgid "Filter"
+msgstr ""
+
+#: templates/cells/analysis_list.html:31
+msgid "Clear"
+msgstr ""
+
+#: templates/cells/analysis_list.html:43
+#, fuzzy
+#| msgid "Analyses"
+msgid "Total Analyses"
+msgstr "Анализы"
+
+#: templates/cells/analysis_list.html:47
+msgid "On This Page"
+msgstr ""
+
+#: templates/cells/analysis_list.html:77
+msgid "Date:"
+msgstr ""
+
+#: templates/cells/analysis_list.html:82
+msgid "Model:"
+msgstr ""
+
+#: templates/cells/analysis_list.html:91
+msgid "Cells Found:"
+msgstr ""
+
+#: templates/cells/analysis_list.html:95
+msgid "Time:"
+msgstr ""
+
+#: templates/cells/analysis_list.html:107
+msgid "Analysis in progress..."
+msgstr ""
+
+#: templates/cells/analysis_list.html:116
+#, fuzzy
+#| msgid "View My Cells"
+msgid "View Results"
+msgstr "Посмотреть мои клетки"
+
+#: templates/cells/analysis_list.html:119
+msgid "CSV"
+msgstr ""
+
+#: templates/cells/analysis_list.html:123
+msgid "Retry"
+msgstr ""
+
+#: templates/cells/analysis_list.html:126
+msgid "Details"
+msgstr ""
+
+#: templates/cells/analysis_list.html:130
+msgid "View"
+msgstr ""
+
+#: templates/cells/analysis_list.html:134
+#, fuzzy
+#| msgid "My Cells"
+msgid "Cell"
+msgstr "Мои клетки"
+
+#: templates/cells/analysis_list.html:190
+#, fuzzy
+#| msgid "Analyses"
+msgid "No Analyses Found"
+msgstr "Анализы"
+
+#: templates/cells/analysis_list.html:192
+#, python-format
+msgid "No analyses found with status \"%(status)s\"."
+msgstr ""
+
+#: templates/cells/analysis_list.html:193
+#, fuzzy
+#| msgid "View Analyses"
+msgid "View All Analyses"
+msgstr "Посмотреть анализы"
+
+#: templates/cells/analysis_list.html:195
+msgid "Start by uploading cell images and running morphometric analysis."
+msgstr ""
+
+#: templates/cells/analysis_list.html:196 templates/home.html:19
+msgid "Upload Cell Images"
+msgstr "Загрузить изображения клеток"
+
+#: templates/home.html:4
+msgid "Home"
+msgstr "Главная"
+
+#: templates/home.html:10
+msgid "Welcome to Morph AI"
+msgstr "Добро пожаловать в Morph AI"
+
+#: templates/home.html:11
+msgid "Your intelligent transformation platform."
+msgstr "Ваша интеллектуальная платформа трансформации."
+
+#: templates/home.html:14
+msgid "Get started by creating an account or signing in."
+msgstr "Начните с создания учетной записи или входа в систему."
+
+#: templates/home.html:15
+msgid "Get Started"
+msgstr "Начать"
+
+#: templates/home.html:18
+#, python-format
+msgid "Welcome back, %(name)s!"
+msgstr "Добро пожаловать, %(name)s!"
+
+#: templates/home.html:21 templates/home.html:60
+msgid "View Analyses"
+msgstr "Посмотреть анализы"
+
+#: templates/home.html:31
+msgid "Cell Image Upload"
+msgstr "Загрузка изображений клеток"
+
+#: templates/home.html:32
+msgid "Upload and manage your cell images with automatic metadata extraction."
+msgstr ""
+"Загружайте и управляйте изображениями клеток с автоматическим извлечением "
+"метаданных."
+
+#: templates/home.html:34
+msgid "Upload Images"
+msgstr "Загрузить изображения"
+
+#: templates/home.html:36
+msgid "Login to Upload"
+msgstr "Войти для загрузки"
+
+#: templates/home.html:44
+msgid "Image Gallery"
+msgstr "Галерея изображений"
+
+#: templates/home.html:45
+msgid "View and organize all your uploaded cell images in one place."
+msgstr ""
+"Просматривайте и организуйте все загруженные изображения клеток в одном "
+"месте."
+
+#: templates/home.html:47
+msgid "View Gallery"
+msgstr "Посмотреть галерею"
+
+#: templates/home.html:49
+msgid "Login to View"
+msgstr "Войти для просмотра"
+
+#: templates/home.html:57
+msgid "Morphometric Analysis"
+msgstr "Морфометрический анализ"
+
+#: templates/home.html:58
+msgid ""
+"Use Cellpose AI to segment cells and extract comprehensive morphometric "
+"measurements."
+msgstr ""
+"Используйте Cellpose AI для сегментации клеток и извлечения комплексных "
+"морфометрических измерений."
+
+#: templates/home.html:62
+msgid "Login to Access"
+msgstr "Войти для доступа"

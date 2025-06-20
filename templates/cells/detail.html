@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ cell.name }} - Cell Detail{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">{{ cell.name }}</h3>
+                    <div>
+                        <a href="{% url 'cells:set_scale_calibration' cell.id %}" class="btn btn-{% if cell.scale_set %}outline-primary{% else %}warning{% endif %}">
+                            <i class="fas fa-ruler"></i> {% if cell.scale_set %}Update Scale{% else %}Set Scale{% endif %}
+                        </a>
+                        <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success">
+                            <i class="fas fa-microscope"></i> Analyze
+                        </a>
+                        <a href="{% url 'cells:list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to List
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <img src="{{ cell.image.url }}" class="img-fluid rounded" alt="{{ cell.name }}">
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Image Details</h5>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Dimensions:</strong></td>
+                                    <td>{{ cell.image_width }}×{{ cell.image_height }} px</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Format:</strong></td>
+                                    <td>{{ cell.file_format|upper }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>File Size:</strong></td>
+                                    <td>{{ cell.file_size|filesizeformat }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Uploaded:</strong></td>
+                                    <td>{{ cell.created_at|date:"M d, Y H:i" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Scale:</strong></td>
+                                    <td>
+                                        {% if cell.scale_set %}
+                                            <span class="badge bg-success">{{ cell.pixels_per_micron|floatformat:2 }} px/μm</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">Not calibrated</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Analyses:</strong></td>
+                                    <td>
+                                        <span class="badge bg-{{ cell.has_analysis|yesno:'success,secondary' }}">
+                                            {{ cell.analysis_count }} analysis{{ cell.analysis_count|pluralize:"es" }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            {% if latest_analysis %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Latest Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-{% if latest_analysis.status == 'completed' %}success{% elif latest_analysis.status == 'failed' %}danger{% elif latest_analysis.status == 'processing' %}warning{% else %}secondary{% endif %}">
+                            {{ latest_analysis.get_status_display }}
+                        </span>
+                        <small class="text-muted">{{ latest_analysis.analysis_date|date:"M d, H:i" }}</small>
+                    </div>
+                    
+                    {% if latest_analysis.status == 'completed' %}
+                    <p><strong>Cells Detected:</strong> {{ latest_analysis.num_cells_detected }}</p>
+                    <p><strong>Processing Time:</strong> {{ latest_analysis.processing_time|floatformat:2 }}s</p>
+                    <a href="{% url 'cells:analysis_detail' latest_analysis.id %}" class="btn btn-primary btn-sm">View Results</a>
+                    {% elif latest_analysis.status == 'failed' %}
+                    <p class="text-danger"><small>{{ latest_analysis.error_message }}</small></p>
+                    <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success btn-sm">Try Again</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5>No Analysis Yet</h5>
+                    <p class="text-muted">Start morphometric analysis to detect and measure cells in this image.</p>
+                    <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success">Start Analysis</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    {% if analyses %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Analysis History</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Model</th>
+                                    <th>Cells Detected</th>
+                                    <th>Processing Time</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for analysis in analyses %}
+                                <tr>
+                                    <td>{{ analysis.analysis_date|date:"M d, Y H:i" }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if analysis.status == 'completed' %}success{% elif analysis.status == 'failed' %}danger{% elif analysis.status == 'processing' %}warning{% else %}secondary{% endif %}">
+                                            {{ analysis.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ analysis.get_cellpose_model_display }}</td>
+                                    <td>{{ analysis.num_cells_detected|default:"-" }}</td>
+                                    <td>{{ analysis.processing_time|floatformat:2|default:"-" }}s</td>
+                                    <td>
+                                        {% if analysis.status == 'completed' %}
+                                        <a href="{% url 'cells:analysis_detail' analysis.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                                        {% elif analysis.status == 'failed' %}
+                                        <button class="btn btn-sm btn-outline-danger" title="{{ analysis.error_message }}">Error</button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% endblock %}

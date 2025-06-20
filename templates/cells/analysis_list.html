@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "My Analyses" %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{% trans "My Analyses" %}</h2>
+        <a href="{% url 'cells:list' %}" class="btn btn-primary">
+            <i class="fas fa-images"></i> {% trans "View My Cells" %}
+        </a>
+    </div>
+    
+    <!-- Filter Controls -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="d-flex">
+                        <select name="status" class="form-select me-2">
+                            <option value="">{% trans "All Statuses" %}</option>
+                            {% for status_value, status_label in status_choices %}
+                            <option value="{{ status_value }}" {% if status_filter == status_value %}selected{% endif %}>
+                                {{ status_label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-outline-primary">{% trans "Filter" %}</button>
+                        {% if status_filter %}
+                        <a href="{% url 'cells:analysis_list' %}" class="btn btn-outline-secondary ms-2">{% trans "Clear" %}</a>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col">
+                            <h5>{{ page_obj.paginator.count }}</h5>
+                            <small class="text-muted">{% trans "Total Analyses" %}</small>
+                        </div>
+                        <div class="col">
+                            <h5>{{ page_obj.object_list|length }}</h5>
+                            <small class="text-muted">{% trans "On This Page" %}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if page_obj %}
+    <!-- Analyses List -->
+    <div class="row">
+        {% for analysis in page_obj %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">{{ analysis.cell.name }}</h6>
+                    <span class="badge bg-{% if analysis.status == 'completed' %}success{% elif analysis.status == 'failed' %}danger{% elif analysis.status == 'processing' %}warning{% else %}secondary{% endif %}">
+                        {{ analysis.get_status_display }}
+                    </span>
+                </div>
+                
+                {% if analysis.cell.image %}
+                <div class="text-center p-2">
+                    <img src="{{ analysis.cell.image.url }}" class="img-fluid rounded" alt="{{ analysis.cell.name }}" style="max-height: 150px; object-fit: cover;">
+                </div>
+                {% endif %}
+                
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-muted">{% trans "Date:" %}</small><br>
+                            <strong>{{ analysis.analysis_date|date:"M d, Y" }}</strong><br>
+                            <small>{{ analysis.analysis_date|date:"H:i" }}</small>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">{% trans "Model:" %}</small><br>
+                            <strong>{{ analysis.get_cellpose_model_display }}</strong>
+                        </div>
+                    </div>
+                    
+                    {% if analysis.status == 'completed' %}
+                    <hr>
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-muted">{% trans "Cells Found:" %}</small><br>
+                            <strong class="text-success">{{ analysis.num_cells_detected }}</strong>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">{% trans "Time:" %}</small><br>
+                            <strong>{{ analysis.processing_time|floatformat:1 }}s</strong>
+                        </div>
+                    </div>
+                    {% elif analysis.status == 'failed' %}
+                    <hr>
+                    <div class="text-danger">
+                        <small><i class="fas fa-exclamation-triangle"></i> {{ analysis.error_message|truncatechars:50 }}</small>
+                    </div>
+                    {% elif analysis.status == 'processing' %}
+                    <hr>
+                    <div class="text-warning">
+                        <small><i class="fas fa-spinner fa-spin"></i> {% trans "Analysis in progress..." %}</small>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="card-footer">
+                    <div class="btn-group w-100" role="group">
+                        {% if analysis.status == 'completed' %}
+                        <a href="{% url 'cells:analysis_detail' analysis.id %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-chart-bar"></i> {% trans "View Results" %}
+                        </a>
+                        <a href="{% url 'cells:export_analysis_csv' analysis.id %}" class="btn btn-success btn-sm">
+                            <i class="fas fa-download"></i> {% trans "CSV" %}
+                        </a>
+                        {% elif analysis.status == 'failed' %}
+                        <a href="{% url 'cells:analyze_cell' analysis.cell.id %}" class="btn btn-warning btn-sm">
+                            <i class="fas fa-redo"></i> {% trans "Retry" %}
+                        </a>
+                        <a href="{% url 'cells:analysis_detail' analysis.id %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-info"></i> {% trans "Details" %}
+                        </a>
+                        {% else %}
+                        <a href="{% url 'cells:analysis_detail' analysis.id %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-eye"></i> {% trans "View" %}
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'cells:cell_detail' analysis.cell.id %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-image"></i> {% trans "Cell" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Analyses pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}">
+                    <i class="fas fa-chevron-left"></i> {% trans "Previous" %}
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for page_num in page_obj.paginator.page_range %}
+            {% if page_num == page_obj.number %}
+            <li class="page-item active">
+                <span class="page-link">{{ page_num }}</span>
+            </li>
+            {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_num }}{% if status_filter %}&status={{ status_filter }}{% endif %}">{{ page_num }}</a>
+            </li>
+            {% elif page_num == 1 or page_num == page_obj.paginator.num_pages %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_num }}{% if status_filter %}&status={{ status_filter }}{% endif %}">{{ page_num }}</a>
+            </li>
+            {% elif page_num == page_obj.number|add:'-4' or page_num == page_obj.number|add:'4' %}
+            <li class="page-item disabled">
+                <span class="page-link">...</span>
+            </li>
+            {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}">
+                    {% trans "Next" %} <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-5">
+        <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+        <h4 class="text-muted">{% trans "No Analyses Found" %}</h4>
+        {% if status_filter %}
+        <p class="text-muted">{% blocktrans with status=status_filter|title %}No analyses found with status "{{ status }}".{% endblocktrans %}</p>
+        <a href="{% url 'cells:analysis_list' %}" class="btn btn-outline-primary">{% trans "View All Analyses" %}</a>
+        {% else %}
+        <p class="text-muted">{% trans "Start by uploading cell images and running morphometric analysis." %}</p>
+        <a href="{% url 'cells:upload' %}" class="btn btn-primary">{% trans "Upload Cell Images" %}</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+{% block extra_js %}
+<script>
+// Auto-refresh for processing analyses
+document.addEventListener('DOMContentLoaded', function() {
+    const processingCards = document.querySelectorAll('.badge.bg-warning');
+    if (processingCards.length > 0) {
+        // Refresh page every 10 seconds if there are processing analyses
+        setTimeout(() => {
+            window.location.reload();
+        }, 10000);
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

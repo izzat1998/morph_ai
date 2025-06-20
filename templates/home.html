@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Home" %} - Morph AI{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-12">
+        <div class="jumbotron bg-primary text-white p-5 rounded mb-4">
+            <h1 class="display-4">{% trans "Welcome to Morph AI" %}</h1>
+            <p class="lead">{% trans "Your intelligent transformation platform." %}</p>
+            {% if not user.is_authenticated %}
+                <hr class="my-4">
+                <p>{% trans "Get started by creating an account or signing in." %}</p>
+                <a class="btn btn-light btn-lg" href="{% url 'accounts:signup' %}" role="button">{% trans "Get Started" %}</a>
+            {% else %}
+                <hr class="my-4">
+                <p>{% blocktrans with name=user.full_name|default:user.username %}Welcome back, {{ name }}!{% endblocktrans %}</p>
+                <a class="btn btn-light btn-lg me-2" href="{% url 'cells:upload' %}" role="button">{% trans "Upload Cell Images" %}</a>
+                <a class="btn btn-outline-light btn-lg me-2" href="{% url 'cells:list' %}" role="button">{% trans "View My Cells" %}</a>
+                <a class="btn btn-outline-light btn-lg" href="{% url 'cells:analysis_list' %}" role="button">{% trans "View Analyses" %}</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">{% trans "Cell Image Upload" %}</h5>
+                <p class="card-text">{% trans "Upload and manage your cell images with automatic metadata extraction." %}</p>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'cells:upload' %}" class="btn btn-primary">{% trans "Upload Images" %}</a>
+                {% else %}
+                    <a href="{% url 'accounts:login' %}" class="btn btn-primary">{% trans "Login to Upload" %}</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">{% trans "Image Gallery" %}</h5>
+                <p class="card-text">{% trans "View and organize all your uploaded cell images in one place." %}</p>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'cells:list' %}" class="btn btn-primary">{% trans "View Gallery" %}</a>
+                {% else %}
+                    <a href="{% url 'accounts:login' %}" class="btn btn-primary">{% trans "Login to View" %}</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">{% trans "Morphometric Analysis" %}</h5>
+                <p class="card-text">{% trans "Use Cellpose AI to segment cells and extract comprehensive morphometric measurements." %}</p>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'cells:analysis_list' %}" class="btn btn-primary">{% trans "View Analyses" %}</a>
+                {% else %}
+                    <a href="{% url 'accounts:login' %}" class="btn btn-primary">{% trans "Login to Access" %}</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

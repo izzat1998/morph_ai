@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Upload Cell Image{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">Upload Cell Image</h3>
+                </div>
+                <div class="card-body">
+                    {% crispy form %}
+                </div>
+            </div>
+            
+            {% if user.cells.exists %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h4 class="mb-0">Your Recent Uploads</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for cell in user.cells.all|slice:":6" %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <img src="{{ cell.image.url }}" class="card-img-top" alt="{{ cell.name }}" style="height: 200px; object-fit: cover;">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ cell.name }}</h6>
+                                    <small class="text-muted">
+                                        {{ cell.image_width }}x{{ cell.image_height }} | 
+                                        {{ cell.file_format|upper }} | 
+                                        {{ cell.file_size|filesizeformat }}
+                                    </small>
+                                    <br>
+                                    <small class="text-muted">{{ cell.created_at|date:"M d, Y H:i" }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if user.cells.count > 6 %}
+                    <div class="text-center">
+                        <a href="{% url 'cells:list' %}" class="btn btn-outline-primary">View All ({{ user.cells.count }} total)</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

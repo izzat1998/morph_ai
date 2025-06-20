@@ -1,0 +1,98 @@
+name: Django CI/CD
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: morph_ai_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run migrations
+      env:
+        SECRET_KEY: 'test-secret-key-for-ci'
+        DEBUG: 'False'
+        DB_NAME: 'morph_ai_test'
+        DB_USER: 'postgres'
+        DB_PASSWORD: 'postgres'
+        DB_HOST: 'localhost'
+        DB_PORT: '5432'
+      run: |
+        python manage.py makemigrations
+        python manage.py migrate
+    
+    - name: Run tests
+      env:
+        SECRET_KEY: 'test-secret-key-for-ci'
+        DEBUG: 'False'
+        DB_NAME: 'morph_ai_test'
+        DB_USER: 'postgres'
+        DB_PASSWORD: 'postgres'
+        DB_HOST: 'localhost'
+        DB_PORT: '5432'
+      run: |
+        python manage.py test
+    
+    - name: Run collectstatic
+      env:
+        SECRET_KEY: 'test-secret-key-for-ci'
+        DEBUG: 'False'
+        DB_NAME: 'morph_ai_test'
+        DB_USER: 'postgres'
+        DB_PASSWORD: 'postgres'
+        DB_HOST: 'localhost'
+        DB_PORT: '5432'
+      run: |
+        python manage.py collectstatic --noinput
+
+  security-check:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install safety
+      run: |
+        python -m pip install --upgrade pip
+        pip install safety bandit
+    
+    - name: Run security checks
+      run: |
+        safety check -r requirements.txt
+        bandit -r . -x ./venv/,./env/,./tests/

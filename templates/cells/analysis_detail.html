@@ -1,0 +1,461 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Analysis Results" %} - {{ cell.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>{% trans "Analysis Results" %}</h2>
+                <div>
+                    {% if analysis.status == 'completed' %}
+                    <a href="{% url 'cells:export_analysis_csv' analysis.id %}" class="btn btn-success">
+                        <i class="fas fa-download"></i> {% trans "Export CSV" %}
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'cells:cell_detail' cell.id %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> {% trans "Back to Cell" %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Analysis Status and Info -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ cell.name }} - Analysis #{{ analysis.id }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>{% trans "Status:" %}</strong></td>
+                                    <td>
+                                        <span class="badge bg-{% if analysis.status == 'completed' %}success{% elif analysis.status == 'failed' %}danger{% elif analysis.status == 'processing' %}warning{% else %}secondary{% endif %}">
+                                            {{ analysis.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>{% trans "Analysis Date:" %}</strong></td>
+                                    <td>{{ analysis.analysis_date|date:"M d, Y H:i:s" }}</td>
+                                </tr>
+                                {% if analysis.completed_at %}
+                                <tr>
+                                    <td><strong>{% trans "Completed:" %}</strong></td>
+                                    <td>{{ analysis.completed_at|date:"M d, Y H:i:s" }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if analysis.processing_time %}
+                                <tr>
+                                    <td><strong>{% trans "Processing Time:" %}</strong></td>
+                                    <td>{{ analysis.processing_time|floatformat:2 }} {% trans "seconds" %}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>{% trans "Cellpose Model:" %}</strong></td>
+                                    <td>{{ analysis.get_cellpose_model_display }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>{% trans "Diameter:" %}</strong></td>
+                                    <td>{{ analysis.cellpose_diameter|floatformat:1 }} {% trans "px" %}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>{% trans "Flow Threshold:" %}</strong></td>
+                                    <td>{{ analysis.flow_threshold|floatformat:2 }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>{% trans "Cell Prob Threshold:" %}</strong></td>
+                                    <td>{{ analysis.cellprob_threshold|floatformat:2 }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>{% trans "Scale Calibration:" %}</strong></td>
+                                    <td>
+                                        {% if analysis.cell.scale_set %}
+                                            <span class="badge bg-success">{{ analysis.cell.pixels_per_micron|floatformat:2 }} px/μm</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">{% trans "Not calibrated" %}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">{% trans "Quick Stats" %}</h6>
+                </div>
+                <div class="card-body text-center">
+                    {% if analysis.status == 'completed' %}
+                    <h3 class="text-success">{{ analysis.num_cells_detected }}</h3>
+                    <p class="mb-0">{% trans "Cells Detected" %}</p>
+                    {% elif analysis.status == 'failed' %}
+                    <div class="text-danger">
+                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        <p class="mt-2">{% trans "Analysis Failed" %}</p>
+                        {% if analysis.error_message %}
+                        <small>{{ analysis.error_message }}</small>
+                        {% endif %}
+                    </div>
+                    {% elif analysis.status == 'processing' %}
+                    <div class="text-warning">
+                        <i class="fas fa-spinner fa-spin fa-2x"></i>
+                        <p class="mt-2">{% trans "Processing..." %}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if analysis.status == 'completed' %}
+    <!-- Images -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">{% trans "Segmentation Results" %}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 text-center">
+                            <h6>{% trans "Original Image" %}</h6>
+                            <img src="{{ cell.image.url }}" class="img-fluid rounded" alt="Original" style="max-height: 400px;">
+                        </div>
+                        <div class="col-md-6 text-center">
+                            <h6>{% trans "Segmentation Overlay" %}</h6>
+                            {% if analysis.segmentation_image %}
+                            <img src="{{ analysis.segmentation_image.url }}" class="img-fluid rounded" alt="Segmentation" style="max-height: 400px;">
+                            {% else %}
+                            <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 400px;">
+                                <span class="text-muted">{% trans "Segmentation image not available" %}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if summary %}
+    <!-- Summary Statistics -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">{% trans "Summary Statistics" %}</h5>
+                </div>
+                <div class="card-body">
+                    {% if summary.scale_available %}
+                    <!-- Toggle between units -->
+                    <div class="text-center mb-3">
+                        <div class="btn-group" role="group" aria-label="Unit selection">
+                            <input type="radio" class="btn-check" name="unit-toggle" id="pixel-units" checked>
+                            <label class="btn btn-outline-primary" for="pixel-units">{% trans "Pixels" %}</label>
+                            
+                            <input type="radio" class="btn-check" name="unit-toggle" id="micron-units">
+                            <label class="btn btn-outline-primary" for="micron-units">{% trans "Microns" %} (μm)</label>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Pixel measurements -->
+                    <div id="pixel-stats" class="measurement-stats">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6>{% trans "Area" %} (px²)</h6>
+                                        <p><strong>{% trans "Mean:" %}</strong> {{ summary.area_stats.mean|floatformat:1 }}</p>
+                                        <p><strong>{% trans "Std:" %}</strong> {{ summary.area_stats.std|floatformat:1 }}</p>
+                                        <small>{% trans "Range:" %} {{ summary.area_stats.min|floatformat:1 }} - {{ summary.area_stats.max|floatformat:1 }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6>{% trans "Perimeter" %} (px)</h6>
+                                        <p><strong>{% trans "Mean:" %}</strong> {{ summary.perimeter_stats.mean|floatformat:1 }}</p>
+                                        <p><strong>{% trans "Std:" %}</strong> {{ summary.perimeter_stats.std|floatformat:1 }}</p>
+                                        <small>{% trans "Range:" %} {{ summary.perimeter_stats.min|floatformat:1 }} - {{ summary.perimeter_stats.max|floatformat:1 }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6>{% trans "Circularity" %}</h6>
+                                        <p><strong>{% trans "Mean:" %}</strong> {{ summary.circularity_stats.mean|floatformat:3 }}</p>
+                                        <p><strong>{% trans "Std:" %}</strong> {{ summary.circularity_stats.std|floatformat:3 }}</p>
+                                        <small>{% trans "Range:" %} {{ summary.circularity_stats.min|floatformat:3 }} - {{ summary.circularity_stats.max|floatformat:3 }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6>{% trans "Eccentricity" %}</h6>
+                                        <p><strong>{% trans "Mean:" %}</strong> {{ summary.eccentricity_stats.mean|floatformat:3 }}</p>
+                                        <p><strong>{% trans "Std:" %}</strong> {{ summary.eccentricity_stats.std|floatformat:3 }}</p>
+                                        <small>{% trans "Range:" %} {{ summary.eccentricity_stats.min|floatformat:3 }} - {{ summary.eccentricity_stats.max|floatformat:3 }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if summary.scale_available and summary.area_stats_microns %}
+                    <!-- Micron measurements -->
+                    <div id="micron-stats" class="measurement-stats" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="card bg-success bg-opacity-10">
+                                    <div class="card-body text-center">
+                                        <h6>{% trans "Area" %} (μm²)</h6>
+                                        <p><strong>{% trans "Mean:" %}</strong> {{ summary.area_stats_microns.mean|floatformat:2 }}</p>
+                                        <p><strong>{% trans "Std:" %}</strong> {{ summary.area_stats_microns.std|floatformat:2 }}</p>
+                                        <small>{% trans "Range:" %} {{ summary.area_stats_microns.min|floatformat:2 }} - {{ summary.area_stats_microns.max|floatformat:2 }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-success bg-opacity-10">
+                                    <div class="card-body text-center">
+                                        <h6>{% trans "Perimeter" %} (μm)</h6>
+                                        <p><strong>{% trans "Mean:" %}</strong> {{ summary.perimeter_stats_microns.mean|floatformat:2 }}</p>
+                                        <p><strong>{% trans "Std:" %}</strong> {{ summary.perimeter_stats_microns.std|floatformat:2 }}</p>
+                                        <small>{% trans "Range:" %} {{ summary.perimeter_stats_microns.min|floatformat:2 }} - {{ summary.perimeter_stats_microns.max|floatformat:2 }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6>{% trans "Circularity" %}</h6>
+                                        <p><strong>{% trans "Mean:" %}</strong> {{ summary.circularity_stats.mean|floatformat:3 }}</p>
+                                        <p><strong>{% trans "Std:" %}</strong> {{ summary.circularity_stats.std|floatformat:3 }}</p>
+                                        <small>{% trans "Range:" %} {{ summary.circularity_stats.min|floatformat:3 }} - {{ summary.circularity_stats.max|floatformat:3 }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6>{% trans "Eccentricity" %}</h6>
+                                        <p><strong>{% trans "Mean:" %}</strong> {{ summary.eccentricity_stats.mean|floatformat:3 }}</p>
+                                        <p><strong>{% trans "Std:" %}</strong> {{ summary.eccentricity_stats.std|floatformat:3 }}</p>
+                                        <small>{% trans "Range:" %} {{ summary.eccentricity_stats.min|floatformat:3 }} - {{ summary.eccentricity_stats.max|floatformat:3 }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Individual Cell Data -->
+    {% if page_obj %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{% trans "Individual Cell Measurements" %}</h5>
+                    <span class="badge bg-secondary">{{ analysis.num_cells_detected }} {% trans "cells total" %}</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "Cell ID" %}</th>
+                                    <th class="pixel-header">{% trans "Area" %} (px²)</th>
+                                    <th class="pixel-header">{% trans "Perimeter" %} (px)</th>
+                                    <th class="micron-header" style="display: none;">{% trans "Area" %} (μm²)</th>
+                                    <th class="micron-header" style="display: none;">{% trans "Perimeter" %} (μm)</th>
+                                    <th>{% trans "Circularity" %}</th>
+                                    <th>{% trans "Eccentricity" %}</th>
+                                    <th>{% trans "Solidity" %}</th>
+                                    <th>{% trans "Aspect Ratio" %}</th>
+                                    <th class="pixel-header">{% trans "Major Axis" %} (px)</th>
+                                    <th class="pixel-header">{% trans "Minor Axis" %} (px)</th>
+                                    <th class="micron-header" style="display: none;">{% trans "Major Axis" %} (μm)</th>
+                                    <th class="micron-header" style="display: none;">{% trans "Minor Axis" %} (μm)</th>
+                                    <th>{% trans "Centroid" %} (x,y)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cell_data in page_obj %}
+                                <tr>
+                                    <td><strong>{{ cell_data.cell_id }}</strong></td>
+                                    <td class="pixel-data">{{ cell_data.area|floatformat:1 }}</td>
+                                    <td class="pixel-data">{{ cell_data.perimeter|floatformat:1 }}</td>
+                                    <td class="micron-data" style="display: none;">
+                                        {% if cell_data.area_microns_sq %}
+                                            {{ cell_data.area_microns_sq|floatformat:2 }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="micron-data" style="display: none;">
+                                        {% if cell_data.perimeter_microns %}
+                                            {{ cell_data.perimeter_microns|floatformat:2 }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ cell_data.circularity|floatformat:3 }}</td>
+                                    <td>{{ cell_data.eccentricity|floatformat:3 }}</td>
+                                    <td>{{ cell_data.solidity|floatformat:3 }}</td>
+                                    <td>{{ cell_data.aspect_ratio|floatformat:2 }}</td>
+                                    <td class="pixel-data">{{ cell_data.major_axis_length|floatformat:1 }}</td>
+                                    <td class="pixel-data">{{ cell_data.minor_axis_length|floatformat:1 }}</td>
+                                    <td class="micron-data" style="display: none;">
+                                        {% if cell_data.major_axis_length_microns %}
+                                            {{ cell_data.major_axis_length_microns|floatformat:2 }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="micron-data" style="display: none;">
+                                        {% if cell_data.minor_axis_length_microns %}
+                                            {{ cell_data.minor_axis_length_microns|floatformat:2 }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>({{ cell_data.centroid_x|floatformat:1 }}, {{ cell_data.centroid_y|floatformat:1 }})</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if page_obj.has_other_pages %}
+                    <nav aria-label="Cell data pagination">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">{% trans "Previous" %}</a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for page_num in page_obj.paginator.page_range %}
+                            {% if page_num == page_obj.number %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_num }}">{{ page_num }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">{% trans "Next" %}</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+    
+    <!-- Delete Analysis Button -->
+    {% if analysis.status != 'processing' %}
+    <div class="row mt-4">
+        <div class="col-12 text-center">
+            <form method="post" action="{% url 'cells:delete_analysis' analysis.id %}" onsubmit="return confirm('{% trans "Are you sure you want to delete this analysis?" %}');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger">
+                    <i class="fas fa-trash"></i> {% trans "Delete Analysis" %}
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const pixelUnitsRadio = document.getElementById('pixel-units');
+    const micronUnitsRadio = document.getElementById('micron-units');
+    
+    if (pixelUnitsRadio && micronUnitsRadio) {
+        // Toggle summary statistics
+        pixelUnitsRadio.addEventListener('change', function() {
+            if (this.checked) {
+                document.getElementById('pixel-stats').style.display = 'block';
+                document.getElementById('micron-stats').style.display = 'none';
+                
+                // Toggle table headers and data
+                toggleTableUnits('pixel');
+            }
+        });
+        
+        micronUnitsRadio.addEventListener('change', function() {
+            if (this.checked) {
+                document.getElementById('pixel-stats').style.display = 'none';
+                document.getElementById('micron-stats').style.display = 'block';
+                
+                // Toggle table headers and data
+                toggleTableUnits('micron');
+            }
+        });
+    }
+    
+    function toggleTableUnits(unit) {
+        const pixelHeaders = document.querySelectorAll('.pixel-header');
+        const micronHeaders = document.querySelectorAll('.micron-header');
+        const pixelData = document.querySelectorAll('.pixel-data');
+        const micronData = document.querySelectorAll('.micron-data');
+        
+        if (unit === 'pixel') {
+            pixelHeaders.forEach(el => el.style.display = '');
+            micronHeaders.forEach(el => el.style.display = 'none');
+            pixelData.forEach(el => el.style.display = '');
+            micronData.forEach(el => el.style.display = 'none');
+        } else {
+            pixelHeaders.forEach(el => el.style.display = 'none');
+            micronHeaders.forEach(el => el.style.display = '');
+            pixelData.forEach(el => el.style.display = 'none');
+            micronData.forEach(el => el.style.display = '');
+        }
+    }
+});
+</script>
+{% endblock %}
+
+{% endblock %}
