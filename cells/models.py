@@ -83,8 +83,8 @@ class Cell(models.Model):
         if self.scale_set and self.pixels_per_micron:
             return pixels / self.pixels_per_micron
         return None
-    
-    def convert_area_to_microns_squared(self, pixel_area):
+
+
         """Convert pixel area to square microns"""
         if self.scale_set and self.pixels_per_micron:
             return pixel_area / (self.pixels_per_micron ** 2)
@@ -130,6 +130,56 @@ class CellAnalysis(models.Model):
     quality_metrics = models.JSONField(default=dict, blank=True, verbose_name=_('Quality Metrics'), help_text=_('Image quality assessment metrics'))
     quality_score = models.FloatField(null=True, blank=True, verbose_name=_('Quality Score'), help_text=_('Overall image quality score (0-100)'))
     quality_category = models.CharField(max_length=20, blank=True, verbose_name=_('Quality Category'), help_text=_('Quality category: excellent, good, fair, poor'))
+    
+    # Cell filtering configuration
+    FILTERING_MODE_CHOICES = [
+        ('none', _('No Filtering')),
+        ('basic', _('Basic Filtering')),
+        ('research', _('Research Mode')),
+        ('clinical', _('Clinical Mode')),
+        ('custom', _('Custom Settings')),
+    ]
+    
+    filtering_mode = models.CharField(
+        max_length=20, 
+        choices=FILTERING_MODE_CHOICES, 
+        default='clinical',
+        verbose_name=_('Filtering Mode'), 
+        help_text=_('Cell filtering strictness level')
+    )
+    
+    # Segmentation refinement options
+    enable_size_filtering = models.BooleanField(default=True, verbose_name=_('Size Filtering'), help_text=_('Remove cells outside size range'))
+    min_cell_area = models.FloatField(default=50, verbose_name=_('Min Cell Area'), help_text=_('Minimum cell area in pixels'))
+    max_cell_area = models.FloatField(null=True, blank=True, verbose_name=_('Max Cell Area'), help_text=_('Maximum cell area in pixels (blank = no limit)'))
+    
+    enable_shape_filtering = models.BooleanField(default=True, verbose_name=_('Shape Filtering'), help_text=_('Remove non-cellular shapes'))
+    min_circularity = models.FloatField(default=0.1, verbose_name=_('Min Circularity'), help_text=_('Minimum circularity (0-1)'))
+    max_eccentricity = models.FloatField(default=0.95, verbose_name=_('Max Eccentricity'), help_text=_('Maximum eccentricity (0-1)'))
+    min_solidity = models.FloatField(default=0.7, verbose_name=_('Min Solidity'), help_text=_('Minimum solidity (0-1)'))
+    
+    enable_edge_removal = models.BooleanField(default=False, verbose_name=_('Edge Removal'), help_text=_('Remove cells touching image edges'))
+    edge_border_width = models.IntegerField(default=5, verbose_name=_('Edge Border Width'), help_text=_('Border width for edge removal'))
+    
+    enable_watershed = models.BooleanField(default=False, verbose_name=_('Watershed Splitting'), help_text=_('Split touching cells using watershed'))
+    watershed_min_distance = models.IntegerField(default=10, verbose_name=_('Watershed Distance'), help_text=_('Minimum distance for watershed peaks'))
+    
+    # Morphometric validation options
+    enable_outlier_removal = models.BooleanField(default=True, verbose_name=_('Outlier Removal'), help_text=_('Remove statistical outliers'))
+    outlier_method = models.CharField(
+        max_length=20,
+        choices=[
+            ('iqr', _('IQR Method')),
+            ('zscore', _('Z-Score Method')),
+            ('modified_zscore', _('Modified Z-Score')),
+        ],
+        default='iqr',
+        verbose_name=_('Outlier Method'),
+        help_text=_('Statistical method for outlier detection')
+    )
+    outlier_threshold = models.FloatField(default=1.5, verbose_name=_('Outlier Threshold'), help_text=_('Threshold for outlier detection'))
+    
+    enable_physics_validation = models.BooleanField(default=True, verbose_name=_('Physics Validation'), help_text=_('Remove cells violating physical constraints'))
     
     # Results
     num_cells_detected = models.PositiveIntegerField(default=0, verbose_name=_('Cells Detected'))
@@ -185,6 +235,90 @@ class CellAnalysis(models.Model):
         category = self.quality_category or 'unknown'
         
         return f"{category.title()} quality (score: {score:.1f}/100)"
+    
+    def apply_filtering_preset(self, mode):
+        """Apply predefined filtering settings based on mode"""
+        if mode == 'none':
+            # No filtering - preserve all detected cells
+            self.enable_size_filtering = False
+            self.enable_shape_filtering = False
+            self.enable_edge_removal = False
+            self.enable_watershed = False
+            self.enable_outlier_removal = False
+            self.enable_physics_validation = False
+            
+        elif mode == 'basic':
+            # Minimal filtering - only obvious artifacts
+            self.enable_size_filtering = True
+            self.min_cell_area = 25  # Very permissive
+            self.max_cell_area = None
+            self.enable_shape_filtering = False
+            self.enable_edge_removal = False
+            self.enable_watershed = False
+            self.enable_outlier_removal = False
+            self.enable_physics_validation = True  # Keep physics checks
+            
+        elif mode == 'research':
+            # Conservative filtering for research applications
+            self.enable_size_filtering = True
+            self.min_cell_area = 40
+            self.max_cell_area = None
+            self.enable_shape_filtering = True
+            self.min_circularity = 0.05  # Very permissive
+            self.max_eccentricity = 0.98
+            self.min_solidity = 0.5
+            self.enable_edge_removal = False
+            self.enable_watershed = False
+            self.enable_outlier_removal = True
+            self.outlier_method = 'modified_zscore'
+            self.outlier_threshold = 2.5  # Less strict
+            self.enable_physics_validation = True
+            
+        elif mode == 'clinical':
+            # Standard clinical filtering (current default)
+            self.enable_size_filtering = True
+            self.min_cell_area = 50
+            self.max_cell_area = None
+            self.enable_shape_filtering = True
+            self.min_circularity = 0.1
+            self.max_eccentricity = 0.95
+            self.min_solidity = 0.7
+            self.enable_edge_removal = False
+            self.enable_watershed = False
+            self.enable_outlier_removal = True
+            self.outlier_method = 'iqr'
+            self.outlier_threshold = 1.5
+            self.enable_physics_validation = True
+            
+        # For 'custom' mode, don't change settings - user controls them
+        
+        # Update the filtering mode
+        self.filtering_mode = mode
+    
+    def get_filtering_options(self):
+        """Get current filtering options as a dictionary for the analysis pipeline"""
+        return {
+            # Segmentation refinement options
+            'apply_size_filtering': self.enable_size_filtering,
+            'min_cell_area': self.min_cell_area,
+            'max_cell_area': self.max_cell_area,
+            'apply_shape_filtering': self.enable_shape_filtering,
+            'min_circularity': self.min_circularity,
+            'max_eccentricity': self.max_eccentricity,
+            'min_solidity': self.min_solidity,
+            'apply_watershed': self.enable_watershed,
+            'watershed_min_distance': self.watershed_min_distance,
+            'apply_smoothing': True,  # Always apply boundary smoothing
+            'smoothing_factor': 1.0,
+            'remove_edge_cells': self.enable_edge_removal,
+            'border_width': self.edge_border_width,
+            
+            # Morphometric validation options
+            'enable_outlier_removal': self.enable_outlier_removal,
+            'outlier_method': self.outlier_method,
+            'outlier_threshold': self.outlier_threshold,
+            'enable_physics_validation': self.enable_physics_validation,
+        }
 
 
 class DetectedCell(models.Model):
@@ -223,6 +357,40 @@ class DetectedCell(models.Model):
     bounding_box_y = models.PositiveIntegerField(verbose_name=_('Bounding Box Y'), help_text=_('Y coordinate of bounding box'))
     bounding_box_width = models.PositiveIntegerField(verbose_name=_('Bounding Box Width'), help_text=_('Width of bounding box'))
     bounding_box_height = models.PositiveIntegerField(verbose_name=_('Bounding Box Height'), help_text=_('Height of bounding box'))
+    
+    # GLCM Texture Features
+    glcm_contrast = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Contrast'), help_text=_('Measure of local intensity variation'))
+    glcm_correlation = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Correlation'), help_text=_('Measure of linear dependency of gray levels'))
+    glcm_energy = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Energy'), help_text=_('Measure of textural uniformity'))
+    glcm_homogeneity = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Homogeneity'), help_text=_('Measure of closeness of distribution'))
+    glcm_entropy = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Entropy'), help_text=_('Measure of randomness'))
+    glcm_variance = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Variance'), help_text=_('Measure of heterogeneity'))
+    glcm_sum_average = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Sum Average'), help_text=_('Sum average of GLCM'))
+    glcm_sum_variance = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Sum Variance'), help_text=_('Sum variance of GLCM'))
+    glcm_sum_entropy = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Sum Entropy'), help_text=_('Sum entropy of GLCM'))
+    glcm_difference_average = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Difference Average'), help_text=_('Difference average of GLCM'))
+    glcm_difference_variance = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Difference Variance'), help_text=_('Difference variance of GLCM'))
+    glcm_difference_entropy = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Difference Entropy'), help_text=_('Difference entropy of GLCM'))
+    
+    # First-Order Statistical Features
+    intensity_mean = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Mean'), help_text=_('Mean intensity value'))
+    intensity_std = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Std'), help_text=_('Standard deviation of intensity'))
+    intensity_variance = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Variance'), help_text=_('Variance of intensity'))
+    intensity_skewness = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Skewness'), help_text=_('Skewness of intensity distribution'))
+    intensity_kurtosis = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Kurtosis'), help_text=_('Kurtosis of intensity distribution'))
+    intensity_min = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Min'), help_text=_('Minimum intensity value'))
+    intensity_max = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Max'), help_text=_('Maximum intensity value'))
+    intensity_range = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Range'), help_text=_('Range of intensity values'))
+    intensity_p10 = models.FloatField(null=True, blank=True, verbose_name=_('Intensity 10th Percentile'), help_text=_('10th percentile of intensity'))
+    intensity_p25 = models.FloatField(null=True, blank=True, verbose_name=_('Intensity 25th Percentile'), help_text=_('25th percentile of intensity'))
+    intensity_p75 = models.FloatField(null=True, blank=True, verbose_name=_('Intensity 75th Percentile'), help_text=_('75th percentile of intensity'))
+    intensity_p90 = models.FloatField(null=True, blank=True, verbose_name=_('Intensity 90th Percentile'), help_text=_('90th percentile of intensity'))
+    intensity_iqr = models.FloatField(null=True, blank=True, verbose_name=_('Intensity IQR'), help_text=_('Interquartile range of intensity'))
+    intensity_entropy = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Entropy'), help_text=_('Entropy of intensity histogram'))
+    intensity_energy = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Energy'), help_text=_('Energy of intensity histogram'))
+    intensity_median = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Median'), help_text=_('Median intensity value'))
+    intensity_mad = models.FloatField(null=True, blank=True, verbose_name=_('Intensity MAD'), help_text=_('Median absolute deviation'))
+    intensity_cv = models.FloatField(null=True, blank=True, verbose_name=_('Intensity CV'), help_text=_('Coefficient of variation'))
     
     class Meta:
         ordering = ['cell_id']

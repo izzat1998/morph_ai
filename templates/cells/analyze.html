@@ -45,10 +45,10 @@
 
 <!-- Main Analysis Content -->
 <section class="container-fluid py-4">
-    <div class="container">
+    <div class="container-fluid px-4">
         <div class="row g-4">
             <!-- Image Preview Panel -->
-            <div class="col-lg-7">
+            <div class="col-xl-6 col-lg-12">
                 <div class="card border-0 shadow-lg h-100">
                     <div class="card-header bg-gradient-primary text-white">
                         <div class="d-flex justify-content-between align-items-center">
@@ -187,7 +187,7 @@
             </div>
             
             <!-- Analysis Configuration Panel -->
-            <div class="col-lg-5">
+            <div class="col-xl-6 col-lg-12">
                 <div class="card border-0 shadow-lg h-100">
                     <div class="card-header bg-gradient-success text-white">
                         <h5 class="mb-0">
@@ -244,23 +244,53 @@
                                     <div class="accordion-body">
                                         <div class="row g-3">
                                             <div class="col-12">
-                                                <div class="parameter-item p-2 border-start border-primary border-3">
-                                                    <h6 class="mb-1 text-primary">{% trans 'Model Selection' %}</h6>
-                                                    <ul class="list-unstyled mb-0 small">
-                                                        <li><strong>{% trans 'Cytoplasm:' %}</strong> {% trans 'Best for cytoplasmic staining' %}</li>
-                                                        <li><strong>{% trans 'Nuclei:' %}</strong> {% trans 'Best for nuclear staining' %}</li>
-                                                        <li><strong>{% trans 'Cytoplasm 2.0:' %}</strong> {% trans 'Improved cytoplasm model' %}</li>
-                                                    </ul>
+                                                <div class="parameter-item p-3 border-start border-primary border-3">
+                                                    <h6 class="mb-2 text-primary">{% trans 'Model Selection' %}</h6>
+                                                    <div class="row g-2">
+                                                        <div class="col-md-4">
+                                                            <div class="p-2 bg-light rounded">
+                                                                <strong class="text-primary">{% trans 'Cytoplasm' %}</strong><br>
+                                                                <small>{% trans 'Best for cytoplasmic staining' %}</small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <div class="p-2 bg-light rounded">
+                                                                <strong class="text-success">{% trans 'Nuclei' %}</strong><br>
+                                                                <small>{% trans 'Best for nuclear staining' %}</small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <div class="p-2 bg-light rounded">
+                                                                <strong class="text-info">{% trans 'Cytoplasm 2.0' %}</strong><br>
+                                                                <small>{% trans 'Improved cytoplasm model' %}</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div class="col-12">
-                                                <div class="parameter-item p-2 border-start border-success border-3">
-                                                    <h6 class="mb-1 text-success">{% trans 'Parameters' %}</h6>
-                                                    <ul class="list-unstyled mb-0 small">
-                                                        <li><strong>{% trans 'Diameter:' %}</strong> {% trans 'Set to 0 for automatic detection' %}</li>
-                                                        <li><strong>{% trans 'Flow Threshold:' %}</strong> {% trans 'Lower values detect more cells' %}</li>
-                                                        <li><strong>{% trans 'Cell Probability:' %}</strong> {% trans 'Higher values for cleaner segmentation' %}</li>
-                                                    </ul>
+                                                <div class="parameter-item p-3 border-start border-success border-3">
+                                                    <h6 class="mb-2 text-success">{% trans 'Parameter Guidelines' %}</h6>
+                                                    <div class="row g-2">
+                                                        <div class="col-md-4">
+                                                            <div class="p-2 bg-light rounded">
+                                                                <strong>{% trans 'Diameter' %}</strong><br>
+                                                                <small>{% trans 'Set to 0 for automatic detection' %}</small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <div class="p-2 bg-light rounded">
+                                                                <strong>{% trans 'Flow Threshold' %}</strong><br>
+                                                                <small>{% trans 'Lower values detect more cells' %}</small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <div class="p-2 bg-light rounded">
+                                                                <strong>{% trans 'Cell Probability' %}</strong><br>
+                                                                <small>{% trans 'Higher values for cleaner segmentation' %}</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -274,6 +304,365 @@
         </div>
     </div>
 </section>
+
+<!-- Enhanced Configuration Panel -->
+<section class="container-fluid py-4 bg-light">
+    <div class="container-fluid px-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card border-0 shadow-lg">
+                    <div class="card-header bg-gradient-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-microscope me-2"></i>
+                            {% trans 'Detailed Analysis Configuration' %}
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <!-- Configuration Dashboard -->
+                        <div class="configuration-dashboard">
+                            <div class="row g-4">
+                                <!-- Core Parameters -->
+                                <div class="col-lg-4">
+                                    <div class="config-section">
+                                        <div class="section-header">
+                                            <h6 class="text-primary mb-3">
+                                                <i class="fas fa-cogs me-2"></i>
+                                                {% trans 'Core Parameters' %}
+                                            </h6>
+                                        </div>
+                                        <div class="parameters-grid">
+                                            <div class="parameter-card mb-3 p-3 border rounded">
+                                                <label class="form-label fw-bold">{% trans 'Cellpose Model' %}</label>
+                                                <select class="form-select" id="cellpose-model-preview">
+                                                    <option value="cyto">{% trans 'Cytoplasm' %}</option>
+                                                    <option value="nuclei">{% trans 'Nuclei' %}</option>
+                                                    <option value="cyto2">{% trans 'Cytoplasm 2.0' %}</option>
+                                                </select>
+                                                <small class="text-muted mt-1">{% trans 'Select based on your staining type' %}</small>
+                                            </div>
+                                            <div class="parameter-card mb-3 p-3 border rounded">
+                                                <label class="form-label fw-bold">{% trans 'Cell Diameter (pixels)' %}</label>
+                                                <div class="input-group">
+                                                    <input type="number" class="form-control" id="diameter-preview" placeholder="30.0" min="0" step="0.1">
+                                                    <button class="btn btn-outline-secondary" type="button" id="auto-diameter-btn">
+                                                        <i class="fas fa-magic"></i> {% trans 'Auto' %}
+                                                    </button>
+                                                </div>
+                                                <small class="text-muted mt-1">{% trans 'Set to 0 for automatic detection' %}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Segmentation Thresholds -->
+                                <div class="col-lg-4">
+                                    <div class="config-section">
+                                        <div class="section-header">
+                                            <h6 class="text-success mb-3">
+                                                <i class="fas fa-sliders-h me-2"></i>
+                                                {% trans 'Segmentation Thresholds' %}
+                                            </h6>
+                                        </div>
+                                        <div class="parameters-grid">
+                                            <div class="parameter-card mb-3 p-3 border rounded">
+                                                <label class="form-label fw-bold">{% trans 'Flow Threshold' %}</label>
+                                                <div class="range-input-group">
+                                                    <input type="range" class="form-range" min="0" max="3" step="0.1" value="0.4" id="flow-threshold-range">
+                                                    <input type="number" class="form-control form-control-sm" id="flow-threshold-input" value="0.4" min="0" max="3" step="0.1">
+                                                </div>
+                                                <div class="threshold-guide mt-2">
+                                                    <span class="badge bg-success">{% trans 'Lower = More Cells' %}</span>
+                                                    <span class="badge bg-warning">{% trans 'Higher = Fewer Cells' %}</span>
+                                                </div>
+                                            </div>
+                                            <div class="parameter-card mb-3 p-3 border rounded">
+                                                <label class="form-label fw-bold">{% trans 'Cell Probability Threshold' %}</label>
+                                                <div class="range-input-group">
+                                                    <input type="range" class="form-range" min="-6" max="6" step="0.1" value="0.0" id="cellprob-threshold-range">
+                                                    <input type="number" class="form-control form-control-sm" id="cellprob-threshold-input" value="0.0" min="-6" max="6" step="0.1">
+                                                </div>
+                                                <div class="threshold-guide mt-2">
+                                                    <span class="badge bg-info">{% trans 'Higher = Cleaner Segmentation' %}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Advanced Analysis Features -->
+                                <div class="col-lg-4">
+                                    <div class="config-section">
+                                        <div class="section-header">
+                                            <h6 class="text-info mb-3">
+                                                <i class="fas fa-microscope me-2"></i>
+                                                {% trans 'Advanced Features' %}
+                                            </h6>
+                                        </div>
+                                        <div class="parameters-grid">
+                                            <div class="parameter-card mb-3 p-3 border rounded">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="roi-toggle-preview">
+                                                    <label class="form-check-label fw-bold" for="roi-toggle-preview">
+                                                        {% trans 'Intelligent ROI Analysis' %}
+                                                    </label>
+                                                </div>
+                                                <small class="text-muted mt-1">{% trans 'AI-powered region selection with density mapping' %}</small>
+                                            </div>
+                                            <div class="parameter-card mb-3 p-3 border rounded">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="texture-analysis-preview" checked>
+                                                    <label class="form-check-label fw-bold" for="texture-analysis-preview">
+                                                        {% trans 'GLCM Texture Analysis' %}
+                                                    </label>
+                                                </div>
+                                                <small class="text-muted mt-1">{% trans '12 GLCM + 17 statistical texture features' %}</small>
+                                            </div>
+                                            <div class="parameter-card mb-3 p-3 border rounded">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="quality-assessment-preview" checked>
+                                                    <label class="form-check-label fw-bold" for="quality-assessment-preview">
+                                                        {% trans 'Quality Assessment' %}
+                                                    </label>
+                                                </div>
+                                                <small class="text-muted mt-1">{% trans 'Automated image quality scoring & validation' %}</small>
+                                            </div>
+                                            <div class="parameter-card mb-3 p-3 border rounded">
+                                                <label class="form-label fw-bold">{% trans 'Analysis Mode' %}</label>
+                                                <select class="form-select" id="filtering-mode-preview">
+                                                    <option value="none">{% trans 'No Filtering' %}</option>
+                                                    <option value="basic">{% trans 'Basic' %}</option>
+                                                    <option value="research">{% trans 'Research' %}</option>
+                                                    <option value="clinical" selected>{% trans 'Clinical Grade' %}</option>
+                                                    <option value="custom">{% trans 'Custom Advanced' %}</option>
+                                                </select>
+                                                <small class="text-muted mt-1">{% trans 'Medical-grade filtering with physics validation' %}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Advanced Processing Pipeline -->
+                        <div class="advanced-processing-pipeline mt-4">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-header bg-gradient-secondary text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-cogs me-2"></i>
+                                        {% trans 'Advanced Image Processing Pipeline' %}
+                                    </h6>
+                                </div>
+                                <div class="card-body p-4">
+                                    <div class="row g-4">
+                                        <!-- Preprocessing Module -->
+                                        <div class="col-lg-3">
+                                            <div class="processing-module">
+                                                <h6 class="text-primary mb-3">
+                                                    <i class="fas fa-magic me-2"></i>
+                                                    {% trans 'Preprocessing' %}
+                                                </h6>
+                                                <div class="feature-list">
+                                                    <div class="feature-item mb-2">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" id="noise-reduction-toggle">
+                                                            <label class="form-check-label small fw-bold">{% trans 'Bilateral Noise Reduction' %}</label>
+                                                        </div>
+                                                        <small class="text-muted d-block">{% trans 'Edge-preserving denoising' %}</small>
+                                                    </div>
+                                                    <div class="feature-item mb-2">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" id="clahe-toggle">
+                                                            <label class="form-check-label small fw-bold">{% trans 'CLAHE Enhancement' %}</label>
+                                                        </div>
+                                                        <small class="text-muted d-block">{% trans 'Adaptive contrast for microscopy' %}</small>
+                                                    </div>
+                                                    <div class="feature-item mb-2">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" id="sharpening-toggle">
+                                                            <label class="form-check-label small fw-bold">{% trans 'Unsharp Masking' %}</label>
+                                                        </div>
+                                                        <small class="text-muted d-block">{% trans 'Edge enhancement' %}</small>
+                                                    </div>
+                                                    <div class="feature-item mb-2">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" id="normalization-toggle">
+                                                            <label class="form-check-label small fw-bold">{% trans 'Z-Score Normalization' %}</label>
+                                                        </div>
+                                                        <small class="text-muted d-block">{% trans 'Intensity standardization' %}</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Texture Analysis Module -->
+                                        <div class="col-lg-3">
+                                            <div class="processing-module">
+                                                <h6 class="text-success mb-3">
+                                                    <i class="fas fa-fingerprint me-2"></i>
+                                                    {% trans 'Texture Analysis' %}
+                                                </h6>
+                                                <div class="feature-list">
+                                                    <div class="feature-highlight mb-3 p-2 bg-light rounded">
+                                                        <strong class="text-success">{% trans 'GLCM Features (12)' %}</strong>
+                                                        <small class="text-muted d-block">Contrast, Correlation, Energy, Homogeneity, Entropy, Variance, etc.</small>
+                                                    </div>
+                                                    <div class="feature-highlight mb-3 p-2 bg-light rounded">
+                                                        <strong class="text-info">{% trans 'Statistical Features (17)' %}</strong>
+                                                        <small class="text-muted d-block">Mean, Std, Skewness, Kurtosis, Percentiles, IQR, etc.</small>
+                                                    </div>
+                                                    <div class="texture-settings">
+                                                        <label class="form-label small">{% trans 'GLCM Distance' %}</label>
+                                                        <input type="range" class="form-range" min="1" max="5" value="1" id="glcm-distance">
+                                                        <small class="text-muted">{% trans 'Pixel distance for co-occurrence' %}</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Quality Assessment Module -->
+                                        <div class="col-lg-3">
+                                            <div class="processing-module">
+                                                <h6 class="text-warning mb-3">
+                                                    <i class="fas fa-shield-alt me-2"></i>
+                                                    {% trans 'Quality Control' %}
+                                                </h6>
+                                                <div class="feature-list">
+                                                    <div class="feature-item mb-2">
+                                                        <strong class="text-primary small">{% trans 'Blur Detection' %}</strong>
+                                                        <small class="text-muted d-block">Laplacian variance + Tenengrad</small>
+                                                    </div>
+                                                    <div class="feature-item mb-2">
+                                                        <strong class="text-primary small">{% trans 'Contrast Assessment' %}</strong>
+                                                        <small class="text-muted d-block">RMS, Michelson, Entropy</small>
+                                                    </div>
+                                                    <div class="feature-item mb-2">
+                                                        <strong class="text-primary small">{% trans 'Noise Analysis' %}</strong>
+                                                        <small class="text-muted d-block">SNR estimation (dB)</small>
+                                                    </div>
+                                                    <div class="quality-score mt-3 p-2 bg-success bg-opacity-10 rounded">
+                                                        <div class="d-flex justify-content-between">
+                                                            <span class="small fw-bold">{% trans 'Quality Score' %}</span>
+                                                            <span class="badge bg-success" id="quality-score">85/100</span>
+                                                        </div>
+                                                        <div class="progress mt-1" style="height: 4px;">
+                                                            <div class="progress-bar bg-success" style="width: 85%"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Validation Module -->
+                                        <div class="col-lg-3">
+                                            <div class="processing-module">
+                                                <h6 class="text-danger mb-3">
+                                                    <i class="fas fa-check-double me-2"></i>
+                                                    {% trans 'Validation' %}
+                                                </h6>
+                                                <div class="feature-list">
+                                                    <div class="feature-item mb-2">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" id="physics-validation" checked>
+                                                            <label class="form-check-label small fw-bold">{% trans 'Physics Validation' %}</label>
+                                                        </div>
+                                                        <small class="text-muted d-block">{% trans 'Area-perimeter relationships' %}</small>
+                                                    </div>
+                                                    <div class="feature-item mb-2">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" id="outlier-detection" checked>
+                                                            <label class="form-check-label small fw-bold">{% trans 'Outlier Detection' %}</label>
+                                                        </div>
+                                                        <select class="form-select form-select-sm mt-1">
+                                                            <option value="iqr">IQR Method</option>
+                                                            <option value="zscore">Z-Score Method</option>
+                                                            <option value="modified_zscore" selected>Modified Z-Score</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="feature-item mb-2">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" id="watershed-split" checked>
+                                                            <label class="form-check-label small fw-bold">{% trans 'Watershed Splitting' %}</label>
+                                                        </div>
+                                                        <small class="text-muted d-block">{% trans 'Split touching cells' %}</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Real-time Parameter Preview -->
+                        <div class="parameter-preview mt-4 p-3 bg-light rounded">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-eye me-2"></i>
+                                {% trans 'Current Configuration Summary' %}
+                            </h6>
+                            <div class="row g-3">
+                                <div class="col-md-2">
+                                    <div class="preview-item text-center p-2 bg-white rounded">
+                                        <div class="preview-icon text-primary mb-1">
+                                            <i class="fas fa-brain"></i>
+                                        </div>
+                                        <div class="preview-value fw-bold" id="model-preview-value">{% trans 'Cytoplasm' %}</div>
+                                        <div class="preview-label small text-muted">{% trans 'Model' %}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="preview-item text-center p-2 bg-white rounded">
+                                        <div class="preview-icon text-success mb-1">
+                                            <i class="fas fa-ruler-combined"></i>
+                                        </div>
+                                        <div class="preview-value fw-bold" id="diameter-preview-value">30.0 px</div>
+                                        <div class="preview-label small text-muted">{% trans 'Diameter' %}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="preview-item text-center p-2 bg-white rounded">
+                                        <div class="preview-icon text-warning mb-1">
+                                            <i class="fas fa-stream"></i>
+                                        </div>
+                                        <div class="preview-value fw-bold" id="flow-preview-value">0.4</div>
+                                        <div class="preview-label small text-muted">{% trans 'Flow Threshold' %}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="preview-item text-center p-2 bg-white rounded">
+                                        <div class="preview-icon text-info mb-1">
+                                            <i class="fas fa-percentage"></i>
+                                        </div>
+                                        <div class="preview-value fw-bold" id="cellprob-preview-value">0.0</div>
+                                        <div class="preview-label small text-muted">{% trans 'Cell Probability' %}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="preview-item text-center p-2 bg-white rounded">
+                                        <div class="preview-icon text-success mb-1">
+                                            <i class="fas fa-fingerprint"></i>
+                                        </div>
+                                        <div class="preview-value fw-bold" id="texture-preview-value">29</div>
+                                        <div class="preview-label small text-muted">{% trans 'Texture Features' %}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="preview-item text-center p-2 bg-white rounded">
+                                        <div class="preview-icon text-danger mb-1">
+                                            <i class="fas fa-shield-alt"></i>
+                                        </div>
+                                        <div class="preview-value fw-bold" id="validation-preview-value">Clinical</div>
+                                        <div class="preview-label small text-muted">{% trans 'Validation' %}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- Previous Analyses Section -->
 {% if cell.analyses.exists %}
 <section class="container-fluid py-4">
@@ -389,8 +778,442 @@
 <!-- Font Awesome for icons -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
+<!-- Enhanced Configuration Styles -->
+<style>
+.configuration-dashboard {
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.config-section {
+    height: 100%;
+}
+
+.parameter-card {
+    background: white;
+    transition: all 0.2s ease;
+    border: 1px solid #e9ecef !important;
+}
+
+.parameter-card:hover {
+    border-color: #0d6efd !important;
+    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.15);
+    transform: translateY(-1px);
+}
+
+.range-input-group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.range-input-group .form-range {
+    flex: 1;
+}
+
+.range-input-group .form-control-sm {
+    width: 80px;
+    flex-shrink: 0;
+}
+
+.threshold-guide {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.threshold-guide .badge {
+    font-size: 0.75em;
+}
+
+.parameter-preview {
+    border: 2px dashed #dee2e6;
+    background: linear-gradient(45deg, #f8f9fa 0%, #ffffff 100%);
+}
+
+.preview-item {
+    transition: all 0.2s ease;
+    border: 1px solid #e9ecef;
+}
+
+.preview-item:hover {
+    border-color: #0d6efd;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.15);
+}
+
+.preview-icon {
+    font-size: 1.5rem;
+}
+
+.preview-value {
+    font-size: 1.1rem;
+    color: #495057;
+}
+
+.section-header h6 {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Enhanced form field styling */
+.parameter-card .form-label {
+    color: #495057;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.parameter-card .form-control,
+.parameter-card .form-select {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    transition: all 0.15s ease-in-out;
+}
+
+.parameter-card .form-control:focus,
+.parameter-card .form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Range input styling */
+.form-range::-webkit-slider-thumb {
+    background: #0d6efd;
+    border: 2px solid #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.form-range::-moz-range-thumb {
+    background: #0d6efd;
+    border: 2px solid #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Auto diameter button */
+#auto-diameter-btn {
+    transition: all 0.2s ease;
+}
+
+#auto-diameter-btn:hover {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .configuration-dashboard .row > div {
+        margin-bottom: 1.5rem;
+    }
+    
+    .parameter-preview .row > div {
+        margin-bottom: 1rem;
+    }
+    
+    .threshold-guide {
+        justify-content: center;
+    }
+}
+
+/* Animation for parameter updates */
+.preview-value {
+    transition: all 0.3s ease;
+}
+
+.preview-value.updating {
+    transform: scale(1.1);
+    color: #0d6efd;
+    font-weight: bold;
+}
+
+/* Advanced processing pipeline styles */
+.advanced-processing-pipeline {
+    margin-top: 2rem;
+}
+
+.processing-module {
+    height: 100%;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.processing-module:hover {
+    border-color: #dee2e6;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.processing-module h6 {
+    font-weight: 600;
+    border-bottom: 2px solid;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.feature-list {
+    min-height: 200px;
+}
+
+.feature-item {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.feature-item:last-child {
+    border-bottom: none;
+}
+
+.feature-highlight {
+    background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+    border-left: 4px solid #2196f3;
+    transition: all 0.2s ease;
+}
+
+.feature-highlight:hover {
+    transform: translateX(2px);
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
+}
+
+.texture-settings {
+    background: #f8f9fa;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid #e9ecef;
+}
+
+.quality-score {
+    border: 1px solid #d4edda;
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+}
+
+.quality-score .progress {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Form controls in processing modules */
+.processing-module .form-check-input:checked {
+    background-color: #198754;
+    border-color: #198754;
+}
+
+.processing-module .form-select-sm {
+    font-size: 0.775rem;
+}
+
+.processing-module .form-range {
+    margin: 0.5rem 0;
+}
+
+/* Responsive adjustments for processing pipeline */
+@media (max-width: 992px) {
+    .processing-module {
+        margin-bottom: 1rem;
+    }
+    
+    .feature-list {
+        min-height: auto;
+    }
+}
+
+/* Enhanced parameter preview for 6 columns */
+.parameter-preview .col-md-2 {
+    flex: 0 0 16.666667%;
+    max-width: 16.666667%;
+}
+
+@media (max-width: 768px) {
+    .parameter-preview .col-md-2 {
+        flex: 0 0 50%;
+        max-width: 50%;
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Module color coding */
+.processing-module:nth-child(1) h6 {
+    border-color: #0d6efd;
+}
+
+.processing-module:nth-child(2) h6 {
+    border-color: #198754;
+}
+
+.processing-module:nth-child(3) h6 {
+    border-color: #ffc107;
+}
+
+.processing-module:nth-child(4) h6 {
+    border-color: #dc3545;
+}
+</style>
+
 {% block extra_js %}
 <script>
+// Enhanced Configuration Interface
+document.addEventListener('DOMContentLoaded', function() {
+    initializeConfigurationSync();
+    initializeRangeInputs();
+    initializePreviewUpdates();
+});
+
+function initializeConfigurationSync() {
+    // Sync preview controls with actual form fields
+    const syncElements = [
+        { preview: 'cellpose-model-preview', actual: 'id_cellpose_model' },
+        { preview: 'diameter-preview', actual: 'id_cellpose_diameter' },
+        { preview: 'flow-threshold-input', actual: 'id_flow_threshold' },
+        { preview: 'cellprob-threshold-input', actual: 'id_cellprob_threshold' },
+        { preview: 'roi-toggle-preview', actual: 'id_use_roi' },
+        { preview: 'filtering-mode-preview', actual: 'id_filtering_mode' }
+    ];
+    
+    syncElements.forEach(({preview, actual}) => {
+        const previewEl = document.getElementById(preview);
+        const actualEl = document.getElementById(actual);
+        
+        if (previewEl && actualEl) {
+            // Initialize preview with actual value
+            if (previewEl.type === 'checkbox') {
+                previewEl.checked = actualEl.checked;
+            } else {
+                previewEl.value = actualEl.value;
+            }
+            
+            // Sync changes from preview to actual
+            previewEl.addEventListener('change', function() {
+                if (this.type === 'checkbox') {
+                    actualEl.checked = this.checked;
+                } else {
+                    actualEl.value = this.value;
+                }
+                updatePreviewSummary();
+                
+                // Trigger any form validation or change events
+                actualEl.dispatchEvent(new Event('change'));
+            });
+            
+            // Sync changes from actual to preview
+            actualEl.addEventListener('change', function() {
+                if (this.type === 'checkbox') {
+                    previewEl.checked = this.checked;
+                } else {
+                    previewEl.value = this.value;
+                }
+                updatePreviewSummary();
+            });
+        }
+    });
+}
+
+function initializeRangeInputs() {
+    // Flow threshold range/input sync
+    const flowRange = document.getElementById('flow-threshold-range');
+    const flowInput = document.getElementById('flow-threshold-input');
+    const flowActual = document.getElementById('id_flow_threshold');
+    
+    if (flowRange && flowInput && flowActual) {
+        function syncFlowThreshold(value) {
+            flowRange.value = value;
+            flowInput.value = value;
+            flowActual.value = value;
+            updatePreviewSummary();
+        }
+        
+        flowRange.addEventListener('input', function() {
+            syncFlowThreshold(this.value);
+        });
+        
+        flowInput.addEventListener('input', function() {
+            syncFlowThreshold(this.value);
+        });
+    }
+    
+    // Cell probability threshold range/input sync
+    const cellprobRange = document.getElementById('cellprob-threshold-range');
+    const cellprobInput = document.getElementById('cellprob-threshold-input');
+    const cellprobActual = document.getElementById('id_cellprob_threshold');
+    
+    if (cellprobRange && cellprobInput && cellprobActual) {
+        function syncCellprobThreshold(value) {
+            cellprobRange.value = value;
+            cellprobInput.value = value;
+            cellprobActual.value = value;
+            updatePreviewSummary();
+        }
+        
+        cellprobRange.addEventListener('input', function() {
+            syncCellprobThreshold(this.value);
+        });
+        
+        cellprobInput.addEventListener('input', function() {
+            syncCellprobThreshold(this.value);
+        });
+    }
+    
+    // Auto diameter button
+    const autoDiameterBtn = document.getElementById('auto-diameter-btn');
+    const diameterPreview = document.getElementById('diameter-preview');
+    const diameterActual = document.getElementById('id_cellpose_diameter');
+    
+    if (autoDiameterBtn && diameterPreview && diameterActual) {
+        autoDiameterBtn.addEventListener('click', function() {
+            diameterPreview.value = '0';
+            diameterActual.value = '0';
+            updatePreviewSummary();
+            
+            // Visual feedback
+            this.classList.add('btn-success');
+            this.innerHTML = '<i class="fas fa-check"></i> Auto';
+            setTimeout(() => {
+                this.classList.remove('btn-success');
+                this.innerHTML = '<i class="fas fa-magic"></i> Auto';
+            }, 1500);
+        });
+    }
+}
+
+function initializePreviewUpdates() {
+    // Update preview values on page load
+    updatePreviewSummary();
+}
+
+function updatePreviewSummary() {
+    // Update model preview
+    const modelSelect = document.getElementById('cellpose-model-preview');
+    const modelPreview = document.getElementById('model-preview-value');
+    if (modelSelect && modelPreview) {
+        const selectedText = modelSelect.options[modelSelect.selectedIndex].text;
+        modelPreview.textContent = selectedText;
+    }
+    
+    // Update diameter preview
+    const diameterInput = document.getElementById('diameter-preview');
+    const diameterPreview = document.getElementById('diameter-preview-value');
+    if (diameterInput && diameterPreview) {
+        const value = parseFloat(diameterInput.value) || 0;
+        diameterPreview.textContent = value === 0 ? 'Auto' : value.toFixed(1) + ' px';
+    }
+    
+    // Update flow threshold preview
+    const flowInput = document.getElementById('flow-threshold-input');
+    const flowPreview = document.getElementById('flow-preview-value');
+    if (flowInput && flowPreview) {
+        flowPreview.textContent = parseFloat(flowInput.value).toFixed(1);
+    }
+    
+    // Update cell probability preview
+    const cellprobInput = document.getElementById('cellprob-threshold-input');
+    const cellprobPreview = document.getElementById('cellprob-preview-value');
+    if (cellprobInput && cellprobPreview) {
+        cellprobPreview.textContent = parseFloat(cellprobInput.value).toFixed(1);
+    }
+}
+
 // Enhanced ROI Analysis Interface
 (function() {
     'use strict';

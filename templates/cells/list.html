@@ -6,9 +6,9 @@
 {% block extra_css %}{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="content-gallery mt-4">
     <!-- Gallery Header -->
-    <div class="morph-card morph-bg-light morph-mb-5 morph-p-5">
+    <div class="morph-card morph-bg-light morph-mb-5 morph-p-5 section-spaced">
         <div class="row align-items-center">
             <div class="col-md-8">
                 <h1 class="display-5 fw-bold text-gradient mb-2">{% trans "Cell Image Gallery" %}</h1>
@@ -25,28 +25,36 @@
 
     <!-- Statistics Overview -->
     {% if cells %}
-    <div class="morph-stats">
-        <div class="morph-stats__item">
-            <div class="morph-stats__number">{{ cells|length }}</div>
-            <div class="morph-stats__label">{% trans "Total Images" %}</div>
+    <div class="stats-grid stats-grid--compact section-spaced">
+        <div class="card bg-light text-center hover-scale">
+            <div class="card-body">
+                <div class="h4 fw-bold text-primary mb-1">{{ cells|length }}</div>
+                <div class="small text-muted">{% trans "Total Images" %}</div>
+            </div>
         </div>
-        <div class="morph-stats__item">
-            <div class="morph-stats__number">{{ analyzed_count|default:0 }}</div>
-            <div class="morph-stats__label">{% trans "Analyzed" %}</div>
+        <div class="card bg-light text-center hover-scale">
+            <div class="card-body">
+                <div class="h4 fw-bold text-success mb-1">{{ analyzed_count|default:0 }}</div>
+                <div class="small text-muted">{% trans "Analyzed" %}</div>
+            </div>
         </div>
-        <div class="morph-stats__item">
-            <div class="morph-stats__number">{{ total_cells_detected|default:0 }}</div>
-            <div class="morph-stats__label">{% trans "Cells Detected" %}</div>
+        <div class="card bg-light text-center hover-scale">
+            <div class="card-body">
+                <div class="h4 fw-bold text-info mb-1">{{ total_cells_detected|default:0 }}</div>
+                <div class="small text-muted">{% trans "Cells Detected" %}</div>
+            </div>
         </div>
-        <div class="morph-stats__item">
-            <div class="morph-stats__number">{{ calibrated_count|default:0 }}</div>
-            <div class="morph-stats__label">{% trans "Calibrated" %}</div>
+        <div class="card bg-light text-center hover-scale">
+            <div class="card-body">
+                <div class="h4 fw-bold text-warning mb-1">{{ calibrated_count|default:0 }}</div>
+                <div class="small text-muted">{% trans "Calibrated" %}</div>
+            </div>
         </div>
     </div>
     {% endif %}
 
     <!-- Search and Filter Bar -->
-    <div class="morph-search-bar">
+    <div class="morph-search-bar section-spaced">
         <div class="row align-items-center">
             <div class="col-md-4">
                 <div class="input-group">
@@ -94,8 +102,8 @@
 
     <!-- Image Gallery -->
     {% if cells %}
-    <div class="image-gallery" id="image-gallery">
-        <div class="row">
+    <div class="section-spaced" id="image-gallery">
+        <div class="card-grid card-grid--constrained">
             {% for cell in cells %}
             <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4 gallery-item" 
                  data-name="{{ cell.name|lower }}" 
@@ -206,10 +214,9 @@
             </div>
             {% endfor %}
         </div>
-    </div>
 
     <!-- Load More Button (if needed for pagination) -->
-    <div class="text-center mt-4">
+    <div class="text-center section-spaced">
         <button class="btn btn-outline-primary morph-hide" id="load-more">
             <i class="fas fa-plus me-2"></i>
             {% trans "Load More Images" %}
@@ -218,7 +225,7 @@
 
     {% else %}
     <!-- Empty State -->
-    <div class="morph-empty-state">
+    <div class="morph-empty-state section-spaced text-center">
         <div class="morph-empty-state__icon">
             <i class="fas fa-images"></i>
         </div>
@@ -348,24 +355,41 @@ document.addEventListener('DOMContentLoaded', function() {
     // Toggle view (grid/list)
     function toggleView(view) {
         const gallery = document.getElementById('image-gallery');
-        const row = gallery.querySelector('.row');
+        const cardGrid = gallery.querySelector('.card-grid');
 
         if (view === 'list') {
-            row.classList.remove('g-4');
-            row.classList.add('g-2');
+            cardGrid.classList.remove('card-grid--constrained');
+            cardGrid.classList.add('card-grid--list');
+            cardGrid.style.gridTemplateColumns = '1fr';
             galleryItems.forEach(item => {
-                item.className = 'col-12 gallery-item';
-                item.querySelector('.image-card').style.display = 'flex';
-                item.querySelector('.image-container').style.width = '200px';
-                item.querySelector('.image-container').style.flexShrink = '0';
+                item.className = 'gallery-item';
+                const card = item.querySelector('.morph-image-card');
+                if (card) {
+                    card.style.display = 'flex';
+                    card.style.flexDirection = 'row';
+                }
+                const imageContainer = item.querySelector('.morph-image-card__container');
+                if (imageContainer) {
+                    imageContainer.style.width = '200px';
+                    imageContainer.style.flexShrink = '0';
+                }
             });
         } else {
-            row.classList.remove('g-2');
-            row.classList.add('g-4');
+            cardGrid.classList.remove('card-grid--list');
+            cardGrid.classList.add('card-grid--constrained');
+            cardGrid.style.gridTemplateColumns = '';
             galleryItems.forEach(item => {
-                item.className = 'col-xl-3 col-lg-4 col-md-6 gallery-item';
-                item.querySelector('.image-card').style.display = 'block';
-                item.querySelector('.image-container').style.width = 'auto';
+                item.className = 'gallery-item stagger-animation';
+                const card = item.querySelector('.morph-image-card');
+                if (card) {
+                    card.style.display = 'block';
+                    card.style.flexDirection = '';
+                }
+                const imageContainer = item.querySelector('.morph-image-card__container');
+                if (imageContainer) {
+                    imageContainer.style.width = 'auto';
+                    imageContainer.style.flexShrink = '';
+                }
             });
         }
     }

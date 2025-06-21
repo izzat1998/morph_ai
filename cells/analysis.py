@@ -984,6 +984,242 @@ class IntelligentROI:
         return merged_rois
 
 
+class TextureAnalyzer:
+    """
+    Advanced texture analysis using Gray-Level Co-occurrence Matrix (GLCM) 
+    and first-order statistical features for medical-grade morphometric analysis
+    """
+    
+    @staticmethod
+    def calculate_glcm_features(intensity_image, mask, distances=[1], angles=[0, 45, 90, 135]):
+        """
+        Calculate Gray-Level Co-occurrence Matrix (GLCM) texture features
+        
+        Args:
+            intensity_image: Grayscale intensity image
+            mask: Binary mask defining the region of interest
+            distances: List of pixel distances for GLCM calculation
+            angles: List of angles (in degrees) for GLCM calculation
+            
+        Returns:
+            Dictionary containing GLCM texture features
+        """
+        if not SKIMAGE_AVAILABLE:
+            return {}
+        
+        # Convert angles to radians
+        angles_rad = [np.radians(angle) for angle in angles]
+        
+        # Extract masked region
+        masked_region = intensity_image[mask > 0]
+        if len(masked_region) == 0:
+            return {}
+        
+        # Normalize intensity to 0-255 range for GLCM
+        if masked_region.max() <= 1.0:
+            masked_region = (masked_region * 255).astype(np.uint8)
+        else:
+            masked_region = masked_region.astype(np.uint8)
+        
+        # Create region image for GLCM calculation
+        y_coords, x_coords = np.where(mask > 0)
+        if len(y_coords) == 0:
+            return {}
+        
+        min_y, max_y = y_coords.min(), y_coords.max()
+        min_x, max_x = x_coords.min(), x_coords.max()
+        
+        # Extract bounding box region
+        region_intensity = intensity_image[min_y:max_y+1, min_x:max_x+1]
+        region_mask = mask[min_y:max_y+1, min_x:max_x+1]
+        
+        # Apply mask to intensity image
+        masked_intensity = region_intensity * region_mask
+        
+        # Normalize to 8-bit grayscale
+        if masked_intensity.max() <= 1.0:
+            masked_intensity = (masked_intensity * 255).astype(np.uint8)
+        else:
+            masked_intensity = masked_intensity.astype(np.uint8)
+        
+        try:
+            # Calculate GLCM
+            glcm = graycomatrix(
+                masked_intensity, 
+                distances=distances, 
+                angles=angles_rad, 
+                levels=256,
+                symmetric=True, 
+                normed=True
+            )
+            
+            # Calculate GLCM properties
+            features = {}
+            
+            # Basic GLCM features
+            features['glcm_contrast'] = float(np.mean(graycoprops(glcm, 'contrast')))
+            features['glcm_correlation'] = float(np.mean(graycoprops(glcm, 'correlation')))
+            features['glcm_energy'] = float(np.mean(graycoprops(glcm, 'energy')))
+            features['glcm_homogeneity'] = float(np.mean(graycoprops(glcm, 'homogeneity')))
+            
+            # Additional GLCM features calculated manually
+            features.update(TextureAnalyzer._calculate_advanced_glcm_features(glcm))
+            
+            return features
+            
+        except Exception as e:
+            # Return empty dict if GLCM calculation fails
+            return {}
+    
+    @staticmethod
+    def _calculate_advanced_glcm_features(glcm):
+        """
+        Calculate advanced GLCM features not provided by scikit-image
+        """
+        features = {}
+        
+        try:
+            # Average GLCM across distances and angles
+            glcm_mean = np.mean(glcm, axis=(2, 3))
+            
+            # Create coordinate matrices
+            i, j = np.ogrid[0:glcm_mean.shape[0], 0:glcm_mean.shape[1]]
+            
+            # Calculate additional features
+            # Entropy
+            glcm_entropy = -np.sum(glcm_mean * np.log2(glcm_mean + 1e-10))
+            features['glcm_entropy'] = float(glcm_entropy)
+            
+            # Variance
+            mu_i = np.sum(i * np.sum(glcm_mean, axis=1))
+            mu_j = np.sum(j * np.sum(glcm_mean, axis=0))
+            var_i = np.sum(((i - mu_i) ** 2) * np.sum(glcm_mean, axis=1))
+            var_j = np.sum(((j - mu_j) ** 2) * np.sum(glcm_mean, axis=0))
+            features['glcm_variance'] = float((var_i + var_j) / 2)
+            
+            # Sum Average
+            k = np.arange(2, 2 * glcm_mean.shape[0])
+            p_x_plus_y = np.array([np.sum(glcm_mean[i + j == k_val]) for k_val in k])
+            features['glcm_sum_average'] = float(np.sum(k * p_x_plus_y))
+            
+            # Sum Variance
+            sum_avg = features['glcm_sum_average']
+            features['glcm_sum_variance'] = float(np.sum(((k - sum_avg) ** 2) * p_x_plus_y))
+            
+            # Sum Entropy
+            features['glcm_sum_entropy'] = float(-np.sum(p_x_plus_y * np.log2(p_x_plus_y + 1e-10)))
+            
+            # Difference features
+            k_diff = np.arange(0, glcm_mean.shape[0])
+            p_x_minus_y = np.array([np.sum(glcm_mean[np.abs(i - j) == k_val]) for k_val in k_diff])
+            
+            features['glcm_difference_average'] = float(np.sum(k_diff * p_x_minus_y))
+            diff_avg = features['glcm_difference_average']
+            features['glcm_difference_variance'] = float(np.sum(((k_diff - diff_avg) ** 2) * p_x_minus_y))
+            features['glcm_difference_entropy'] = float(-np.sum(p_x_minus_y * np.log2(p_x_minus_y + 1e-10)))
+            
+        except Exception:
+            # Set default values if calculation fails
+            for feature_name in ['glcm_entropy', 'glcm_variance', 'glcm_sum_average', 
+                               'glcm_sum_variance', 'glcm_sum_entropy', 'glcm_difference_average',
+                               'glcm_difference_variance', 'glcm_difference_entropy']:
+                features[feature_name] = 0.0
+        
+        return features
+    
+    @staticmethod
+    def calculate_first_order_features(intensity_image, mask):
+        """
+        Calculate first-order statistical features from intensity distribution
+        
+        Args:
+            intensity_image: Grayscale intensity image
+            mask: Binary mask defining the region of interest
+            
+        Returns:
+            Dictionary containing first-order statistical features
+        """
+        # Extract intensity values within the mask
+        intensity_values = intensity_image[mask > 0]
+        
+        if len(intensity_values) == 0:
+            return {}
+        
+        features = {}
+        
+        try:
+            # Basic statistical moments
+            features['intensity_mean'] = float(np.mean(intensity_values))
+            features['intensity_std'] = float(np.std(intensity_values))
+            features['intensity_variance'] = float(np.var(intensity_values))
+            
+            # Skewness and Kurtosis
+            from scipy.stats import skew, kurtosis
+            features['intensity_skewness'] = float(skew(intensity_values))
+            features['intensity_kurtosis'] = float(kurtosis(intensity_values))
+            
+            # Range features
+            features['intensity_min'] = float(np.min(intensity_values))
+            features['intensity_max'] = float(np.max(intensity_values))
+            features['intensity_range'] = features['intensity_max'] - features['intensity_min']
+            
+            # Percentile features
+            percentiles = [10, 25, 75, 90]
+            for p in percentiles:
+                features[f'intensity_p{p}'] = float(np.percentile(intensity_values, p))
+            
+            # Interquartile range
+            features['intensity_iqr'] = features['intensity_p75'] - features['intensity_p25']
+            
+            # Entropy
+            hist, _ = np.histogram(intensity_values, bins=256, density=True)
+            hist = hist[hist > 0]  # Remove zero bins
+            features['intensity_entropy'] = float(-np.sum(hist * np.log2(hist)))
+            
+            # Energy (uniformity)
+            features['intensity_energy'] = float(np.sum(hist ** 2))
+            
+            # Robust statistical measures
+            features['intensity_median'] = float(np.median(intensity_values))
+            features['intensity_mad'] = float(np.median(np.abs(intensity_values - features['intensity_median'])))
+            
+            # Coefficient of variation
+            if features['intensity_mean'] != 0:
+                features['intensity_cv'] = features['intensity_std'] / features['intensity_mean']
+            else:
+                features['intensity_cv'] = 0.0
+            
+        except Exception:
+            # Return empty dict if calculation fails
+            return {}
+        
+        return features
+    
+    @staticmethod
+    def extract_all_texture_features(intensity_image, mask):
+        """
+        Extract all texture features (GLCM + first-order) for a cell region
+        
+        Args:
+            intensity_image: Grayscale intensity image
+            mask: Binary mask defining the cell region
+            
+        Returns:
+            Dictionary containing all texture features
+        """
+        features = {}
+        
+        # Calculate GLCM features
+        glcm_features = TextureAnalyzer.calculate_glcm_features(intensity_image, mask)
+        features.update(glcm_features)
+        
+        # Calculate first-order statistical features
+        first_order_features = TextureAnalyzer.calculate_first_order_features(intensity_image, mask)
+        features.update(first_order_features)
+        
+        return features
+
+
 class MorphometricValidator:
     """
     Validation and outlier detection for morphometric measurements
@@ -1025,43 +1261,66 @@ class MorphometricValidator:
         return outliers
     
     @staticmethod
-    def validate_cell_measurements(detected_cells):
+    def validate_cell_measurements(detected_cells, enable_outlier_removal=True, outlier_method='iqr', 
+                                 outlier_threshold=1.5, enable_physics_validation=True):
         """
-        Comprehensive validation of cell measurements
+        Comprehensive validation of cell measurements with configurable options
         """
         if not detected_cells:
             return {'valid_cells': [], 'outliers': [], 'validation_summary': {}}
         
-        # Extract measurements
-        areas = [cell.area for cell in detected_cells]
-        perimeters = [cell.perimeter for cell in detected_cells]
-        circularities = [cell.circularity for cell in detected_cells]
-        eccentricities = [cell.eccentricity for cell in detected_cells]
-        
-        # Detect outliers for each measurement
-        area_outliers = MorphometricValidator.detect_measurement_outliers(areas, 'iqr')
-        perimeter_outliers = MorphometricValidator.detect_measurement_outliers(perimeters, 'iqr')
-        circularity_outliers = MorphometricValidator.detect_measurement_outliers(circularities, 'modified_zscore')
-        eccentricity_outliers = MorphometricValidator.detect_measurement_outliers(eccentricities, 'iqr')
-        
-        # Combine outlier detection
-        combined_outliers = area_outliers | perimeter_outliers | circularity_outliers | eccentricity_outliers
-        
-        # Physics-based validation
+        # Initialize outlier detection arrays
+        combined_outliers = np.zeros(len(detected_cells), dtype=bool)
         physics_outliers = np.zeros(len(detected_cells), dtype=bool)
-        for i, cell in enumerate(detected_cells):
-            # Check area-perimeter relationship (should be reasonable)
-            theoretical_radius = np.sqrt(cell.area / np.pi)
-            theoretical_perimeter = 2 * np.pi * theoretical_radius
-            perimeter_ratio = cell.perimeter / theoretical_perimeter
+        
+        outlier_reasons = {
+            'area_outliers': 0,
+            'perimeter_outliers': 0,
+            'circularity_outliers': 0,
+            'eccentricity_outliers': 0,
+            'physics_violations': 0
+        }
+        
+        # Statistical outlier detection (if enabled)
+        if enable_outlier_removal:
+            # Extract measurements
+            areas = [cell.area for cell in detected_cells]
+            perimeters = [cell.perimeter for cell in detected_cells]
+            circularities = [cell.circularity for cell in detected_cells]
+            eccentricities = [cell.eccentricity for cell in detected_cells]
             
-            # Flag if perimeter is too different from theoretical (indicates noise/artifacts)
-            if perimeter_ratio < 0.5 or perimeter_ratio > 3.0:
-                physics_outliers[i] = True
+            # Detect outliers for each measurement using specified method
+            area_outliers = MorphometricValidator.detect_measurement_outliers(areas, outlier_method, outlier_threshold)
+            perimeter_outliers = MorphometricValidator.detect_measurement_outliers(perimeters, outlier_method, outlier_threshold)
+            circularity_outliers = MorphometricValidator.detect_measurement_outliers(circularities, outlier_method, outlier_threshold)
+            eccentricity_outliers = MorphometricValidator.detect_measurement_outliers(eccentricities, outlier_method, outlier_threshold)
             
-            # Check aspect ratio reasonableness (cells shouldn't be extremely elongated)
-            if cell.aspect_ratio > 10:
-                physics_outliers[i] = True
+            # Count outliers by type
+            outlier_reasons['area_outliers'] = int(np.sum(area_outliers))
+            outlier_reasons['perimeter_outliers'] = int(np.sum(perimeter_outliers))
+            outlier_reasons['circularity_outliers'] = int(np.sum(circularity_outliers))
+            outlier_reasons['eccentricity_outliers'] = int(np.sum(eccentricity_outliers))
+            
+            # Combine outlier detection
+            combined_outliers = area_outliers | perimeter_outliers | circularity_outliers | eccentricity_outliers
+        
+        # Physics-based validation (if enabled)
+        if enable_physics_validation:
+            for i, cell in enumerate(detected_cells):
+                # Check area-perimeter relationship (should be reasonable)
+                theoretical_radius = np.sqrt(cell.area / np.pi)
+                theoretical_perimeter = 2 * np.pi * theoretical_radius
+                perimeter_ratio = cell.perimeter / theoretical_perimeter
+                
+                # Flag if perimeter is too different from theoretical (indicates noise/artifacts)
+                if perimeter_ratio < 0.5 or perimeter_ratio > 3.0:
+                    physics_outliers[i] = True
+                
+                # Check aspect ratio reasonableness (cells shouldn't be extremely elongated)
+                if cell.aspect_ratio > 10:
+                    physics_outliers[i] = True
+            
+            outlier_reasons['physics_violations'] = int(np.sum(physics_outliers))
         
         final_outliers = combined_outliers | physics_outliers
         
@@ -1115,20 +1374,9 @@ class CellAnalysisProcessor:
             # Step 2: Run cellpose segmentation
             masks, flows, styles = self._run_cellpose_segmentation(image_array)
             
-            # Step 2.5: Apply post-processing refinement
+            # Step 2.5: Apply post-processing refinement with user-configured filtering
             original_mask_count = len(np.unique(masks)) - 1
-            refinement_options = {
-                'apply_size_filtering': True,
-                'min_cell_area': 50,
-                'max_cell_area': None,
-                'apply_shape_filtering': True,
-                'min_circularity': 0.1,
-                'max_eccentricity': 0.95,
-                'apply_watershed': False,  # Can be enabled in advanced settings
-                'apply_smoothing': True,
-                'smoothing_factor': 1.0,
-                'remove_edge_cells': False  # User preference
-            }
+            refinement_options = self.analysis.get_filtering_options()
             
             refined_masks, refinement_steps = SegmentationRefinement.refine_segmentation(
                 masks, image_array, refinement_options
@@ -1426,11 +1674,25 @@ class CellAnalysisProcessor:
         if len(cell_ids) == 0:
             return
         
+        # Load original image for texture analysis
+        image_path = self.cell.image.path
+        original_image = imread(image_path)
+        
+        # Convert to grayscale for texture analysis
+        if len(original_image.shape) == 3:
+            intensity_image = np.mean(original_image, axis=2).astype(np.float32)
+        else:
+            intensity_image = original_image.astype(np.float32)
+        
+        # Normalize intensity image to 0-1 range
+        if intensity_image.max() > 1.0:
+            intensity_image = intensity_image / 255.0
+        
         # Create binary masks for regionprops
         binary_masks = masks > 0
         
         # Use regionprops to get measurements
-        props = measure.regionprops(masks, intensity_image=None)
+        props = measure.regionprops(masks, intensity_image=intensity_image)
         
         detected_cells = []
         
@@ -1458,6 +1720,10 @@ class CellAnalysisProcessor:
             
             # Bounding box
             min_row, min_col, max_row, max_col = prop.bbox
+            
+            # Extract texture features for this cell
+            cell_mask = (masks == prop.label).astype(np.uint8)
+            texture_features = TextureAnalyzer.extract_all_texture_features(intensity_image, cell_mask)
             
             # Calculate physical measurements if scale is available
             area_microns_sq = None
@@ -1493,25 +1759,68 @@ class CellAnalysisProcessor:
                 bounding_box_x=min_col,
                 bounding_box_y=min_row,
                 bounding_box_width=max_col - min_col,
-                bounding_box_height=max_row - min_row
+                bounding_box_height=max_row - min_row,
+                # GLCM Texture Features
+                glcm_contrast=texture_features.get('glcm_contrast'),
+                glcm_correlation=texture_features.get('glcm_correlation'),
+                glcm_energy=texture_features.get('glcm_energy'),
+                glcm_homogeneity=texture_features.get('glcm_homogeneity'),
+                glcm_entropy=texture_features.get('glcm_entropy'),
+                glcm_variance=texture_features.get('glcm_variance'),
+                glcm_sum_average=texture_features.get('glcm_sum_average'),
+                glcm_sum_variance=texture_features.get('glcm_sum_variance'),
+                glcm_sum_entropy=texture_features.get('glcm_sum_entropy'),
+                glcm_difference_average=texture_features.get('glcm_difference_average'),
+                glcm_difference_variance=texture_features.get('glcm_difference_variance'),
+                glcm_difference_entropy=texture_features.get('glcm_difference_entropy'),
+                # First-Order Statistical Features
+                intensity_mean=texture_features.get('intensity_mean'),
+                intensity_std=texture_features.get('intensity_std'),
+                intensity_variance=texture_features.get('intensity_variance'),
+                intensity_skewness=texture_features.get('intensity_skewness'),
+                intensity_kurtosis=texture_features.get('intensity_kurtosis'),
+                intensity_min=texture_features.get('intensity_min'),
+                intensity_max=texture_features.get('intensity_max'),
+                intensity_range=texture_features.get('intensity_range'),
+                intensity_p10=texture_features.get('intensity_p10'),
+                intensity_p25=texture_features.get('intensity_p25'),
+                intensity_p75=texture_features.get('intensity_p75'),
+                intensity_p90=texture_features.get('intensity_p90'),
+                intensity_iqr=texture_features.get('intensity_iqr'),
+                intensity_entropy=texture_features.get('intensity_entropy'),
+                intensity_energy=texture_features.get('intensity_energy'),
+                intensity_median=texture_features.get('intensity_median'),
+                intensity_mad=texture_features.get('intensity_mad'),
+                intensity_cv=texture_features.get('intensity_cv')
             )
             
             detected_cells.append(detected_cell)
         
-        # Apply morphometric validation before saving
-        validation_results = MorphometricValidator.validate_cell_measurements(detected_cells)
-        
-        # Store validation information
-        if not hasattr(self.analysis, 'quality_metrics') or not self.analysis.quality_metrics:
-            self.analysis.quality_metrics = {}
-        self.analysis.quality_metrics['morphometric_validation'] = validation_results['validation_summary']
-        
-        # Use only validated cells (remove outliers)
-        valid_detected_cells = validation_results['valid_cells']
-        outlier_count = len(detected_cells) - len(valid_detected_cells)
-        
-        if outlier_count > 0:
-            print(f"Filtered out {outlier_count} outlier cells during validation")
+        # Apply morphometric validation based on user settings
+        if self.analysis.enable_outlier_removal or self.analysis.enable_physics_validation:
+            validation_results = MorphometricValidator.validate_cell_measurements(
+                detected_cells,
+                enable_outlier_removal=self.analysis.enable_outlier_removal,
+                outlier_method=self.analysis.outlier_method,
+                outlier_threshold=self.analysis.outlier_threshold,
+                enable_physics_validation=self.analysis.enable_physics_validation
+            )
+            
+            # Store validation information
+            if not hasattr(self.analysis, 'quality_metrics') or not self.analysis.quality_metrics:
+                self.analysis.quality_metrics = {}
+            self.analysis.quality_metrics['morphometric_validation'] = validation_results['validation_summary']
+            
+            # Use only validated cells (remove outliers)
+            valid_detected_cells = validation_results['valid_cells']
+            outlier_count = len(detected_cells) - len(valid_detected_cells)
+            
+            if outlier_count > 0:
+                print(f"Filtered out {outlier_count} outlier cells during validation")
+        else:
+            # No validation filtering - use all detected cells
+            valid_detected_cells = detected_cells
+            print("Morphometric validation disabled - keeping all detected cells")
         
         # Bulk create for efficiency (using validated cells only)
         DetectedCell.objects.bulk_create(valid_detected_cells)

@@ -2134,3 +2134,582 @@ footer::before {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary-blue);
 }
+
+/* ==========================================
+   CONTENT-AWARE CONTAINER SYSTEM
+   ========================================== */
+
+/* Base content container - centers content with appropriate max-widths */
+.content-container {
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+/* Analysis pages - need maximum space for images and data tables */
+.content-analysis {
+  max-width: 1800px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+/* Gallery pages - optimal for card grids and browsing */
+.content-gallery {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+/* Detail pages - perfect for image + sidebar layouts */
+.content-detail {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+/* Form pages - optimal reading width for forms and text */
+.content-form {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+/* Dashboard layouts - good for statistics and overview pages */
+.content-dashboard {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+/* Wide content - for special cases needing more space */
+.content-wide {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+/* Full width - when you truly need all available space */
+.content-full {
+  padding: 0 var(--spacing-md);
+}
+
+/* ==========================================
+   MODERN LAYOUT PATTERNS
+   ========================================== */
+
+/* Split Layout - for analysis and detail pages */
+.split-layout {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: var(--spacing-xl);
+  align-items: start;
+}
+
+.split-layout__main {
+  min-width: 0; /* Prevents overflow in grid */
+}
+
+.split-layout__sidebar {
+  position: sticky;
+  top: calc(var(--spacing-xl) + 80px); /* Account for navbar height */
+}
+
+/* Enhanced Card Grid System */
+.card-grid {
+  display: grid;
+  gap: var(--spacing-lg);
+}
+
+.card-grid--gallery {
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  max-width: none; /* Override any parent constraints for optimal fitting */
+  gap: var(--spacing-lg);
+}
+
+.card-grid--analysis {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.card-grid--dashboard {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.card-grid--list {
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md);
+}
+
+/* Constrained Grid - limits columns even on very wide screens */
+.card-grid--constrained {
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  max-width: 1600px;
+  margin: 0 auto;
+  gap: var(--spacing-lg);
+}
+
+@media (min-width: 1400px) {
+  .card-grid--constrained {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1800px) {
+  .card-grid--constrained {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 2200px) {
+  .card-grid--constrained {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+/* Image Display Constraints */
+.image-display {
+  max-width: 100%;
+  height: auto;
+}
+
+.image-display--analysis {
+  max-width: 600px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.image-display--detail {
+  max-width: 700px;
+  max-height: 700px;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  cursor: zoom-in;
+  transition: transform var(--transition-normal);
+}
+
+.image-display--detail:hover {
+  transform: scale(1.02);
+}
+
+/* Click to zoom functionality */
+.image-zoom-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  cursor: zoom-out;
+}
+
+.image-zoom-modal img {
+  max-width: 95%;
+  max-height: 95%;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+}
+
+.image-display--gallery {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+/* Table Improvements */
+.table-container--analysis {
+  overflow-x: auto;
+  max-width: 100%;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.table--constrained {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Modern Section Spacing */
+.section-spaced {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.section-spaced:last-child {
+  margin-bottom: 0;
+}
+
+/* Enhanced Statistics Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.stats-grid--compact {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--spacing-md);
+}
+
+/* ==========================================
+   RESPONSIVE ENHANCEMENTS
+   ========================================== */
+
+@media (max-width: 1400px) {
+  .split-layout {
+    grid-template-columns: 1fr 320px;
+    gap: var(--spacing-lg);
+  }
+}
+
+@media (max-width: 1024px) {
+  .split-layout {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+  
+  .split-layout__sidebar {
+    position: static;
+    order: -1; /* Move sidebar to top on mobile */
+  }
+  
+  .content-analysis,
+  .content-gallery,
+  .content-detail,
+  .content-dashboard,
+  .content-wide {
+    padding: 0 var(--spacing-sm);
+  }
+}
+
+@media (max-width: 768px) {
+  .card-grid--gallery {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--spacing-md);
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--spacing-sm);
+  }
+}
+
+@media (max-width: 576px) {
+  .card-grid--gallery {
+    grid-template-columns: 1fr;
+  }
+  
+  .content-form {
+    padding: 0 var(--spacing-sm);
+  }
+}
+
+/* ==========================================
+   LAYOUT UTILITIES
+   ========================================== */
+
+/* Flexbox utilities for quick layouts */
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+/* Gap utilities */
+.gap-sm { gap: var(--spacing-sm); }
+.gap-md { gap: var(--spacing-md); }
+.gap-lg { gap: var(--spacing-lg); }
+.gap-xl { gap: var(--spacing-xl); }
+
+/* Modern aspect ratios */
+.aspect-square { aspect-ratio: 1; }
+.aspect-video { aspect-ratio: 16/9; }
+.aspect-photo { aspect-ratio: 4/3; }
+
+/* Scroll containers */
+.scroll-horizontal {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.scroll-horizontal::-webkit-scrollbar {
+  height: 6px;
+}
+
+/* ==========================================
+   ENHANCED ANIMATIONS
+   ========================================== */
+
+/* Stagger animations for grids */
+.stagger-animation {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.stagger-animation:nth-child(1) { animation-delay: 0.1s; }
+.stagger-animation:nth-child(2) { animation-delay: 0.2s; }
+.stagger-animation:nth-child(3) { animation-delay: 0.3s; }
+.stagger-animation:nth-child(4) { animation-delay: 0.4s; }
+.stagger-animation:nth-child(5) { animation-delay: 0.5s; }
+.stagger-animation:nth-child(6) { animation-delay: 0.6s; }
+
+/* Smooth reveal animation */
+@keyframes smoothReveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.smooth-reveal {
+  animation: smoothReveal 0.8s ease-out;
+}
+
+/* Hover scale effect for cards */
+.hover-scale {
+  transition: transform var(--transition-normal);
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+/* Loading skeleton styles */
+.skeleton {
+  background: linear-gradient(90deg, var(--light-gray) 25%, var(--lighter-gray) 50%, var(--light-gray) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ==========================================
+   GALLERY CARD IMPROVEMENTS
+   ========================================== */
+
+/* Ensure cards have proper minimum width and don't get too cramped */
+.morph-image-card {
+  min-width: 300px;
+  width: 100%;
+  height: auto;
+  min-height: 400px;
+}
+
+.morph-image-card__container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+
+.morph-image-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition-normal);
+}
+
+.morph-image-card:hover .morph-image-card__image {
+  transform: scale(1.05);
+}
+
+/* Ensure proper card spacing in gallery */
+.gallery-item {
+  min-width: 0; /* Prevent grid blowout */
+  width: 100%;
+}
+
+/* Better text truncation for card titles */
+.card-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Improve metadata grid layout */
+.morph-metadata-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-xs);
+  font-size: 0.85rem;
+}
+
+.morph-metadata-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs);
+  background: var(--lighter-gray);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+}
+
+/* Responsive adjustments for gallery cards */
+@media (max-width: 1600px) {
+  .card-grid--constrained {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+}
+
+@media (max-width: 1200px) {
+  .card-grid--constrained {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+  
+  .morph-image-card {
+    min-width: 280px;
+  }
+}
+
+@media (max-width: 768px) {
+  .card-grid--constrained {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--spacing-md);
+  }
+  
+  .morph-image-card {
+    min-width: 260px;
+  }
+}
+
+@media (max-width: 576px) {
+  .card-grid--constrained {
+    grid-template-columns: 1fr;
+  }
+  
+  .morph-image-card {
+    min-width: auto;
+  }
+}
+
+/* ==========================================
+   DETAIL PAGE IMPROVEMENTS
+   ========================================== */
+
+/* Better image and details layout for detail pages */
+.detail-image-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: var(--spacing-sm);
+  background: var(--lighter-gray);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-md);
+  min-height: 500px;
+}
+
+.detail-image-container .image-display--detail {
+  display: block;
+  margin: 0 auto;
+}
+
+/* Improve the main content layout in detail pages */
+.split-layout__main .card-body .row {
+  align-items: flex-start;
+}
+
+/* Better table layout in detail page */
+.detail-table-container {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm);
+  border: 1px solid var(--light-gray);
+}
+
+.detail-table-container .table {
+  font-size: 0.8rem;
+  margin-bottom: 0;
+}
+
+.detail-table-container .table td {
+  padding: 0.25rem 0.5rem;
+  vertical-align: middle;
+  border: none;
+}
+
+.detail-table-container .table td:first-child {
+  font-weight: 600;
+  color: var(--medium-gray);
+  width: 35%;
+  font-size: 0.75rem;
+}
+
+.detail-table-container .table td:last-child {
+  font-size: 0.8rem;
+  color: var(--dark-navy);
+}
+
+.detail-table-container .badge {
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.detail-table-container h5 {
+  font-size: 0.9rem;
+  margin-bottom: var(--spacing-xs);
+  color: var(--dark-navy);
+  font-weight: 600;
+}
+
+/* Responsive image sizing for detail pages */
+@media (max-width: 1200px) {
+  .image-display--detail {
+    max-width: 600px;
+    max-height: 600px;
+  }
+}
+
+@media (max-width: 768px) {
+  .image-display--detail {
+    max-width: 500px;
+    max-height: 500px;
+  }
+  
+  .detail-image-container {
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+    min-height: 400px;
+  }
+}
+
+@media (max-width: 576px) {
+  .image-display--detail {
+    max-width: 100%;
+    max-height: 400px;
+  }
+  
+  .detail-image-container {
+    min-height: 300px;
+  }
+}

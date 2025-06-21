@@ -134,13 +134,14 @@ class CellAnalysisForm(forms.ModelForm):
 
     class Meta:
         model = CellAnalysis
-        fields = ['cellpose_model', 'cellpose_diameter', 'flow_threshold', 'cellprob_threshold', 'use_roi']
+        fields = ['cellpose_model', 'cellpose_diameter', 'flow_threshold', 'cellprob_threshold', 'use_roi', 'filtering_mode']
         labels = {
             'cellpose_model': _('Cellpose Model'),
             'cellpose_diameter': _('Cell Diameter (pixels)'),
             'flow_threshold': _('Flow Threshold'),
             'cellprob_threshold': _('Cell Probability Threshold'),
             'use_roi': _('Use Region of Interest (ROI) Selection'),
+            'filtering_mode': _('Cell Filtering Mode'),
         }
         widgets = {
             'cellpose_model': forms.Select(attrs={'class': 'form-select'}),
@@ -165,6 +166,7 @@ class CellAnalysisForm(forms.ModelForm):
                 'placeholder': '0.0'
             }),
             'use_roi': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'filtering_mode': forms.Select(attrs={'class': 'form-select'}),
         }
     
     def __init__(self, *args, **kwargs):
@@ -172,69 +174,86 @@ class CellAnalysisForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.form_method = 'post'
         self.helper.layout = Layout(
+            # Tab structure with organized sections
+            HTML('''
+                <div class="tab-content" id="configTabContent">
+                    <div class="tab-pane fade show active" id="basic-config" role="tabpanel">
+                        <div class="basic-config-section">
+            '''),
             Fieldset(
-                _('Analysis Configuration'),
-                HTML('<p class="text-muted">' + str(_('Configure the parameters for cellpose analysis. Default values work well for most cases.')) + '</p>'),
-                Field('cellpose_model', css_class='form-select'),
-                Field('cellpose_diameter', css_class='form-control'),
-                Div(
-                    Field('flow_threshold', css_class='form-control'),
-                    Field('cellprob_threshold', css_class='form-control'),
-                    css_class='row'
-                ),
-                HTML('<hr>'),
-                Div(
-                    Field('use_roi', css_class='form-check-input'),
-                    HTML('<small class="text-muted">' + str(_('Enable to select specific regions for analysis. You can draw rectangles on the image to define areas where cells should be detected.')) + '</small>'),
-                    css_class='form-check'
-                ),
+                _('Core Parameters'),
+                HTML('<div class="row g-3">'),
+                    HTML('<div class="col-md-6">'),
+                        Field('cellpose_model', css_class='form-select'),
+                    HTML('</div>'),
+                    HTML('<div class="col-md-6">'),
+                        Field('cellpose_diameter', css_class='form-control'),
+                    HTML('</div>'),
+                HTML('</div>'),
+                HTML('<div class="row g-3 mt-3">'),
+                    HTML('<div class="col-md-6">'),
+                        Field('flow_threshold', css_class='form-control'),
+                    HTML('</div>'),
+                    HTML('<div class="col-md-6">'),
+                        Field('cellprob_threshold', css_class='form-control'),
+                    HTML('</div>'),
+                HTML('</div>'),
+                HTML('<div class="mt-3">'),
+                    Div(
+                        Field('use_roi', css_class='form-check-input'),
+                        HTML('<small class="text-muted d-block mt-1">' + str(_('Enable to select specific regions for analysis')) + '</small>'),
+                        css_class='form-check'
+                    ),
+                HTML('</div>'),
             ),
+            HTML('''
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="advanced-config" role="tabpanel">
+            '''),
             Fieldset(
                 _('Image Preprocessing (Optional)'),
-                HTML('<p class="text-muted">' + str(_('Advanced preprocessing options to improve image quality before segmentation. Recommended for low-quality images.')) + '</p>'),
+                HTML('<p class="text-muted small">' + str(_('Advanced preprocessing options to improve image quality before segmentation.')) + '</p>'),
                 Div(
                     Field('apply_preprocessing', css_class='form-check-input', id='id_apply_preprocessing'),
                     HTML('<small class="text-muted">' + str(_('Enable preprocessing options below')) + '</small>'),
                     css_class='form-check mb-3'
                 ),
-                HTML('<div id="preprocessing-options" style="display: none;">'),
-                    Div(
-                        Div(
-                            Field('apply_noise_reduction', css_class='form-check-input'),
-                            HTML('<label class="form-check-label">' + str(_('Apply noise reduction')) + '</label>'),
-                            css_class='form-check col-md-6'
-                        ),
-                        Div(
-                            Field('noise_reduction_method', css_class='form-select'),
-                            css_class='col-md-6'
-                        ),
-                        css_class='row mb-2'
-                    ),
-                    Div(
-                        Div(
-                            Field('apply_contrast_enhancement', css_class='form-check-input'),
-                            HTML('<label class="form-check-label">' + str(_('Apply contrast enhancement')) + '</label>'),
-                            css_class='form-check col-md-6'
-                        ),
-                        Div(
-                            Field('contrast_method', css_class='form-select'),
-                            css_class='col-md-6'
-                        ),
-                        css_class='row mb-2'
-                    ),
-                    Div(
-                        Div(
-                            Field('apply_sharpening', css_class='form-check-input'),
-                            HTML('<label class="form-check-label">' + str(_('Apply image sharpening')) + '</label>'),
-                            css_class='form-check col-md-6'
-                        ),
-                        Div(
-                            Field('apply_normalization', css_class='form-check-input'),
-                            HTML('<label class="form-check-label">' + str(_('Apply intensity normalization')) + '</label>'),
-                            css_class='form-check col-md-6'
-                        ),
-                        css_class='row mb-2'
-                    ),
+                HTML('<div id="preprocessing-options" style="display: none;" class="preprocessing-grid">'),
+                    HTML('<div class="row g-3">'),
+                        HTML('<div class="col-md-6">'),
+                            Div(
+                                Field('apply_noise_reduction', css_class='form-check-input'),
+                                HTML('<label class="form-check-label fw-bold">' + str(_('Noise Reduction')) + '</label>'),
+                                css_class='form-check mb-2'
+                            ),
+                            Field('noise_reduction_method', css_class='form-select form-select-sm'),
+                        HTML('</div>'),
+                        HTML('<div class="col-md-6">'),
+                            Div(
+                                Field('apply_contrast_enhancement', css_class='form-check-input'),
+                                HTML('<label class="form-check-label fw-bold">' + str(_('Contrast Enhancement')) + '</label>'),
+                                css_class='form-check mb-2'
+                            ),
+                            Field('contrast_method', css_class='form-select form-select-sm'),
+                        HTML('</div>'),
+                    HTML('</div>'),
+                    HTML('<div class="row g-3 mt-2">'),
+                        HTML('<div class="col-md-6">'),
+                            Div(
+                                Field('apply_sharpening', css_class='form-check-input'),
+                                HTML('<label class="form-check-label fw-bold">' + str(_('Image Sharpening')) + '</label>'),
+                                css_class='form-check'
+                            ),
+                        HTML('</div>'),
+                        HTML('<div class="col-md-6">'),
+                            Div(
+                                Field('apply_normalization', css_class='form-check-input'),
+                                HTML('<label class="form-check-label fw-bold">' + str(_('Intensity Normalization')) + '</label>'),
+                                css_class='form-check'
+                            ),
+                        HTML('</div>'),
+                    HTML('</div>'),
                 HTML('</div>'),
                 HTML('''
                 <script>
@@ -256,8 +275,54 @@ class CellAnalysisForm(forms.ModelForm):
                 </script>
                 '''),
             ),
-            Submit('submit', _('Start Analysis'), css_class='btn btn-success mt-3'),
-            HTML('<a href="#" onclick="history.back()" class="btn btn-secondary mt-3 ms-2">' + str(_('Cancel')) + '</a>')
+            HTML('''
+                    </div>
+                    <div class="tab-pane fade" id="filtering-config" role="tabpanel">
+            '''),
+            Fieldset(
+                _('Cell Filtering Options'),
+                HTML('<p class="text-muted small">' + str(_('Control how strictly cells are filtered during analysis. Choose based on your use case.')) + '</p>'),
+                Field('filtering_mode', css_class='form-select'),
+                HTML('''
+                <div class="filtering-guide mt-3 p-3 bg-light rounded">
+                    <h6 class="text-primary mb-2">Filtering Mode Guide</h6>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <div class="guide-item p-2 border rounded bg-white">
+                                <strong class="text-success">No Filtering</strong><br>
+                                <small class="text-muted">Keep all detected cells</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="guide-item p-2 border rounded bg-white">
+                                <strong class="text-info">Basic</strong><br>
+                                <small class="text-muted">Remove only obvious artifacts</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="guide-item p-2 border rounded bg-white">
+                                <strong class="text-warning">Research</strong><br>
+                                <small class="text-muted">Conservative filtering for research</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="guide-item p-2 border rounded bg-white">
+                                <strong class="text-primary">Clinical</strong><br>
+                                <small class="text-muted">Standard medical-grade filtering</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                '''),
+            ),
+            HTML('''
+                    </div>
+                </div>
+            '''),
+            HTML('<div class="form-actions mt-4 text-center">'),
+                Submit('submit', _('Start Analysis'), css_class='btn btn-success btn-lg px-5'),
+                HTML('<a href="#" onclick="history.back()" class="btn btn-outline-secondary ms-3">' + str(_('Cancel')) + '</a>'),
+            HTML('</div>')
         )
         
         # Add help text
@@ -273,6 +338,7 @@ class CellAnalysisForm(forms.ModelForm):
         self.fields['contrast_method'].help_text = _("CLAHE works best for microscopy images")
         self.fields['apply_sharpening'].help_text = _("Enhance edge definition for better segmentation")
         self.fields['apply_normalization'].help_text = _("Standardize intensity values across the image")
+        self.fields['filtering_mode'].help_text = _("Choose filtering strictness: None=keep all, Clinical=medical standard, Research=conservative, Custom=advanced settings")
     
     def clean_cellpose_diameter(self):
         diameter = self.cleaned_data.get('cellpose_diameter')
@@ -313,6 +379,11 @@ class CellAnalysisForm(forms.ModelForm):
             instance.preprocessing_options = preprocessing_options
         else:
             instance.preprocessing_options = {}
+        
+        # Apply filtering preset based on selected mode
+        filtering_mode = self.cleaned_data.get('filtering_mode', 'clinical')
+        if filtering_mode != 'custom':  # Don't override custom settings
+            instance.apply_filtering_preset(filtering_mode)
         
         if commit:
             instance.save()

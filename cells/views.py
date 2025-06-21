@@ -125,6 +125,37 @@ def analysis_detail(request, analysis_id):
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
         context['page_obj'] = page_obj
+        
+        # Add cell filtering information for transparency
+        validated_cell_count = detected_cells.count()
+        context['validated_cell_count'] = validated_cell_count
+        context['original_cell_count'] = analysis.num_cells_detected
+        context['cells_filtered'] = analysis.num_cells_detected - validated_cell_count
+        
+        # Extract filtering details from quality metrics
+        filtering_info = {}
+        if analysis.quality_metrics:
+            # Segmentation refinement info
+            if 'segmentation_refinement' in analysis.quality_metrics:
+                refinement = analysis.quality_metrics['segmentation_refinement']
+                filtering_info['refinement'] = {
+                    'original_count': refinement.get('original_cell_count', analysis.num_cells_detected),
+                    'refined_count': refinement.get('refined_cell_count', analysis.num_cells_detected),
+                    'steps': refinement.get('refinement_steps', [])
+                }
+            
+            # Morphometric validation info  
+            if 'morphometric_validation' in analysis.quality_metrics:
+                validation = analysis.quality_metrics['morphometric_validation']
+                filtering_info['validation'] = {
+                    'total_cells': validation.get('total_cells', 0),
+                    'valid_cells': validation.get('valid_cells', 0),
+                    'outliers_detected': validation.get('outliers_detected', 0),
+                    'outlier_percentage': validation.get('outlier_percentage', 0),
+                    'outlier_reasons': validation.get('outlier_reasons', {})
+                }
+        
+        context['filtering_info'] = filtering_info
     
     return render(request, 'cells/analysis_detail.html', context)
 
@@ -187,6 +218,22 @@ def export_analysis_csv(request, analysis_id):
         _('Centroid X'), _('Centroid Y'), _('Bbox X'), _('Bbox Y'), _('Bbox Width'), _('Bbox Height')
     ]
     
+    # Add GLCM texture features to header
+    header.extend([
+        _('GLCM Contrast'), _('GLCM Correlation'), _('GLCM Energy'), _('GLCM Homogeneity'),
+        _('GLCM Entropy'), _('GLCM Variance'), _('GLCM Sum Average'), _('GLCM Sum Variance'),
+        _('GLCM Sum Entropy'), _('GLCM Diff Average'), _('GLCM Diff Variance'), _('GLCM Diff Entropy')
+    ])
+    
+    # Add first-order statistical features to header
+    header.extend([
+        _('Intensity Mean'), _('Intensity Std'), _('Intensity Variance'), _('Intensity Skewness'),
+        _('Intensity Kurtosis'), _('Intensity Min'), _('Intensity Max'), _('Intensity Range'),
+        _('Intensity P10'), _('Intensity P25'), _('Intensity P75'), _('Intensity P90'),
+        _('Intensity IQR'), _('Intensity Entropy'), _('Intensity Energy'), _('Intensity Median'),
+        _('Intensity MAD'), _('Intensity CV')
+    ])
+    
     if analysis.cell.scale_set:
         header.extend([
             _('Area (μm²)'), _('Perimeter (μm)'), _('Major Axis (μm)'), _('Minor Axis (μm)'),
@@ -203,6 +250,25 @@ def export_analysis_csv(request, analysis_id):
             cell.aspect_ratio, cell.centroid_x, cell.centroid_y, cell.bounding_box_x,
             cell.bounding_box_y, cell.bounding_box_width, cell.bounding_box_height
         ]
+        
+        # Add GLCM texture features to row
+        row.extend([
+            cell.glcm_contrast or '', cell.glcm_correlation or '', cell.glcm_energy or '',
+            cell.glcm_homogeneity or '', cell.glcm_entropy or '', cell.glcm_variance or '',
+            cell.glcm_sum_average or '', cell.glcm_sum_variance or '', cell.glcm_sum_entropy or '',
+            cell.glcm_difference_average or '', cell.glcm_difference_variance or '', 
+            cell.glcm_difference_entropy or ''
+        ])
+        
+        # Add first-order statistical features to row
+        row.extend([
+            cell.intensity_mean or '', cell.intensity_std or '', cell.intensity_variance or '',
+            cell.intensity_skewness or '', cell.intensity_kurtosis or '', cell.intensity_min or '',
+            cell.intensity_max or '', cell.intensity_range or '', cell.intensity_p10 or '',
+            cell.intensity_p25 or '', cell.intensity_p75 or '', cell.intensity_p90 or '',
+            cell.intensity_iqr or '', cell.intensity_entropy or '', cell.intensity_energy or '',
+            cell.intensity_median or '', cell.intensity_mad or '', cell.intensity_cv or ''
+        ])
         
         if analysis.cell.scale_set:
             row.extend([

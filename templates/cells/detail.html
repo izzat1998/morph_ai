@@ -3,32 +3,35 @@
 {% block title %}{{ cell.name }} - Cell Detail{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
+<div class="content-detail mt-4">
+    <div class="split-layout">
+        <div class="split-layout__main">
+            <div class="card section-spaced">
+                <div class="card-header flex-between">
                     <h3 class="mb-0">{{ cell.name }}</h3>
-                    <div>
-                        <a href="{% url 'cells:set_scale_calibration' cell.id %}" class="btn btn-{% if cell.scale_set %}outline-primary{% else %}warning{% endif %}">
+                    <div class="flex-center gap-sm">
+                        <a href="{% url 'cells:set_scale_calibration' cell.id %}" class="btn btn-{% if cell.scale_set %}outline-primary{% else %}warning{% endif %} btn-sm">
                             <i class="fas fa-ruler"></i> {% if cell.scale_set %}Update Scale{% else %}Set Scale{% endif %}
                         </a>
-                        <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success">
+                        <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success btn-sm">
                             <i class="fas fa-microscope"></i> Analyze
                         </a>
-                        <a href="{% url 'cells:list' %}" class="btn btn-outline-secondary">
+                        <a href="{% url 'cells:list' %}" class="btn btn-outline-secondary btn-sm">
                             <i class="fas fa-arrow-left"></i> Back to List
                         </a>
                     </div>
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-6">
-                            <img src="{{ cell.image.url }}" class="img-fluid rounded" alt="{{ cell.name }}">
+                        <div class="col-md-8">
+                            <div class="detail-image-container">
+                                <img src="{{ cell.image.url }}" class="image-display image-display--detail" alt="{{ cell.name }}">
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <h5>Image Details</h5>
-                            <table class="table table-sm">
+                        <div class="col-md-4">
+                            <h5 class="mb-3">Image Details</h5>
+                            <div class="detail-table-container">
+                                <table class="table table-sm">
                                 <tr>
                                     <td><strong>Dimensions:</strong></td>
                                     <td>{{ cell.image_width }}×{{ cell.image_height }} px</td>
@@ -63,21 +66,22 @@
                                         </span>
                                     </td>
                                 </tr>
-                            </table>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-md-4">
+        <div class="split-layout__sidebar">
             {% if latest_analysis %}
-            <div class="card">
+            <div class="card hover-scale">
                 <div class="card-header">
                     <h5 class="mb-0">Latest Analysis</h5>
                 </div>
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="flex-between mb-2">
                         <span class="badge bg-{% if latest_analysis.status == 'completed' %}success{% elif latest_analysis.status == 'failed' %}danger{% elif latest_analysis.status == 'processing' %}warning{% else %}secondary{% endif %}">
                             {{ latest_analysis.get_status_display }}
                         </span>
@@ -85,21 +89,21 @@
                     </div>
                     
                     {% if latest_analysis.status == 'completed' %}
-                    <p><strong>Cells Detected:</strong> {{ latest_analysis.num_cells_detected }}</p>
-                    <p><strong>Processing Time:</strong> {{ latest_analysis.processing_time|floatformat:2 }}s</p>
-                    <a href="{% url 'cells:analysis_detail' latest_analysis.id %}" class="btn btn-primary btn-sm">View Results</a>
+                    <p class="mb-2"><strong>Cells Detected:</strong> {{ latest_analysis.num_cells_detected }}</p>
+                    <p class="mb-3"><strong>Processing Time:</strong> {{ latest_analysis.processing_time|floatformat:2 }}s</p>
+                    <a href="{% url 'cells:analysis_detail' latest_analysis.id %}" class="btn btn-primary btn-sm w-100">View Results</a>
                     {% elif latest_analysis.status == 'failed' %}
-                    <p class="text-danger"><small>{{ latest_analysis.error_message }}</small></p>
-                    <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success btn-sm">Try Again</a>
+                    <p class="text-danger mb-3"><small>{{ latest_analysis.error_message }}</small></p>
+                    <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success btn-sm w-100">Try Again</a>
                     {% endif %}
                 </div>
             </div>
             {% else %}
-            <div class="card">
+            <div class="card hover-scale">
                 <div class="card-body text-center">
-                    <h5>No Analysis Yet</h5>
-                    <p class="text-muted">Start morphometric analysis to detect and measure cells in this image.</p>
-                    <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success">Start Analysis</a>
+                    <h5 class="mb-3">No Analysis Yet</h5>
+                    <p class="text-muted mb-3">Start morphometric analysis to detect and measure cells in this image.</p>
+                    <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success w-100">Start Analysis</a>
                 </div>
             </div>
             {% endif %}
@@ -107,15 +111,14 @@
     </div>
     
     {% if analyses %}
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Analysis History</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
+    <div class="section-spaced">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Analysis History</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-container--analysis">
+                    <table class="table table-hover">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -152,11 +155,41 @@
                     </div>
                 </div>
             </div>
-        </div>
     </div>
     {% endif %}
 </div>
 
 <!-- Font Awesome for icons -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const detailImage = document.querySelector('.image-display--detail');
+    
+    if (detailImage) {
+        detailImage.addEventListener('click', function() {
+            // Create zoom modal
+            const modal = document.createElement('div');
+            modal.className = 'image-zoom-modal';
+            modal.innerHTML = `<img src="${this.src}" alt="${this.alt}">`;
+            
+            // Add to page
+            document.body.appendChild(modal);
+            
+            // Close on click
+            modal.addEventListener('click', function() {
+                document.body.removeChild(modal);
+            });
+            
+            // Close on escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && modal.parentNode) {
+                    document.body.removeChild(modal);
+                }
+            });
+        });
+    }
+});
+</script>
+
 {% endblock %}
