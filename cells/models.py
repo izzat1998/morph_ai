@@ -84,7 +84,7 @@ class Cell(models.Model):
             return pixels / self.pixels_per_micron
         return None
 
-
+    def convert_area_to_microns_squared(self, pixel_area):
         """Convert pixel area to square microns"""
         if self.scale_set and self.pixels_per_micron:
             return pixel_area / (self.pixels_per_micron ** 2)
@@ -107,7 +107,12 @@ class CellAnalysis(models.Model):
     ]
     
     cell = models.ForeignKey(Cell, on_delete=models.CASCADE, related_name='analyses')
-    segmentation_image = models.ImageField(upload_to='analyses/segmentation/', null=True, blank=True)
+    
+    # Visualization images for different pipeline stages
+    segmentation_image = models.ImageField(upload_to='analyses/segmentation/', null=True, blank=True, verbose_name=_('Core Pipeline Visualization'))
+    flow_analysis_image = models.ImageField(upload_to='analyses/flow_analysis/', null=True, blank=True, verbose_name=_('Advanced Flow Analysis'))
+    style_quality_image = models.ImageField(upload_to='analyses/style_quality/', null=True, blank=True, verbose_name=_('Style & Quality Analysis'))
+    edge_boundary_image = models.ImageField(upload_to='analyses/edge_boundary/', null=True, blank=True, verbose_name=_('Edge & Boundary Analysis'))
     
     # Analysis parameters
     cellpose_model = models.CharField(max_length=20, choices=CELLPOSE_MODEL_CHOICES, default='cyto')

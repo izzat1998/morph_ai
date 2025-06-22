@@ -158,6 +158,37 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# GPU Acceleration Settings
+CELLPOSE_USE_GPU = os.getenv('CELLPOSE_USE_GPU', 'auto').lower()
+if CELLPOSE_USE_GPU == 'auto':
+    # Auto-detect GPU availability
+    try:
+        import torch
+        CELLPOSE_USE_GPU = torch.cuda.is_available()
+    except ImportError:
+        try:
+            import cupy
+            CELLPOSE_USE_GPU = True
+        except ImportError:
+            CELLPOSE_USE_GPU = False
+elif CELLPOSE_USE_GPU in ('true', '1', 'yes', 'on'):
+    CELLPOSE_USE_GPU = True
+else:
+    CELLPOSE_USE_GPU = False
+
+# GPU Memory Management
+GPU_MEMORY_FRACTION = float(os.getenv('GPU_MEMORY_FRACTION', '0.8'))
+GPU_BATCH_SIZE = int(os.getenv('GPU_BATCH_SIZE', '4'))
+
+# Performance Settings
+ENABLE_GPU_PREPROCESSING = os.getenv('ENABLE_GPU_PREPROCESSING', 'auto').lower()
+if ENABLE_GPU_PREPROCESSING == 'auto':
+    ENABLE_GPU_PREPROCESSING = CELLPOSE_USE_GPU
+elif ENABLE_GPU_PREPROCESSING in ('true', '1', 'yes', 'on'):
+    ENABLE_GPU_PREPROCESSING = True
+else:
+    ENABLE_GPU_PREPROCESSING = False
+
 # Security Settings
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True

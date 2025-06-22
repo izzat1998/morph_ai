@@ -130,28 +130,136 @@
     </div>
     
     {% if analysis.status == 'completed' %}
-    <!-- Images -->
+    <!-- Visualization Pipeline -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">{% trans "Segmentation Results" %}</h5>
+                    <h5 class="mb-0">{% trans "Complete Cellpose Visualization Pipeline" %}</h5>
+                    <p class="mb-0 mt-2 text-muted">{% trans "Comprehensive visualization of all Cellpose analysis stages" %}</p>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6 text-center">
-                            <h6>{% trans "Original Image" %}</h6>
-                            <img src="{{ cell.image.url }}" class="img-fluid rounded" alt="Original" style="max-height: 400px;">
-                        </div>
-                        <div class="col-md-6 text-center">
-                            <h6>{% trans "Segmentation Overlay" %}</h6>
-                            {% if analysis.segmentation_image %}
-                            <img src="{{ analysis.segmentation_image.url }}" class="img-fluid rounded" alt="Segmentation" style="max-height: 400px;">
-                            {% else %}
-                            <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 400px;">
-                                <span class="text-muted">{% trans "Segmentation image not available" %}</span>
+                    <!-- Navigation Tabs -->
+                    <ul class="nav nav-tabs mb-3" id="visualizationTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="core-pipeline-tab" data-bs-toggle="tab" data-bs-target="#core-pipeline" type="button" role="tab">
+                                <i class="fas fa-eye me-2"></i>{% trans "Core Pipeline" %}
+                            </button>
+                        </li>
+                        {% if analysis.flow_analysis_image %}
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="flow-analysis-tab" data-bs-toggle="tab" data-bs-target="#flow-analysis" type="button" role="tab">
+                                <i class="fas fa-stream me-2"></i>{% trans "Flow Analysis" %}
+                            </button>
+                        </li>
+                        {% endif %}
+                        {% if analysis.style_quality_image %}
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="style-quality-tab" data-bs-toggle="tab" data-bs-target="#style-quality" type="button" role="tab">
+                                <i class="fas fa-chart-bar me-2"></i>{% trans "Style & Quality" %}
+                            </button>
+                        </li>
+                        {% endif %}
+                        {% if analysis.edge_boundary_image %}
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="edge-boundary-tab" data-bs-toggle="tab" data-bs-target="#edge-boundary" type="button" role="tab">
+                                <i class="fas fa-border-style me-2"></i>{% trans "Edge & Boundary" %}
+                            </button>
+                        </li>
+                        {% endif %}
+                    </ul>
+                    
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="visualizationTabContent">
+                        <!-- Core Pipeline Tab -->
+                        <div class="tab-pane fade show active" id="core-pipeline" role="tabpanel">
+                            <div class="text-center">
+                                <h6 class="text-primary">{% trans "Core Pipeline: Original → Outlines → Flow → Probability → Masks → Centers" %}</h6>
+                                <p class="text-muted small">{% trans "6-panel visualization showing the complete Cellpose segmentation pipeline" %}</p>
+                                {% if analysis.segmentation_image %}
+                                <img src="{{ analysis.segmentation_image.url }}" class="img-fluid rounded shadow" alt="Core Pipeline" style="max-width: 100%; height: auto;">
+                                {% else %}
+                                <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 400px;">
+                                    <span class="text-muted">{% trans "Core pipeline visualization not available" %}</span>
+                                </div>
+                                {% endif %}
                             </div>
-                            {% endif %}
+                        </div>
+                        
+                        <!-- Flow Analysis Tab -->
+                        {% if analysis.flow_analysis_image %}
+                        <div class="tab-pane fade" id="flow-analysis" role="tabpanel">
+                            <div class="text-center">
+                                <h6 class="text-success">{% trans "Advanced Flow Analysis: HSV → Trajectories → Magnitude → Convergence" %}</h6>
+                                <p class="text-muted small">{% trans "4-panel deep dive into Cellpose flow field computations and pixel trajectories" %}</p>
+                                <img src="{{ analysis.flow_analysis_image.url }}" class="img-fluid rounded shadow" alt="Flow Analysis" style="max-width: 100%; height: auto;">
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Style & Quality Tab -->
+                        {% if analysis.style_quality_image %}
+                        <div class="tab-pane fade" id="style-quality" role="tabpanel">
+                            <div class="text-center">
+                                <h6 class="text-info">{% trans "Style & Quality Analysis: Style Vector → Diameter → Thresholds → Quality" %}</h6>
+                                <p class="text-muted small">{% trans "4-panel analysis of image characteristics, style vectors, and quality metrics" %}</p>
+                                <img src="{{ analysis.style_quality_image.url }}" class="img-fluid rounded shadow" alt="Style & Quality Analysis" style="max-width: 100%; height: auto;">
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Edge & Boundary Tab -->
+                        {% if analysis.edge_boundary_image %}
+                        <div class="tab-pane fade" id="edge-boundary" role="tabpanel">
+                            <div class="text-center">
+                                <h6 class="text-warning">{% trans "Edge & Boundary Analysis: Edges → Gradients → Arrows → Combined" %}</h6>
+                                <p class="text-muted small">{% trans "4-panel visualization of cell boundaries, flow gradients, and vector fields" %}</p>
+                                <img src="{{ analysis.edge_boundary_image.url }}" class="img-fluid rounded shadow" alt="Edge & Boundary Analysis" style="max-width: 100%; height: auto;">
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Visualization Summary -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <h6 class="alert-heading">
+                                    <i class="fas fa-info-circle me-2"></i>{% trans "Visualization Summary" %}
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <ul class="mb-0 small">
+                                            <li><strong>{% trans "Core Pipeline:" %}</strong> {% trans "6 panels showing complete segmentation process" %}</li>
+                                            {% if analysis.flow_analysis_image %}
+                                            <li><strong>{% trans "Flow Analysis:" %}</strong> {% trans "4 panels of advanced flow field analysis" %}</li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <ul class="mb-0 small">
+                                            {% if analysis.style_quality_image %}
+                                            <li><strong>{% trans "Style & Quality:" %}</strong> {% trans "4 panels of image characteristics analysis" %}</li>
+                                            {% endif %}
+                                            {% if analysis.edge_boundary_image %}
+                                            <li><strong>{% trans "Edge & Boundary:" %}</strong> {% trans "4 panels of boundary and gradient analysis" %}</li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                </div>
+                                <hr class="my-2">
+                                <p class="mb-0 small">
+                                    <strong>{% trans "Total Panels:" %}</strong> 
+                                    6{% if analysis.flow_analysis_image %} + 4{% endif %}{% if analysis.style_quality_image %} + 4{% endif %}{% if analysis.edge_boundary_image %} + 4{% endif %} = 
+                                    {% with total=6 %}
+                                        {% if analysis.flow_analysis_image %}{% widthratio total 1 1 as total %}{% endif %}
+                                        {% if analysis.style_quality_image %}{% widthratio total 1 1 as total %}{% endif %}
+                                        {% if analysis.edge_boundary_image %}{% widthratio total 1 1 as total %}{% endif %}
+                                        {{ total|add:"0" }}{% if analysis.flow_analysis_image %}{{ 4|add:"0" }}{% endif %}{% if analysis.style_quality_image %}{{ 4|add:"0" }}{% endif %}{% if analysis.edge_boundary_image %}{{ 4|add:"0" }}{% endif %}
+                                    {% endwith %} 
+                                    {% trans "comprehensive visualization panels" %}
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>

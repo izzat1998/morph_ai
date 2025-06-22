@@ -1,21 +1,63 @@
+"""
+Morphometric Analysis Module
+
+This is the main entry point for morphometric analysis functionality.
+The original monolithic file has been refactored into focused modules.
+
+New modular structure:
+- quality_assessment.py: Image quality metrics
+- image_preprocessing.py: Image preprocessing operations  
+- parameter_optimization.py: Parameter optimization for Cellpose
+- segmentation_refinement.py: Post-processing refinement
+- utils.py: Utility functions
+- exceptions.py: Custom exception classes
+
+Legacy classes and functions are imported here for backward compatibility.
+"""
+
+# Standard library imports
 import time
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')  # Use non-GUI backend for server environments
 import matplotlib.pyplot as plt
 from pathlib import Path
 from PIL import Image
 from io import BytesIO
 import os
+import logging
+
+# Django imports
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.conf import settings
 from django.utils.translation import gettext as _
 
+# Import refactored modules
+from .quality_assessment import ImageQualityAssessment
+from .image_preprocessing import ImagePreprocessor
+from .parameter_optimization import ParameterOptimizer
+from .segmentation_refinement import SegmentationRefinement
+from .utils import run_cell_analysis, get_image_quality_summary, get_analysis_summary
+from .gpu_utils import gpu_manager, log_gpu_status, cleanup_gpu_memory
+from .gpu_memory_manager import memory_manager, gpu_memory_context
+from .exceptions import *
+
+# Model imports
+from .models import CellAnalysis, DetectedCell
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+# Check for optional dependencies
 try:
     from cellpose import models
     from cellpose.io import imread
+    from cellpose import plot, utils
     CELLPOSE_AVAILABLE = True
 except ImportError:
     CELLPOSE_AVAILABLE = False
+    logger.warning("Cellpose not available - some functionality will be limited")
 
 try:
     from skimage import measure, morphology, exposure, filters, restoration, feature, segmentation
@@ -30,1333 +72,40 @@ try:
     SKIMAGE_AVAILABLE = True
 except ImportError:
     SKIMAGE_AVAILABLE = False
-
-from .models import CellAnalysis, DetectedCell
-
-
-class ImageQualityAssessment:
-    """Class for assessing image quality metrics"""
-    
-    @staticmethod
-    def calculate_blur_metrics(image):
-        """Calculate blur metrics using Laplacian variance"""
-        if len(image.shape) == 3:
-            gray = np.mean(image, axis=2)
-        else:
-            gray = image
-        
-        # Laplacian variance (higher = less blurry)
-        laplacian_var = filters.laplace(gray).var()
-        
-        # Tenengrad gradient (higher = sharper)
-        sobel_x = filters.sobel_h(gray)
-        sobel_y = filters.sobel_v(gray)
-        tenengrad = np.sqrt(sobel_x**2 + sobel_y**2).mean()
-        
-        return {
-            'laplacian_variance': float(laplacian_var),
-            'tenengrad_gradient': float(tenengrad),
-            'blur_score': float(laplacian_var),  # Higher = less blurry
-            'sharpness_score': float(tenengrad)  # Higher = sharper
-        }
-    
-    @staticmethod
-    def calculate_contrast_metrics(image):
-        """Calculate contrast metrics"""
-        if len(image.shape) == 3:
-            gray = np.mean(image, axis=2)
-        else:
-            gray = image
-        
-        # Normalize to 0-255 for consistent metrics
-        if gray.max() <= 1.0:
-            gray = (gray * 255).astype(np.uint8)
-        else:
-            gray = gray.astype(np.uint8)
-        
-        # RMS contrast
-        rms_contrast = np.sqrt(np.mean((gray - gray.mean()) ** 2))
-        
-        # Michelson contrast
-        max_val = float(gray.max())
-        min_val = float(gray.min())
-        michelson_contrast = (max_val - min_val) / (max_val + min_val) if (max_val + min_val) > 0 else 0
-        
-        # Standard deviation (another contrast measure)
-        std_contrast = gray.std()
-        
-        # Histogram entropy
-        hist, _ = np.histogram(gray, bins=256, range=(0, 256))
-        from scipy.stats import entropy as scipy_entropy
-        hist_entropy = scipy_entropy(hist + 1e-10)  # Add small value to avoid log(0)
-        
-        return {
-            'rms_contrast': float(rms_contrast),
-            'michelson_contrast': float(michelson_contrast),
-            'std_contrast': float(std_contrast),
-            'histogram_entropy': float(hist_entropy),
-            'contrast_score': float(rms_contrast)  # Primary contrast metric
-        }
-    
-    @staticmethod
-    def calculate_noise_metrics(image):
-        """Calculate noise estimation metrics"""
-        if len(image.shape) == 3:
-            gray = np.mean(image, axis=2)
-        else:
-            gray = image
-        
-        # Normalize to 0-1 for consistent processing
-        if gray.max() > 1.0:
-            gray = gray / 255.0
-        
-        try:
-            # Wiener filter estimation of noise
-            # Apply small Gaussian to estimate noise
-            denoised = filters.gaussian(gray, sigma=0.5)
-            noise_estimate = np.abs(gray - denoised)
-            noise_power = np.mean(noise_estimate**2)
-            
-            # Signal-to-noise ratio estimation
-            signal_power = np.mean(denoised**2)
-            snr = signal_power / (noise_power + 1e-10)
-            snr_db = 10 * np.log10(snr + 1e-10)
-            
-            return {
-                'noise_power': float(noise_power),
-                'snr_linear': float(snr),
-                'snr_db': float(snr_db),
-                'noise_score': float(snr_db)  # Higher = less noisy
-            }
-        except Exception:
-            return {
-                'noise_power': 0.0,
-                'snr_linear': 1.0,
-                'snr_db': 0.0,
-                'noise_score': 0.0
-            }
-    
-    @staticmethod
-    def assess_overall_quality(image):
-        """Comprehensive image quality assessment"""
-        blur_metrics = ImageQualityAssessment.calculate_blur_metrics(image)
-        contrast_metrics = ImageQualityAssessment.calculate_contrast_metrics(image)
-        noise_metrics = ImageQualityAssessment.calculate_noise_metrics(image)
-        
-        # Combine metrics into overall scores
-        # Normalize scores to 0-100 scale
-        blur_score = min(100, max(0, (blur_metrics['blur_score'] / 1000) * 100))  # Scale laplacian variance
-        contrast_score = min(100, max(0, (contrast_metrics['contrast_score'] / 64) * 100))  # Scale RMS contrast
-        noise_score = min(100, max(0, (noise_metrics['snr_db'] + 20) * 2))  # Scale SNR dB
-        
-        # Overall quality score (weighted average)
-        overall_score = (blur_score * 0.4 + contrast_score * 0.3 + noise_score * 0.3)
-        
-        # Quality categories
-        if overall_score >= 80:
-            quality_category = 'excellent'
-        elif overall_score >= 60:
-            quality_category = 'good'
-        elif overall_score >= 40:
-            quality_category = 'fair'
-        else:
-            quality_category = 'poor'
-        
-        return {
-            'blur_metrics': blur_metrics,
-            'contrast_metrics': contrast_metrics,
-            'noise_metrics': noise_metrics,
-            'blur_score': blur_score,
-            'contrast_score': contrast_score,
-            'noise_score': noise_score,
-            'overall_score': overall_score,
-            'quality_category': quality_category,
-            'recommendations': ImageQualityAssessment._generate_recommendations(
-                blur_score, contrast_score, noise_score
-            )
-        }
-    
-    @staticmethod
-    def _generate_recommendations(blur_score, contrast_score, noise_score):
-        """Generate preprocessing recommendations based on quality scores"""
-        recommendations = []
-        
-        if blur_score < 40:
-            recommendations.append('Consider image sharpening')
-        if contrast_score < 40:
-            recommendations.append('Apply contrast enhancement (CLAHE)')
-        if noise_score < 40:
-            recommendations.append('Apply noise reduction filtering')
-        
-        if not recommendations:
-            recommendations.append('Image quality is good - minimal preprocessing needed')
-        
-        return recommendations
-
-
-class ImagePreprocessor:
-    """Class for advanced image preprocessing operations"""
-    
-    def __init__(self, preprocessing_options=None):
-        self.options = preprocessing_options or {}
-    
-    def preprocess_image(self, image):
-        """Apply preprocessing pipeline based on options"""
-        processed_image = image.copy()
-        preprocessing_steps = []
-        
-        # Convert to float for processing
-        if processed_image.dtype == np.uint8:
-            processed_image = processed_image.astype(np.float32) / 255.0
-            was_uint8 = True
-        else:
-            was_uint8 = False
-        
-        # Apply preprocessing steps in order
-        if self.options.get('apply_noise_reduction', False):
-            processed_image, step_info = self._apply_noise_reduction(processed_image)
-            preprocessing_steps.append(step_info)
-        
-        if self.options.get('apply_contrast_enhancement', False):
-            processed_image, step_info = self._apply_contrast_enhancement(processed_image)
-            preprocessing_steps.append(step_info)
-        
-        if self.options.get('apply_normalization', False):
-            processed_image, step_info = self._apply_normalization(processed_image)
-            preprocessing_steps.append(step_info)
-        
-        if self.options.get('apply_sharpening', False):
-            processed_image, step_info = self._apply_sharpening(processed_image)
-            preprocessing_steps.append(step_info)
-        
-        if self.options.get('apply_morphological', False):
-            processed_image, step_info = self._apply_morphological_operations(processed_image)
-            preprocessing_steps.append(step_info)
-        
-        # Convert back to original data type
-        if was_uint8:
-            processed_image = (processed_image * 255).astype(np.uint8)
-        
-        return processed_image, preprocessing_steps
-    
-    def _apply_noise_reduction(self, image):
-        """Apply noise reduction filtering"""
-        method = self.options.get('noise_reduction_method', 'gaussian')
-        
-        if method == 'gaussian':
-            sigma = self.options.get('gaussian_sigma', 0.5)
-            filtered_image = filters.gaussian(image, sigma=sigma, preserve_range=True)
-            step_info = f'Gaussian blur (σ={sigma})'
-        
-        elif method == 'median':
-            disk_size = self.options.get('median_disk_size', 2)
-            if len(image.shape) == 3:
-                filtered_image = np.stack([
-                    filters.median(image[:,:,i], morphology.disk(disk_size))
-                    for i in range(image.shape[2])
-                ], axis=2)
-            else:
-                filtered_image = filters.median(image, morphology.disk(disk_size))
-            step_info = f'Median filter (disk size={disk_size})'
-        
-        elif method == 'bilateral':
-            # Bilateral filtering (preserves edges while reducing noise)
-            if len(image.shape) == 3:
-                filtered_image = np.stack([
-                    restoration.denoise_bilateral(image[:,:,i], 
-                                                 sigma_color=0.1, 
-                                                 sigma_spatial=1.0)
-                    for i in range(image.shape[2])
-                ], axis=2)
-            else:
-                filtered_image = restoration.denoise_bilateral(image, 
-                                                             sigma_color=0.1, 
-                                                             sigma_spatial=1.0)
-            step_info = 'Bilateral filtering'
-        
-        else:
-            filtered_image = image
-            step_info = 'No noise reduction applied'
-        
-        return filtered_image, step_info
-    
-    def _apply_contrast_enhancement(self, image):
-        """Apply contrast enhancement"""
-        method = self.options.get('contrast_method', 'clahe')
-        
-        if method == 'clahe':
-            # CLAHE (Contrast Limited Adaptive Histogram Equalization)
-            if len(image.shape) == 3:
-                enhanced_image = np.stack([
-                    exposure.equalize_adapthist(image[:,:,i], clip_limit=0.03)
-                    for i in range(image.shape[2])
-                ], axis=2)
-            else:
-                enhanced_image = exposure.equalize_adapthist(image, clip_limit=0.03)
-            step_info = 'CLAHE contrast enhancement'
-        
-        elif method == 'histogram_eq':
-            # Global histogram equalization
-            if len(image.shape) == 3:
-                enhanced_image = np.stack([
-                    exposure.equalize_hist(image[:,:,i])
-                    for i in range(image.shape[2])
-                ], axis=2)
-            else:
-                enhanced_image = exposure.equalize_hist(image)
-            step_info = 'Histogram equalization'
-        
-        elif method == 'rescale':
-            # Simple rescaling to full range
-            p2, p98 = np.percentile(image, (2, 98))
-            enhanced_image = exposure.rescale_intensity(image, in_range=(p2, p98))
-            step_info = 'Intensity rescaling (2-98 percentile)'
-        
-        else:
-            enhanced_image = image
-            step_info = 'No contrast enhancement applied'
-        
-        return enhanced_image, step_info
-    
-    def _apply_normalization(self, image):
-        """Apply intensity normalization"""
-        method = self.options.get('normalization_method', 'zscore')
-        
-        if method == 'zscore':
-            # Z-score normalization
-            mean_val = np.mean(image)
-            std_val = np.std(image)
-            if std_val > 0:
-                normalized_image = (image - mean_val) / std_val
-                # Rescale to 0-1 range
-                normalized_image = (normalized_image - normalized_image.min()) / (normalized_image.max() - normalized_image.min())
-            else:
-                normalized_image = image
-            step_info = 'Z-score normalization'
-        
-        elif method == 'minmax':
-            # Min-max normalization
-            min_val = np.min(image)
-            max_val = np.max(image)
-            if max_val > min_val:
-                normalized_image = (image - min_val) / (max_val - min_val)
-            else:
-                normalized_image = image
-            step_info = 'Min-max normalization'
-        
-        else:
-            normalized_image = image
-            step_info = 'No normalization applied'
-        
-        return normalized_image, step_info
-    
-    def _apply_sharpening(self, image):
-        """Apply image sharpening"""
-        method = self.options.get('sharpening_method', 'unsharp_mask')
-        
-        if method == 'unsharp_mask':
-            # Unsharp masking
-            radius = self.options.get('unsharp_radius', 1.0)
-            amount = self.options.get('unsharp_amount', 1.0)
-            
-            if len(image.shape) == 3:
-                sharpened_image = np.stack([
-                    filters.unsharp_mask(image[:,:,i], radius=radius, amount=amount)
-                    for i in range(image.shape[2])
-                ], axis=2)
-            else:
-                sharpened_image = filters.unsharp_mask(image, radius=radius, amount=amount)
-            step_info = f'Unsharp masking (radius={radius}, amount={amount})'
-        
-        else:
-            sharpened_image = image
-            step_info = 'No sharpening applied'
-        
-        return sharpened_image, step_info
-    
-    def _apply_morphological_operations(self, image):
-        """Apply morphological operations for artifact removal"""
-        operation = self.options.get('morphological_operation', 'opening')
-        disk_size = self.options.get('morphological_disk_size', 1)
-        
-        # Convert to grayscale for morphological operations
-        if len(image.shape) == 3:
-            gray = np.mean(image, axis=2)
-        else:
-            gray = image.copy()
-        
-        selem = morphology.disk(disk_size)
-        
-        if operation == 'opening':
-            processed_gray = morphology.opening(gray, selem)
-            step_info = f'Morphological opening (disk size={disk_size})'
-        elif operation == 'closing':
-            processed_gray = morphology.closing(gray, selem)
-            step_info = f'Morphological closing (disk size={disk_size})'
-        elif operation == 'erosion':
-            processed_gray = morphology.erosion(gray, selem)
-            step_info = f'Morphological erosion (disk size={disk_size})'
-        elif operation == 'dilation':
-            processed_gray = morphology.dilation(gray, selem)
-            step_info = f'Morphological dilation (disk size={disk_size})'
-        else:
-            processed_gray = gray
-            step_info = 'No morphological operations applied'
-        
-        # If original was color, maintain the color information
-        if len(image.shape) == 3:
-            # Apply the same transformation to all channels proportionally
-            ratio = processed_gray / (gray + 1e-10)
-            processed_image = image * ratio[:, :, np.newaxis]
-        else:
-            processed_image = processed_gray
-        
-        return processed_image, step_info
-
-
-class ParameterOptimizer:
-    """
-    Automatic parameter optimization for Cellpose based on image characteristics
-    """
-    
-    @staticmethod
-    def estimate_cell_diameter(image_array, sample_size=5):
-        """
-        Estimate optimal cell diameter using blob detection and statistical analysis
-        """
-        if len(image_array.shape) == 3:
-            gray = np.mean(image_array, axis=2).astype(np.uint8)
-        else:
-            gray = image_array.astype(np.uint8)
-        
-        # Apply gentle preprocessing for better blob detection
-        smoothed = filters.gaussian(gray, sigma=1.0)
-        
-        # Use multiple blob detection methods for robustness
-        blobs_log = feature.blob_log(smoothed, min_sigma=3, max_sigma=50, num_sigma=20, threshold=0.02)
-        blobs_dog = feature.blob_dog(smoothed, min_sigma=3, max_sigma=50, sigma_ratio=1.6, threshold=0.02)
-        
-        # Combine results
-        all_blobs = []
-        if len(blobs_log) > 0:
-            # Convert LoG blobs to diameter (radius * 2 * sqrt(2))
-            diameters_log = blobs_log[:, 2] * 2 * np.sqrt(2)
-            all_blobs.extend(diameters_log)
-        
-        if len(blobs_dog) > 0:
-            # Convert DoG blobs to diameter
-            diameters_dog = blobs_dog[:, 2] * 2 * np.sqrt(2)
-            all_blobs.extend(diameters_dog)
-        
-        if len(all_blobs) == 0:
-            # Fallback: estimate from image dimensions
-            min_dim = min(gray.shape)
-            estimated_diameter = min_dim / 10  # Assume cells are roughly 1/10 of image size
-            return max(20, min(100, estimated_diameter))
-        
-        # Statistical analysis of detected blob sizes
-        all_blobs = np.array(all_blobs)
-        
-        # Remove outliers (beyond 2 standard deviations)
-        mean_diameter = np.mean(all_blobs)
-        std_diameter = np.std(all_blobs)
-        filtered_blobs = all_blobs[np.abs(all_blobs - mean_diameter) <= 2 * std_diameter]
-        
-        if len(filtered_blobs) == 0:
-            return mean_diameter
-        
-        # Return median for robustness
-        estimated_diameter = np.median(filtered_blobs)
-        
-        # Clamp to reasonable range
-        return max(10, min(200, estimated_diameter))
-    
-    @staticmethod
-    def optimize_thresholds(image_array, quality_metrics):
-        """
-        Optimize flow and cellprob thresholds based on image quality
-        """
-        overall_score = quality_metrics.get('overall_score', 50)
-        blur_score = quality_metrics.get('blur_metrics', {}).get('blur_score', 50)
-        contrast_score = quality_metrics.get('contrast_metrics', {}).get('contrast_score', 50)
-        noise_score = quality_metrics.get('noise_metrics', {}).get('noise_score', 50)
-        
-        # Default values
-        flow_threshold = 0.4
-        cellprob_threshold = 0.0
-        
-        # Adjust based on image quality
-        if overall_score < 40:  # Poor quality
-            flow_threshold = 0.8  # More permissive for poor quality
-            cellprob_threshold = -1.0
-        elif overall_score < 60:  # Fair quality
-            flow_threshold = 0.6
-            cellprob_threshold = -0.5
-        elif overall_score < 80:  # Good quality
-            flow_threshold = 0.4
-            cellprob_threshold = 0.0
-        else:  # Excellent quality
-            flow_threshold = 0.3  # More strict for high quality
-            cellprob_threshold = 0.5
-        
-        # Fine-tune based on specific metrics
-        if blur_score < 30:  # Very blurry
-            flow_threshold += 0.2
-            cellprob_threshold -= 0.5
-        
-        if contrast_score < 30:  # Very low contrast
-            flow_threshold += 0.1
-            cellprob_threshold -= 0.3
-        
-        if noise_score < 30:  # Very noisy
-            flow_threshold += 0.1
-            cellprob_threshold -= 0.2
-        
-        # Clamp to valid ranges
-        flow_threshold = max(0.1, min(3.0, flow_threshold))
-        cellprob_threshold = max(-6.0, min(6.0, cellprob_threshold))
-        
-        return {
-            'flow_threshold': float(flow_threshold),
-            'cellprob_threshold': float(cellprob_threshold),
-            'reasoning': f"Optimized for image quality score {overall_score:.1f}"
-        }
-    
-    @staticmethod
-    def select_optimal_model(image_array, quality_metrics):
-        """
-        Select the best Cellpose model based on image characteristics
-        """
-        if len(image_array.shape) == 3:
-            gray = np.mean(image_array, axis=2).astype(np.uint8)
-        else:
-            gray = image_array.astype(np.uint8)
-        
-        # Analyze image characteristics
-        mean_intensity = np.mean(gray)
-        std_intensity = np.std(gray)
-        
-        # Check if image looks like nuclei (high contrast, round objects)
-        # Use edge detection to estimate roundness
-        edges = feature.canny(gray, sigma=2.0)
-        edge_density = np.sum(edges) / edges.size
-        
-        # Estimate texture using local binary patterns
-        try:
-            from skimage.feature import local_binary_pattern
-            lbp = local_binary_pattern(gray, P=8, R=1, method='uniform')
-            texture_uniformity = np.std(lbp)
-        except:
-            texture_uniformity = std_intensity
-        
-        # Decision logic
-        if mean_intensity > 150 and edge_density > 0.05 and texture_uniformity < 50:
-            # High contrast, well-defined edges, uniform texture -> likely nuclei
-            recommended_model = 'nuclei'
-            confidence = 0.8
-        elif mean_intensity < 100 and edge_density < 0.03:
-            # Low contrast, fewer edges -> might be cytoplasm
-            recommended_model = 'cyto2'  # More robust version
-            confidence = 0.6
-        else:
-            # Default to cyto2 for general purpose
-            recommended_model = 'cyto2'
-            confidence = 0.5
-        
-        return {
-            'recommended_model': recommended_model,
-            'confidence': confidence,
-            'reasoning': f"Based on intensity={mean_intensity:.1f}, edges={edge_density:.3f}, texture={texture_uniformity:.1f}"
-        }
-    
-    @staticmethod
-    def optimize_all_parameters(image_array, quality_metrics, current_params=None):
-        """
-        Comprehensive parameter optimization
-        """
-        current_params = current_params or {}
-        
-        # Estimate optimal diameter
-        optimal_diameter = ParameterOptimizer.estimate_cell_diameter(image_array)
-        
-        # Optimize thresholds
-        threshold_optimization = ParameterOptimizer.optimize_thresholds(image_array, quality_metrics)
-        
-        # Select optimal model
-        model_optimization = ParameterOptimizer.select_optimal_model(image_array, quality_metrics)
-        
-        # Compile recommendations
-        recommendations = {
-            'cellpose_diameter': optimal_diameter,
-            'flow_threshold': threshold_optimization['flow_threshold'],
-            'cellprob_threshold': threshold_optimization['cellprob_threshold'],
-            'cellpose_model': model_optimization['recommended_model'],
-            'confidence_scores': {
-                'diameter_confidence': 0.7,  # Blob detection is fairly reliable
-                'threshold_confidence': 0.8,  # Quality-based optimization is well-tested
-                'model_confidence': model_optimization['confidence']
-            },
-            'optimization_notes': [
-                f"Estimated diameter: {optimal_diameter:.1f} pixels",
-                threshold_optimization['reasoning'],
-                model_optimization['reasoning']
-            ]
-        }
-        
-        return recommendations
-
-
-class SegmentationRefinement:
-    """
-    Post-processing refinement for improving segmentation accuracy
-    """
-    
-    @staticmethod
-    def filter_by_size(masks, min_area=50, max_area=None):
-        """
-        Remove objects that are too small or too large to be cells
-        """
-        if max_area is None:
-            # Set max area to 1/4 of image area as default
-            max_area = (masks.shape[0] * masks.shape[1]) // 4
-        
-        refined_masks = np.zeros_like(masks)
-        new_label = 1
-        
-        # Get properties of all regions
-        props = measure.regionprops(masks)
-        
-        for prop in props:
-            if min_area <= prop.area <= max_area:
-                # Keep this region, assign new label
-                refined_masks[masks == prop.label] = new_label
-                new_label += 1
-        
-        return refined_masks
-    
-    @staticmethod
-    def filter_by_shape(masks, min_circularity=0.1, max_eccentricity=0.95):
-        """
-        Remove objects with non-cellular shapes
-        """
-        refined_masks = np.zeros_like(masks)
-        new_label = 1
-        
-        props = measure.regionprops(masks)
-        
-        for prop in props:
-            # Calculate circularity
-            area = prop.area
-            perimeter = prop.perimeter
-            circularity = 4 * np.pi * area / (perimeter ** 2) if perimeter > 0 else 0
-            
-            # Check shape criteria
-            if (circularity >= min_circularity and 
-                prop.eccentricity <= max_eccentricity and
-                prop.solidity >= 0.7):  # Require reasonable solidity
-                
-                refined_masks[masks == prop.label] = new_label
-                new_label += 1
-        
-        return refined_masks
-    
-    @staticmethod
-    def split_touching_cells(masks, min_distance=10):
-        """
-        Use watershed segmentation to split touching cells
-        """
-        # Create binary mask
-        binary = masks > 0
-        
-        # Calculate distance transform
-        distance = ndimage.distance_transform_edt(binary)
-        
-        # Find local maxima (cell centers)
-        local_maxima = feature.peak_local_max(
-            distance, 
-            min_distance=min_distance,
-            threshold_abs=min_distance//2
-        )
-        
-        # Create markers for watershed
-        markers = np.zeros_like(masks, dtype=int)
-        for i, (y, x) in enumerate(local_maxima):
-            markers[y, x] = i + 1
-        
-        # Apply watershed
-        refined_masks = segmentation.watershed(-distance, markers, mask=binary)
-        
-        return refined_masks
-    
-    @staticmethod
-    def smooth_boundaries(masks, smoothing_factor=1.0):
-        """
-        Smooth cell boundaries using morphological operations
-        """
-        refined_masks = np.zeros_like(masks)
-        
-        unique_labels = np.unique(masks)[1:]  # Skip background
-        
-        for label in unique_labels:
-            # Extract single cell mask
-            cell_mask = (masks == label).astype(np.uint8)
-            
-            # Apply morphological operations
-            kernel = disk(int(smoothing_factor))
-            
-            # Closing to fill small gaps
-            cell_mask = morphology.closing(cell_mask, kernel)
-            
-            # Opening to smooth boundaries
-            cell_mask = morphology.opening(cell_mask, kernel)
-            
-            # Fill holes
-            cell_mask = binary_fill_holes(cell_mask)
-            
-            refined_masks[cell_mask > 0] = label
-        
-        return refined_masks
-    
-    @staticmethod
-    def remove_edge_cells(masks, border_width=5):
-        """
-        Remove cells touching the image edges
-        """
-        return clear_border(masks, buffer_size=border_width)
-    
-    @staticmethod
-    def refine_segmentation(masks, image_array=None, options=None):
-        """
-        Apply comprehensive segmentation refinement
-        """
-        options = options or {}
-        refined_masks = masks.copy()
-        refinement_steps = []
-        
-        original_count = len(np.unique(refined_masks)) - 1  # Subtract background
-        
-        # Step 1: Size filtering
-        if options.get('apply_size_filtering', True):
-            min_area = options.get('min_cell_area', 50)
-            max_area = options.get('max_cell_area', None)
-            refined_masks = SegmentationRefinement.filter_by_size(
-                refined_masks, min_area, max_area
-            )
-            after_size = len(np.unique(refined_masks)) - 1
-            refinement_steps.append(f"Size filtering: {original_count} → {after_size} cells")
-        
-        # Step 2: Shape filtering
-        if options.get('apply_shape_filtering', True):
-            min_circularity = options.get('min_circularity', 0.1)
-            max_eccentricity = options.get('max_eccentricity', 0.95)
-            refined_masks = SegmentationRefinement.filter_by_shape(
-                refined_masks, min_circularity, max_eccentricity
-            )
-            after_shape = len(np.unique(refined_masks)) - 1
-            refinement_steps.append(f"Shape filtering: {after_size} → {after_shape} cells")
-        
-        # Step 3: Split touching cells
-        if options.get('apply_watershed', False):
-            min_distance = options.get('watershed_min_distance', 10)
-            refined_masks = SegmentationRefinement.split_touching_cells(
-                refined_masks, min_distance
-            )
-            after_watershed = len(np.unique(refined_masks)) - 1
-            refinement_steps.append(f"Watershed splitting: {after_shape} → {after_watershed} cells")
-        
-        # Step 4: Boundary smoothing
-        if options.get('apply_smoothing', True):
-            smoothing_factor = options.get('smoothing_factor', 1.0)
-            refined_masks = SegmentationRefinement.smooth_boundaries(
-                refined_masks, smoothing_factor
-            )
-            refinement_steps.append("Applied boundary smoothing")
-        
-        # Step 5: Remove edge cells
-        if options.get('remove_edge_cells', False):
-            border_width = options.get('border_width', 5)
-            refined_masks = SegmentationRefinement.remove_edge_cells(
-                refined_masks, border_width
-            )
-            final_count = len(np.unique(refined_masks)) - 1
-            refinement_steps.append(f"Edge removal: {final_count} final cells")
-        
-        final_count = len(np.unique(refined_masks)) - 1
-        refinement_steps.append(f"Final result: {final_count} cells")
-        
-        return refined_masks, refinement_steps
-
-
-class IntelligentROI:
-    """
-    Intelligent ROI suggestion based on cell density and image characteristics
-    """
-    
-    @staticmethod
-    def detect_cell_density_regions(image_array, grid_size=8):
-        """
-        Detect regions with high cell density for ROI suggestions
-        """
-        if len(image_array.shape) == 3:
-            gray = np.mean(image_array, axis=2).astype(np.uint8)
-        else:
-            gray = image_array.astype(np.uint8)
-        
-        h, w = gray.shape
-        cell_density_map = np.zeros((grid_size, grid_size))
-        
-        # Divide image into grid
-        grid_h = h // grid_size
-        grid_w = w // grid_size
-        
-        for i in range(grid_size):
-            for j in range(grid_size):
-                # Extract grid cell
-                start_h = i * grid_h
-                end_h = min((i + 1) * grid_h, h)
-                start_w = j * grid_w
-                end_w = min((j + 1) * grid_w, w)
-                
-                grid_cell = gray[start_h:end_h, start_w:end_w]
-                
-                # Estimate cell density using blob detection
-                blobs = feature.blob_log(
-                    grid_cell, 
-                    min_sigma=2, 
-                    max_sigma=15, 
-                    num_sigma=10, 
-                    threshold=0.1
-                )
-                
-                cell_density_map[i, j] = len(blobs)
-        
-        return cell_density_map, (grid_h, grid_w)
-    
-    @staticmethod
-    def suggest_roi_regions(image_array, num_regions=3, min_density_threshold=None):
-        """
-        Suggest optimal ROI regions based on cell density analysis
-        """
-        density_map, (grid_h, grid_w) = IntelligentROI.detect_cell_density_regions(image_array)
-        
-        if min_density_threshold is None:
-            min_density_threshold = np.mean(density_map) + 0.5 * np.std(density_map)
-        
-        # Find high-density regions
-        high_density_coords = np.where(density_map >= min_density_threshold)
-        
-        if len(high_density_coords[0]) == 0:
-            # If no high density regions, use regions with above-average density
-            avg_density = np.mean(density_map)
-            high_density_coords = np.where(density_map >= avg_density)
-        
-        # Convert grid coordinates to image coordinates
-        suggested_rois = []
-        h, w = image_array.shape[:2]
-        
-        for i, j in zip(high_density_coords[0], high_density_coords[1]):
-            roi = {
-                'x': j * grid_w,
-                'y': i * grid_h,
-                'width': min(grid_w, w - j * grid_w),
-                'height': min(grid_h, h - i * grid_h),
-                'density_score': float(density_map[i, j]),
-                'confidence': float(density_map[i, j] / np.max(density_map))
-            }
-            suggested_rois.append(roi)
-        
-        # Sort by density score and return top regions
-        suggested_rois.sort(key=lambda x: x['density_score'], reverse=True)
-        return suggested_rois[:num_regions]
-    
-    @staticmethod
-    def optimize_roi_size(image_array, roi_region, target_cell_count=10):
-        """
-        Optimize ROI size to capture approximately target number of cells
-        """
-        x, y, w, h = roi_region['x'], roi_region['y'], roi_region['width'], roi_region['height']
-        
-        # Extract current ROI
-        if len(image_array.shape) == 3:
-            roi_image = np.mean(image_array[y:y+h, x:x+w], axis=2).astype(np.uint8)
-        else:
-            roi_image = image_array[y:y+h, x:x+w]
-        
-        # Estimate current cell count
-        blobs = feature.blob_log(roi_image, min_sigma=3, max_sigma=20, num_sigma=15, threshold=0.02)
-        current_count = len(blobs)
-        
-        if current_count == 0:
-            return roi_region  # Return original if no cells detected
-        
-        # Calculate scaling factor
-        scale_factor = np.sqrt(target_cell_count / current_count)
-        scale_factor = max(0.5, min(2.0, scale_factor))  # Clamp scaling
-        
-        # Apply scaling
-        new_w = int(w * scale_factor)
-        new_h = int(h * scale_factor)
-        
-        # Adjust position to keep ROI centered
-        new_x = max(0, x - (new_w - w) // 2)
-        new_y = max(0, y - (new_h - h) // 2)
-        
-        # Ensure ROI stays within image bounds
-        max_x = image_array.shape[1]
-        max_y = image_array.shape[0]
-        
-        if new_x + new_w > max_x:
-            new_w = max_x - new_x
-        if new_y + new_h > max_y:
-            new_h = max_y - new_y
-        
-        optimized_roi = {
-            'x': new_x,
-            'y': new_y,
-            'width': new_w,
-            'height': new_h,
-            'estimated_cells': int(current_count * scale_factor**2),
-            'scale_factor': scale_factor
-        }
-        
-        return optimized_roi
-    
-    @staticmethod
-    def merge_overlapping_rois(roi_list, overlap_threshold=0.3):
-        """
-        Merge ROI regions that overlap significantly
-        """
-        if len(roi_list) <= 1:
-            return roi_list
-        
-        merged_rois = []
-        used_indices = set()
-        
-        for i, roi1 in enumerate(roi_list):
-            if i in used_indices:
-                continue
-            
-            # Find overlapping ROIs
-            overlapping_group = [roi1]
-            used_indices.add(i)
-            
-            for j, roi2 in enumerate(roi_list[i+1:], start=i+1):
-                if j in used_indices:
-                    continue
-                
-                # Calculate intersection over union (IoU)
-                x1_max = max(roi1['x'], roi2['x'])
-                y1_max = max(roi1['y'], roi2['y'])
-                x2_min = min(roi1['x'] + roi1['width'], roi2['x'] + roi2['width'])
-                y2_min = min(roi1['y'] + roi1['height'], roi2['y'] + roi2['height'])
-                
-                if x2_min > x1_max and y2_min > y1_max:
-                    intersection = (x2_min - x1_max) * (y2_min - y1_max)
-                    area1 = roi1['width'] * roi1['height']
-                    area2 = roi2['width'] * roi2['height']
-                    union = area1 + area2 - intersection
-                    iou = intersection / union if union > 0 else 0
-                    
-                    if iou >= overlap_threshold:
-                        overlapping_group.append(roi2)
-                        used_indices.add(j)
-            
-            # Merge overlapping ROIs
-            if len(overlapping_group) > 1:
-                # Find bounding box of all overlapping ROIs
-                min_x = min(roi['x'] for roi in overlapping_group)
-                min_y = min(roi['y'] for roi in overlapping_group)
-                max_x = max(roi['x'] + roi['width'] for roi in overlapping_group)
-                max_y = max(roi['y'] + roi['height'] for roi in overlapping_group)
-                
-                merged_roi = {
-                    'x': min_x,
-                    'y': min_y,
-                    'width': max_x - min_x,
-                    'height': max_y - min_y,
-                    'merged_from': len(overlapping_group),
-                    'density_score': np.mean([roi.get('density_score', 0) for roi in overlapping_group])
-                }
-                merged_rois.append(merged_roi)
-            else:
-                merged_rois.append(roi1)
-        
-        return merged_rois
-
-
-class TextureAnalyzer:
-    """
-    Advanced texture analysis using Gray-Level Co-occurrence Matrix (GLCM) 
-    and first-order statistical features for medical-grade morphometric analysis
-    """
-    
-    @staticmethod
-    def calculate_glcm_features(intensity_image, mask, distances=[1], angles=[0, 45, 90, 135]):
-        """
-        Calculate Gray-Level Co-occurrence Matrix (GLCM) texture features
-        
-        Args:
-            intensity_image: Grayscale intensity image
-            mask: Binary mask defining the region of interest
-            distances: List of pixel distances for GLCM calculation
-            angles: List of angles (in degrees) for GLCM calculation
-            
-        Returns:
-            Dictionary containing GLCM texture features
-        """
-        if not SKIMAGE_AVAILABLE:
-            return {}
-        
-        # Convert angles to radians
-        angles_rad = [np.radians(angle) for angle in angles]
-        
-        # Extract masked region
-        masked_region = intensity_image[mask > 0]
-        if len(masked_region) == 0:
-            return {}
-        
-        # Normalize intensity to 0-255 range for GLCM
-        if masked_region.max() <= 1.0:
-            masked_region = (masked_region * 255).astype(np.uint8)
-        else:
-            masked_region = masked_region.astype(np.uint8)
-        
-        # Create region image for GLCM calculation
-        y_coords, x_coords = np.where(mask > 0)
-        if len(y_coords) == 0:
-            return {}
-        
-        min_y, max_y = y_coords.min(), y_coords.max()
-        min_x, max_x = x_coords.min(), x_coords.max()
-        
-        # Extract bounding box region
-        region_intensity = intensity_image[min_y:max_y+1, min_x:max_x+1]
-        region_mask = mask[min_y:max_y+1, min_x:max_x+1]
-        
-        # Apply mask to intensity image
-        masked_intensity = region_intensity * region_mask
-        
-        # Normalize to 8-bit grayscale
-        if masked_intensity.max() <= 1.0:
-            masked_intensity = (masked_intensity * 255).astype(np.uint8)
-        else:
-            masked_intensity = masked_intensity.astype(np.uint8)
-        
-        try:
-            # Calculate GLCM
-            glcm = graycomatrix(
-                masked_intensity, 
-                distances=distances, 
-                angles=angles_rad, 
-                levels=256,
-                symmetric=True, 
-                normed=True
-            )
-            
-            # Calculate GLCM properties
-            features = {}
-            
-            # Basic GLCM features
-            features['glcm_contrast'] = float(np.mean(graycoprops(glcm, 'contrast')))
-            features['glcm_correlation'] = float(np.mean(graycoprops(glcm, 'correlation')))
-            features['glcm_energy'] = float(np.mean(graycoprops(glcm, 'energy')))
-            features['glcm_homogeneity'] = float(np.mean(graycoprops(glcm, 'homogeneity')))
-            
-            # Additional GLCM features calculated manually
-            features.update(TextureAnalyzer._calculate_advanced_glcm_features(glcm))
-            
-            return features
-            
-        except Exception as e:
-            # Return empty dict if GLCM calculation fails
-            return {}
-    
-    @staticmethod
-    def _calculate_advanced_glcm_features(glcm):
-        """
-        Calculate advanced GLCM features not provided by scikit-image
-        """
-        features = {}
-        
-        try:
-            # Average GLCM across distances and angles
-            glcm_mean = np.mean(glcm, axis=(2, 3))
-            
-            # Create coordinate matrices
-            i, j = np.ogrid[0:glcm_mean.shape[0], 0:glcm_mean.shape[1]]
-            
-            # Calculate additional features
-            # Entropy
-            glcm_entropy = -np.sum(glcm_mean * np.log2(glcm_mean + 1e-10))
-            features['glcm_entropy'] = float(glcm_entropy)
-            
-            # Variance
-            mu_i = np.sum(i * np.sum(glcm_mean, axis=1))
-            mu_j = np.sum(j * np.sum(glcm_mean, axis=0))
-            var_i = np.sum(((i - mu_i) ** 2) * np.sum(glcm_mean, axis=1))
-            var_j = np.sum(((j - mu_j) ** 2) * np.sum(glcm_mean, axis=0))
-            features['glcm_variance'] = float((var_i + var_j) / 2)
-            
-            # Sum Average
-            k = np.arange(2, 2 * glcm_mean.shape[0])
-            p_x_plus_y = np.array([np.sum(glcm_mean[i + j == k_val]) for k_val in k])
-            features['glcm_sum_average'] = float(np.sum(k * p_x_plus_y))
-            
-            # Sum Variance
-            sum_avg = features['glcm_sum_average']
-            features['glcm_sum_variance'] = float(np.sum(((k - sum_avg) ** 2) * p_x_plus_y))
-            
-            # Sum Entropy
-            features['glcm_sum_entropy'] = float(-np.sum(p_x_plus_y * np.log2(p_x_plus_y + 1e-10)))
-            
-            # Difference features
-            k_diff = np.arange(0, glcm_mean.shape[0])
-            p_x_minus_y = np.array([np.sum(glcm_mean[np.abs(i - j) == k_val]) for k_val in k_diff])
-            
-            features['glcm_difference_average'] = float(np.sum(k_diff * p_x_minus_y))
-            diff_avg = features['glcm_difference_average']
-            features['glcm_difference_variance'] = float(np.sum(((k_diff - diff_avg) ** 2) * p_x_minus_y))
-            features['glcm_difference_entropy'] = float(-np.sum(p_x_minus_y * np.log2(p_x_minus_y + 1e-10)))
-            
-        except Exception:
-            # Set default values if calculation fails
-            for feature_name in ['glcm_entropy', 'glcm_variance', 'glcm_sum_average', 
-                               'glcm_sum_variance', 'glcm_sum_entropy', 'glcm_difference_average',
-                               'glcm_difference_variance', 'glcm_difference_entropy']:
-                features[feature_name] = 0.0
-        
-        return features
-    
-    @staticmethod
-    def calculate_first_order_features(intensity_image, mask):
-        """
-        Calculate first-order statistical features from intensity distribution
-        
-        Args:
-            intensity_image: Grayscale intensity image
-            mask: Binary mask defining the region of interest
-            
-        Returns:
-            Dictionary containing first-order statistical features
-        """
-        # Extract intensity values within the mask
-        intensity_values = intensity_image[mask > 0]
-        
-        if len(intensity_values) == 0:
-            return {}
-        
-        features = {}
-        
-        try:
-            # Basic statistical moments
-            features['intensity_mean'] = float(np.mean(intensity_values))
-            features['intensity_std'] = float(np.std(intensity_values))
-            features['intensity_variance'] = float(np.var(intensity_values))
-            
-            # Skewness and Kurtosis
-            from scipy.stats import skew, kurtosis
-            features['intensity_skewness'] = float(skew(intensity_values))
-            features['intensity_kurtosis'] = float(kurtosis(intensity_values))
-            
-            # Range features
-            features['intensity_min'] = float(np.min(intensity_values))
-            features['intensity_max'] = float(np.max(intensity_values))
-            features['intensity_range'] = features['intensity_max'] - features['intensity_min']
-            
-            # Percentile features
-            percentiles = [10, 25, 75, 90]
-            for p in percentiles:
-                features[f'intensity_p{p}'] = float(np.percentile(intensity_values, p))
-            
-            # Interquartile range
-            features['intensity_iqr'] = features['intensity_p75'] - features['intensity_p25']
-            
-            # Entropy
-            hist, _ = np.histogram(intensity_values, bins=256, density=True)
-            hist = hist[hist > 0]  # Remove zero bins
-            features['intensity_entropy'] = float(-np.sum(hist * np.log2(hist)))
-            
-            # Energy (uniformity)
-            features['intensity_energy'] = float(np.sum(hist ** 2))
-            
-            # Robust statistical measures
-            features['intensity_median'] = float(np.median(intensity_values))
-            features['intensity_mad'] = float(np.median(np.abs(intensity_values - features['intensity_median'])))
-            
-            # Coefficient of variation
-            if features['intensity_mean'] != 0:
-                features['intensity_cv'] = features['intensity_std'] / features['intensity_mean']
-            else:
-                features['intensity_cv'] = 0.0
-            
-        except Exception:
-            # Return empty dict if calculation fails
-            return {}
-        
-        return features
-    
-    @staticmethod
-    def extract_all_texture_features(intensity_image, mask):
-        """
-        Extract all texture features (GLCM + first-order) for a cell region
-        
-        Args:
-            intensity_image: Grayscale intensity image
-            mask: Binary mask defining the cell region
-            
-        Returns:
-            Dictionary containing all texture features
-        """
-        features = {}
-        
-        # Calculate GLCM features
-        glcm_features = TextureAnalyzer.calculate_glcm_features(intensity_image, mask)
-        features.update(glcm_features)
-        
-        # Calculate first-order statistical features
-        first_order_features = TextureAnalyzer.calculate_first_order_features(intensity_image, mask)
-        features.update(first_order_features)
-        
-        return features
-
-
-class MorphometricValidator:
-    """
-    Validation and outlier detection for morphometric measurements
-    """
-    
-    @staticmethod
-    def detect_measurement_outliers(measurements, method='iqr', threshold=1.5):
-        """
-        Detect outliers in morphometric measurements using various methods
-        """
-        measurements = np.array(measurements)
-        
-        if method == 'iqr':
-            # Interquartile range method
-            q1 = np.percentile(measurements, 25)
-            q3 = np.percentile(measurements, 75)
-            iqr = q3 - q1
-            lower_bound = q1 - threshold * iqr
-            upper_bound = q3 + threshold * iqr
-            outliers = (measurements < lower_bound) | (measurements > upper_bound)
-        
-        elif method == 'zscore':
-            # Z-score method
-            mean_val = np.mean(measurements)
-            std_val = np.std(measurements)
-            z_scores = np.abs((measurements - mean_val) / std_val)
-            outliers = z_scores > threshold
-        
-        elif method == 'modified_zscore':
-            # Modified Z-score using median
-            median_val = np.median(measurements)
-            mad = np.median(np.abs(measurements - median_val))
-            modified_z_scores = 0.6745 * (measurements - median_val) / mad
-            outliers = np.abs(modified_z_scores) > threshold
-        
-        else:
-            raise ValueError(f"Unknown outlier detection method: {method}")
-        
-        return outliers
-    
-    @staticmethod
-    def validate_cell_measurements(detected_cells, enable_outlier_removal=True, outlier_method='iqr', 
-                                 outlier_threshold=1.5, enable_physics_validation=True):
-        """
-        Comprehensive validation of cell measurements with configurable options
-        """
-        if not detected_cells:
-            return {'valid_cells': [], 'outliers': [], 'validation_summary': {}}
-        
-        # Initialize outlier detection arrays
-        combined_outliers = np.zeros(len(detected_cells), dtype=bool)
-        physics_outliers = np.zeros(len(detected_cells), dtype=bool)
-        
-        outlier_reasons = {
-            'area_outliers': 0,
-            'perimeter_outliers': 0,
-            'circularity_outliers': 0,
-            'eccentricity_outliers': 0,
-            'physics_violations': 0
-        }
-        
-        # Statistical outlier detection (if enabled)
-        if enable_outlier_removal:
-            # Extract measurements
-            areas = [cell.area for cell in detected_cells]
-            perimeters = [cell.perimeter for cell in detected_cells]
-            circularities = [cell.circularity for cell in detected_cells]
-            eccentricities = [cell.eccentricity for cell in detected_cells]
-            
-            # Detect outliers for each measurement using specified method
-            area_outliers = MorphometricValidator.detect_measurement_outliers(areas, outlier_method, outlier_threshold)
-            perimeter_outliers = MorphometricValidator.detect_measurement_outliers(perimeters, outlier_method, outlier_threshold)
-            circularity_outliers = MorphometricValidator.detect_measurement_outliers(circularities, outlier_method, outlier_threshold)
-            eccentricity_outliers = MorphometricValidator.detect_measurement_outliers(eccentricities, outlier_method, outlier_threshold)
-            
-            # Count outliers by type
-            outlier_reasons['area_outliers'] = int(np.sum(area_outliers))
-            outlier_reasons['perimeter_outliers'] = int(np.sum(perimeter_outliers))
-            outlier_reasons['circularity_outliers'] = int(np.sum(circularity_outliers))
-            outlier_reasons['eccentricity_outliers'] = int(np.sum(eccentricity_outliers))
-            
-            # Combine outlier detection
-            combined_outliers = area_outliers | perimeter_outliers | circularity_outliers | eccentricity_outliers
-        
-        # Physics-based validation (if enabled)
-        if enable_physics_validation:
-            for i, cell in enumerate(detected_cells):
-                # Check area-perimeter relationship (should be reasonable)
-                theoretical_radius = np.sqrt(cell.area / np.pi)
-                theoretical_perimeter = 2 * np.pi * theoretical_radius
-                perimeter_ratio = cell.perimeter / theoretical_perimeter
-                
-                # Flag if perimeter is too different from theoretical (indicates noise/artifacts)
-                if perimeter_ratio < 0.5 or perimeter_ratio > 3.0:
-                    physics_outliers[i] = True
-                
-                # Check aspect ratio reasonableness (cells shouldn't be extremely elongated)
-                if cell.aspect_ratio > 10:
-                    physics_outliers[i] = True
-            
-            outlier_reasons['physics_violations'] = int(np.sum(physics_outliers))
-        
-        final_outliers = combined_outliers | physics_outliers
-        
-        # Separate valid cells and outliers
-        valid_cells = [cell for i, cell in enumerate(detected_cells) if not final_outliers[i]]
-        outlier_cells = [cell for i, cell in enumerate(detected_cells) if final_outliers[i]]
-        
-        validation_summary = {
-            'total_cells': len(detected_cells),
-            'valid_cells': len(valid_cells),
-            'outliers_detected': len(outlier_cells),
-            'outlier_percentage': (len(outlier_cells) / len(detected_cells)) * 100,
-            'outlier_reasons': {
-                'area_outliers': int(np.sum(area_outliers)),
-                'perimeter_outliers': int(np.sum(perimeter_outliers)),
-                'circularity_outliers': int(np.sum(circularity_outliers)),
-                'eccentricity_outliers': int(np.sum(eccentricity_outliers)),
-                'physics_violations': int(np.sum(physics_outliers))
-            }
-        }
-        
-        return {
-            'valid_cells': valid_cells,
-            'outlier_cells': outlier_cells,
-            'validation_summary': validation_summary
-        }
+    logger.warning("scikit-image not available - some functionality will be limited")
 
 
 class CellAnalysisProcessor:
+    """
+    Main cell analysis processor class.
+    
+    This class coordinates the complete analysis pipeline including:
+    - Image loading and quality assessment
+    - Parameter optimization
+    - Cellpose segmentation  
+    - Post-processing refinement
+    - Morphometric feature extraction
+    - Visualization generation
+    """
     
     def __init__(self, analysis_id):
+        """
+        Initialize the analysis processor.
+        
+        Args:
+            analysis_id: ID of the CellAnalysis instance to process
+        """
         self.analysis = CellAnalysis.objects.get(id=analysis_id)
         self.cell = self.analysis.cell
+        logger.info(f"CellAnalysisProcessor initialized for analysis ID: {analysis_id}")
         
     def run_analysis(self):
-        """Main analysis pipeline"""
+        """
+        Execute the complete analysis pipeline with GPU memory management.
+        
+        Returns:
+            True if analysis completed successfully, False otherwise
+        """
         if not CELLPOSE_AVAILABLE or not SKIMAGE_AVAILABLE:
             self._mark_failed("Required dependencies (cellpose/scikit-image) not available")
             return False
@@ -1367,59 +116,82 @@ class CellAnalysisProcessor:
             self.analysis.save()
             
             start_time = time.time()
+            logger.info(f"Starting analysis for cell: {self.cell.name}")
             
-            # Step 1: Load and preprocess image
-            image_array = self._load_image()
+            # Start memory monitoring for this analysis
+            memory_manager.start_monitoring()
             
-            # Step 2: Run cellpose segmentation
-            masks, flows, styles = self._run_cellpose_segmentation(image_array)
-            
-            # Step 2.5: Apply post-processing refinement with user-configured filtering
-            original_mask_count = len(np.unique(masks)) - 1
-            refinement_options = self.analysis.get_filtering_options()
-            
-            refined_masks, refinement_steps = SegmentationRefinement.refine_segmentation(
-                masks, image_array, refinement_options
-            )
-            final_mask_count = len(np.unique(refined_masks)) - 1
-            
-            # Store refinement information
-            refinement_info = {
-                'original_cell_count': int(original_mask_count),
-                'refined_cell_count': int(final_mask_count),
-                'refinement_steps': refinement_steps,
-                'options_used': refinement_options
-            }
-            
-            # Add refinement info to quality metrics
-            if not hasattr(self.analysis, 'quality_metrics') or not self.analysis.quality_metrics:
-                self.analysis.quality_metrics = {}
-            self.analysis.quality_metrics['segmentation_refinement'] = refinement_info
-            
-            # Use refined masks for further processing
-            masks = refined_masks
-            
-            # Step 3: Save segmentation image
-            self._save_segmentation_image(image_array, masks)
-            
-            # Step 4: Extract morphometric features
-            self._extract_morphometric_features(masks)
-            
-            # Step 5: Update analysis record
-            processing_time = time.time() - start_time
-            self.analysis.processing_time = processing_time
-            self.analysis.completed_at = timezone.now()
-            self.analysis.status = 'completed'
-            self.analysis.save()
-            
-            return True
+            # Use managed memory context for GPU operations
+            with gpu_memory_context(reserve_mb=1000):
+                # Step 1: Load and assess image quality
+                image_array = self._load_image()
+                
+                # Step 2: Run cellpose segmentation
+                masks, flows, styles, diameters = self._run_cellpose_segmentation(image_array)
+                
+                # Step 3: Apply post-processing refinement
+                original_mask_count = len(np.unique(masks)) - 1
+                refinement_options = self.analysis.get_filtering_options()
+                
+                refined_masks, refinement_steps = SegmentationRefinement.refine_segmentation(
+                    masks, image_array, refinement_options
+                )
+                final_mask_count = len(np.unique(refined_masks)) - 1
+                
+                # Store refinement information
+                refinement_info = {
+                    'original_cell_count': int(original_mask_count),
+                    'refined_cell_count': int(final_mask_count),
+                    'refinement_steps': refinement_steps,
+                    'options_used': refinement_options
+                }
+                
+                # Add refinement info to quality metrics
+                if not hasattr(self.analysis, 'quality_metrics') or not self.analysis.quality_metrics:
+                    self.analysis.quality_metrics = {}
+                self.analysis.quality_metrics['segmentation_refinement'] = refinement_info
+                
+                # Use refined masks for further processing
+                masks = refined_masks
+                
+                logger.info(f"Segmentation completed: {original_mask_count} → {final_mask_count} cells after refinement")
+                
+                # Step 4: Save all comprehensive visualizations
+                self._save_all_visualizations(image_array, masks, flows, styles, diameters)
+                
+                # Step 5: Extract morphometric features
+                self._extract_morphometric_features(masks)
+                
+                # Step 6: Update analysis record
+                processing_time = time.time() - start_time
+                self.analysis.processing_time = processing_time
+                self.analysis.completed_at = timezone.now()
+                self.analysis.status = 'completed'
+                self.analysis.save()
+                
+                # Final validation - ensure core visualization is accessible
+                try:
+                    if self.analysis.segmentation_image and self.analysis.segmentation_image.url:
+                        logger.info(f"Core visualization accessible at: {self.analysis.segmentation_image.url}")
+                    else:
+                        logger.error("Core visualization is not accessible after analysis completion")
+                except Exception as validation_error:
+                    logger.warning(f"Could not validate visualization accessibility: {str(validation_error)}")
+                
+                # Log memory status after analysis
+                memory_status = memory_manager.get_status()
+                logger.info(f"Analysis completed successfully in {processing_time:.2f} seconds")
+                logger.info(f"Final GPU memory usage: {memory_status['current_memory']['usage_ratio']:.1%}")
+                
+                return True
             
         except Exception as e:
+            logger.error(f"Analysis failed: {str(e)}")
             self._mark_failed(str(e))
             return False
     
     def _load_image(self):
-        """Load and preprocess image from file"""
+        """Load and assess image quality."""
         image_path = self.cell.image.path
         
         # Use cellpose's imread for better compatibility
@@ -1429,11 +201,37 @@ class CellAnalysisProcessor:
         if len(image_array.shape) == 3 and image_array.shape[2] > 3:
             image_array = image_array[:, :, :3]
         
-        # Perform quality assessment
+        # Perform quality assessment using our new module
         quality_assessment = ImageQualityAssessment.assess_overall_quality(image_array)
         
         # Store quality metrics in analysis
         self.analysis.quality_metrics = quality_assessment
+        
+        # Apply GPU-accelerated preprocessing if enabled
+        if self.analysis.apply_preprocessing and getattr(settings, 'ENABLE_GPU_PREPROCESSING', False):
+            try:
+                from .image_preprocessing import GPUImagePreprocessor
+                gpu_preprocessor = GPUImagePreprocessor()
+                
+                # Apply basic preprocessing operations
+                preprocessing_start = time.time()
+                
+                # Apply Gaussian smoothing for noise reduction
+                if gpu_preprocessor.cupy_available:
+                    logger.info("Applying GPU-accelerated preprocessing")
+                    image_array = gpu_preprocessor.gaussian_filter_gpu(image_array, sigma=0.5)
+                    
+                    # Apply contrast enhancement if image quality is poor
+                    if quality_assessment.get('overall_score', 50) < 60:
+                        image_array = gpu_preprocessor.histogram_equalization_gpu(image_array)
+                        
+                    preprocessing_time = time.time() - preprocessing_start
+                    logger.info(f"GPU preprocessing completed in {preprocessing_time:.2f}s")
+                else:
+                    logger.info("GPU preprocessing not available, skipping")
+                    
+            except Exception as preprocessing_error:
+                logger.warning(f"GPU preprocessing failed: {str(preprocessing_error)}")
         
         # Auto-optimize parameters if diameter is 0 (auto-detection requested)
         if self.analysis.cellpose_diameter == 0:
@@ -1443,520 +241,1044 @@ class CellAnalysisProcessor:
                 'cellprob_threshold': self.analysis.cellprob_threshold
             }
             
-            parameter_recommendations = ParameterOptimizer.optimize_all_parameters(
+            # Use our new parameter optimization module
+            optimized_params = ParameterOptimizer.optimize_all_parameters(
                 image_array, quality_assessment, current_params
             )
             
-            # Update analysis parameters with recommendations
-            self.analysis.cellpose_diameter = parameter_recommendations['cellpose_diameter']
+            # Update analysis with optimized parameters
+            self.analysis.cellpose_diameter = optimized_params['cellpose_diameter']
+            self.analysis.flow_threshold = optimized_params['flow_threshold'] 
+            self.analysis.cellprob_threshold = optimized_params['cellprob_threshold']
+            self.analysis.cellpose_model = optimized_params['cellpose_model']
             
-            # Store optimization info for user feedback
-            optimization_info = {
-                'auto_optimized': True,
-                'original_parameters': current_params,
-                'optimized_parameters': {
-                    'cellpose_diameter': parameter_recommendations['cellpose_diameter'],
-                    'flow_threshold': parameter_recommendations['flow_threshold'],
-                    'cellprob_threshold': parameter_recommendations['cellprob_threshold'],
-                    'cellpose_model': parameter_recommendations['cellpose_model']
-                },
-                'confidence_scores': parameter_recommendations['confidence_scores'],
-                'optimization_notes': parameter_recommendations['optimization_notes']
-            }
+            # Store optimization info
+            self.analysis.quality_metrics['parameter_optimization'] = optimized_params
             
-            # Update quality metrics to include optimization info
-            self.analysis.quality_metrics['parameter_optimization'] = optimization_info
-            
-            # Optionally update other parameters if confidence is high enough
-            if parameter_recommendations['confidence_scores']['threshold_confidence'] > 0.7:
-                self.analysis.flow_threshold = parameter_recommendations['flow_threshold']
-                self.analysis.cellprob_threshold = parameter_recommendations['cellprob_threshold']
-            
-            if parameter_recommendations['confidence_scores']['model_confidence'] > 0.7:
-                self.analysis.cellpose_model = parameter_recommendations['cellpose_model']
+            logger.info(f"Auto-optimized parameters: diameter={optimized_params['cellpose_diameter']:.1f}, "
+                       f"model={optimized_params['cellpose_model']}")
         
-        # Apply preprocessing if requested
-        preprocessing_options = getattr(self.analysis, 'preprocessing_options', {})
-        if preprocessing_options and any(preprocessing_options.values()):
-            preprocessor = ImagePreprocessor(preprocessing_options)
-            processed_image, preprocessing_steps = preprocessor.preprocess_image(image_array)
-            
-            # Store preprocessing information
-            self.analysis.preprocessing_applied = True
-            self.analysis.preprocessing_steps = preprocessing_steps
-            
-            return processed_image
-        else:
-            # No preprocessing requested
-            self.analysis.preprocessing_applied = False
-            self.analysis.preprocessing_steps = []
-            
-            return image_array
-    
-    def _run_cellpose_segmentation(self, image_array):
-        """Run cellpose segmentation with optional ROI processing"""
-        # Initialize cellpose model
-        model_name = self.analysis.cellpose_model
-        model = models.CellposeModel(gpu=True, model_type=model_name)
-        
-        # Set parameters
-        diameter = self.analysis.cellpose_diameter if self.analysis.cellpose_diameter > 0 else None
-        flow_threshold = self.analysis.flow_threshold
-        cellprob_threshold = self.analysis.cellprob_threshold
-        
-        if self.analysis.use_roi and self.analysis.roi_regions:
-            # Debug ROI processing
-            print(f"DEBUG: ROI enabled with {len(self.analysis.roi_regions)} regions")
-            print(f"DEBUG: ROI data: {self.analysis.roi_regions}")
-            print(f"DEBUG: Image shape: {image_array.shape}")
-            
-            # Process ROI regions
-            masks = self._process_roi_regions(image_array, model, diameter, flow_threshold, cellprob_threshold)
-            flows = None
-            styles = None
-        else:
-            # Run standard full-image segmentation
-            masks, flows, styles = model.eval(
-                image_array, 
-                diameter=diameter,
-                flow_threshold=flow_threshold,
-                cellprob_threshold=cellprob_threshold
-            )
-        
-        # Update cell count
-        unique_masks = np.unique(masks)
-        # Remove background (0)
-        num_cells = len(unique_masks) - 1 if 0 in unique_masks else len(unique_masks)
-        self.analysis.num_cells_detected = num_cells
         self.analysis.save()
+        return image_array
         
-        return masks, flows, styles
+    def _run_cellpose_segmentation(self, image_array):
+        """Run Cellpose segmentation with GPU acceleration and fallback."""
+        try:
+            # Log GPU status for debugging
+            log_gpu_status()
+            
+            # Detect GPU capabilities
+            gpu_info = gpu_manager.detect_gpu_capabilities()
+            use_gpu = getattr(settings, 'CELLPOSE_USE_GPU', False) and gpu_info.backend != 'cpu'
+            
+            logger.info(f"Cellpose segmentation starting - GPU: {use_gpu} ({gpu_info.backend} backend)")
+            
+            # Initialize Cellpose model with GPU settings
+            try:
+                model = models.CellposeModel(
+                    model_type=self.analysis.cellpose_model,
+                    gpu=use_gpu
+                )
+                logger.info(f"Cellpose model initialized: {self.analysis.cellpose_model} (GPU: {use_gpu})")
+            except Exception as model_error:
+                logger.warning(f"Failed to initialize GPU model, falling back to CPU: {str(model_error)}")
+                # Fallback to CPU
+                model = models.CellposeModel(
+                    model_type=self.analysis.cellpose_model,
+                    gpu=False
+                )
+                use_gpu = False
+            
+            # Determine channels based on image
+            if len(image_array.shape) == 2:
+                # Grayscale image
+                channels = [0, 0]
+            elif len(image_array.shape) == 3:
+                if image_array.shape[2] == 1:
+                    # Single channel
+                    channels = [0, 0]
+                elif image_array.shape[2] >= 3:
+                    # RGB or more channels - use grayscale for segmentation
+                    channels = [0, 0]
+                else:
+                    channels = [0, 0]
+            else:
+                channels = [0, 0]
+            
+            # Run segmentation (Cellpose v4.0.4+ returns masks, flows, prob)
+            result = model.eval(
+                image_array,
+                diameter=self.analysis.cellpose_diameter,
+                flow_threshold=self.analysis.flow_threshold,
+                cellprob_threshold=self.analysis.cellprob_threshold,
+                channels=channels
+            )
+            
+            # Handle different return formats between Cellpose versions
+            if len(result) == 3:
+                # v4.0.4+ format: (masks, flows, prob)
+                masks, flows, prob = result
+                styles = None  # Not returned in v4.0.4+
+                diameters = [self.analysis.cellpose_diameter]  # Use configured diameter
+            elif len(result) == 4:
+                # Legacy format: (masks, flows, styles, diameters)
+                masks, flows, styles, diameters = result
+            else:
+                # Fallback
+                masks = result[0]
+                flows = result[1] if len(result) > 1 else None
+                styles = None
+                diameters = [self.analysis.cellpose_diameter]
+            
+            # Log completion with performance info
+            num_detections = len(np.unique(masks)) - 1
+            backend_used = "GPU" if use_gpu else "CPU"
+            logger.info(f"Cellpose segmentation completed: {num_detections} detections using {backend_used}")
+            
+            # Clean up GPU memory if used
+            if use_gpu:
+                try:
+                    cleanup_gpu_memory()
+                    logger.debug("GPU memory cleaned up after segmentation")
+                except Exception as cleanup_error:
+                    logger.warning(f"GPU memory cleanup failed: {str(cleanup_error)}")
+            
+            return masks, flows, styles, diameters
+            
+        except Exception as e:
+            logger.error(f"Cellpose segmentation failed: {str(e)}")
+            # Clean up GPU memory on error
+            try:
+                cleanup_gpu_memory()
+            except:
+                pass
+            raise SegmentationError(f"Segmentation failed: {str(e)}")
     
-    def _process_roi_regions(self, image_array, model, diameter, flow_threshold, cellprob_threshold):
-        """Process multiple ROI regions and combine results"""
-        print(f"DEBUG: _process_roi_regions called with {len(self.analysis.roi_regions)} ROI regions")
-        
-        # Initialize full image mask
-        full_masks = np.zeros(image_array.shape[:2], dtype=np.int32)
-        current_cell_id = 1
-        
-        for roi_idx, roi in enumerate(self.analysis.roi_regions):
-            print(f"DEBUG: Processing ROI {roi_idx + 1}: {roi}")
+    def _save_all_visualizations(self, original_image, masks, flows=None, styles=None, diameters=None):
+        """Save all 4 comprehensive visualization pages"""
+        try:
+            logger.info("Starting comprehensive visualization generation")
             
-            # Extract ROI coordinates (ensure they're integers and within bounds)
-            x = max(0, int(roi['x']))
-            y = max(0, int(roi['y']))
-            w = min(image_array.shape[1] - x, int(roi['width']))
-            h = min(image_array.shape[0] - y, int(roi['height']))
+            # Page 1: Core Pipeline (6 panels) - CRITICAL
+            self._save_core_pipeline_visualization(original_image, masks, flows, styles, diameters)
             
-            print(f"DEBUG: ROI {roi_idx + 1} coordinates: x={x}, y={y}, w={w}, h={h}")
+            # Validate core pipeline was saved
+            if not self.analysis.segmentation_image:
+                logger.error("CRITICAL: Core pipeline visualization was not saved properly")
+                raise RuntimeError("Core pipeline visualization failed - this is required for analysis completion")
+            else:
+                logger.info("Core pipeline visualization validated successfully")
             
-            if w <= 0 or h <= 0:
-                print(f"DEBUG: Skipping invalid ROI {roi_idx + 1}")
-                continue  # Skip invalid ROI
+            # Only create advanced visualizations if we have flow data
+            if flows is not None:
+                logger.debug("Flow data available, generating advanced visualizations")
+                try:
+                    # Page 2: Advanced Flow Analysis
+                    self._save_flow_analysis_visualization(original_image, masks, flows, styles, diameters)
+                except Exception as flow_viz_error:
+                    logger.warning(f"Flow analysis visualization failed: {str(flow_viz_error)}")
+                
+                try:
+                    # Page 3: Style & Quality Analysis  
+                    self._save_style_quality_visualization(original_image, masks, flows, styles, diameters)
+                except Exception as style_viz_error:
+                    logger.warning(f"Style & quality visualization failed: {str(style_viz_error)}")
+                
+                try:
+                    # Page 4: Edge & Boundary Analysis
+                    self._save_edge_boundary_visualization(original_image, masks, flows, styles, diameters)
+                except Exception as edge_viz_error:
+                    logger.warning(f"Edge & boundary visualization failed: {str(edge_viz_error)}")
+            else:
+                logger.info("No flow data available, skipping advanced visualizations")
             
-            # Extract ROI from image
-            roi_image = image_array[y:y+h, x:x+w]
+            logger.info("All visualizations processing completed")
             
-            if roi_image.size == 0:
-                continue  # Skip empty ROI
+        except Exception as e:
+            logger.error(f"Comprehensive visualization generation failed: {str(e)}")
+            # Don't fail the entire analysis for visualization errors unless it's the core pipeline
+            if "Core pipeline visualization failed" in str(e):
+                raise  # Re-raise critical core pipeline errors
+    
+    def _save_core_pipeline_visualization(self, original_image, masks, flows=None, styles=None, diameters=None):
+        """Page 1: Core Pipeline - Create and save comprehensive visualization of Cellpose pipeline results"""
+        try:
+            logger.info("Starting core pipeline visualization generation")
             
-            print(f"DEBUG: ROI image shape: {roi_image.shape}")
+            # Input validation
+            if original_image is None or original_image.size == 0:
+                raise ValueError("Original image is None or empty")
+            if masks is None or masks.size == 0:
+                raise ValueError("Masks array is None or empty")
+            
+            logger.debug(f"Input shapes - image: {original_image.shape}, masks: {masks.shape}")
+            
+            unique_masks = np.unique(masks)[1:]  # Skip background
+            logger.debug(f"Found {len(unique_masks)} unique cell masks")
+            
+            # Determine number of panels based on available data
+            if flows is not None:
+                logger.debug("Generating full 6-panel visualization with flow data")
+                # Full pipeline with intermediate steps
+                fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+                axes = axes.flatten()
+            else:
+                logger.debug("Generating simplified 2-panel visualization (no flow data)")
+                # Simple version without flows
+                fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+            
+            if fig is None or axes is None:
+                raise RuntimeError("Failed to create matplotlib figure or axes")
+            
+            logger.debug(f"Created figure with {len(axes)} panels")
+            ax_idx = 0
+            
+            # Panel 1: Original Image
+            if len(original_image.shape) == 3:
+                axes[ax_idx].imshow(original_image)
+            else:
+                axes[ax_idx].imshow(original_image, cmap='gray')
+            axes[ax_idx].set_title('1. Original Image', fontsize=12, fontweight='bold')
+            axes[ax_idx].axis('off')
+            ax_idx += 1
+            
+            if flows is not None:
+                # Panel 2: Predicted Outlines
+                if len(original_image.shape) == 3:
+                    axes[ax_idx].imshow(original_image)
+                else:
+                    axes[ax_idx].imshow(original_image, cmap='gray')
+                
+                # Extract and plot outlines
+                try:
+                    logger.debug("Extracting cell outlines using Cellpose utils")
+                    outlines = utils.outlines_list(masks)
+                    logger.debug(f"Extracted {len(outlines)} outlines")
+                    for i, outline in enumerate(outlines):
+                        if outline.shape[0] > 0:  # Check outline is not empty
+                            axes[ax_idx].plot(outline[:, 0], outline[:, 1], linewidth=1.5, color='cyan')
+                        else:
+                            logger.warning(f"Empty outline found for cell {i+1}")
+                except Exception as outline_error:
+                    logger.warning(f"Cellpose outline extraction failed: {str(outline_error)}, using fallback contour method")
+                    # Fallback: draw contours manually
+                    try:
+                        from skimage import measure
+                        contours = measure.find_contours(masks > 0, 0.5)
+                        logger.debug(f"Fallback: extracted {len(contours)} contours")
+                        for contour in contours:
+                            if contour.shape[0] > 0:  # Check contour is not empty
+                                axes[ax_idx].plot(contour[:, 1], contour[:, 0], linewidth=1.5, color='cyan')
+                    except Exception as contour_error:
+                        logger.error(f"Both outline extraction methods failed: {str(contour_error)}")
+                        # Continue without outlines
+                
+                axes[ax_idx].set_title('2. Predicted Outlines', fontsize=12, fontweight='bold')
+                axes[ax_idx].axis('off')
+                ax_idx += 1
+                
+                # Panel 3: Flow Fields (with enhanced error handling)
+                try:
+                    logger.debug("Processing flow field visualization")
+                    if flows is not None and len(flows) > 0 and len(flows[0]) > 1:
+                        xy_flows = flows[0][1]  # XY flows at each pixel
+                        logger.debug(f"Flow data shape: {xy_flows.shape}")
+                        
+                        # Handle different flow data formats from Cellpose
+                        if len(xy_flows.shape) == 3 and xy_flows.shape[2] >= 2:
+                            logger.debug("Converting 3D flow data to circular RGB representation")
+                            # dx_to_circ expects [dY, dX] format (note: Y first, then X)
+                            flow_data = np.stack([xy_flows[:,:,1], xy_flows[:,:,0]], axis=-1)
+                            
+                            # Validate flow data before processing
+                            if np.isfinite(flow_data).all():
+                                flow_rgb = plot.dx_to_circ(flow_data)
+                                if flow_rgb is not None and flow_rgb.size > 0:
+                                    axes[ax_idx].imshow(flow_rgb)
+                                    logger.debug("Flow field visualization completed successfully")
+                                else:
+                                    raise ValueError("dx_to_circ returned empty result")
+                            else:
+                                raise ValueError("Flow data contains non-finite values")
+                        elif len(xy_flows.shape) == 2 and xy_flows.shape[1] >= 2:
+                            logger.debug(f"Handling 2D flow data shape: {xy_flows.shape}")
+                            # Some Cellpose versions return 2D flow data - reshape if needed
+                            h, w = masks.shape
+                            if xy_flows.shape[0] == h * w and xy_flows.shape[1] >= 2:
+                                # Reshape to 3D format
+                                xy_flows_3d = xy_flows.reshape(h, w, xy_flows.shape[1])
+                                flow_data = np.stack([xy_flows_3d[:,:,1], xy_flows_3d[:,:,0]], axis=-1)
+                                
+                                if np.isfinite(flow_data).all():
+                                    flow_rgb = plot.dx_to_circ(flow_data)
+                                    if flow_rgb is not None and flow_rgb.size > 0:
+                                        axes[ax_idx].imshow(flow_rgb)
+                                        logger.debug("Flow field visualization completed successfully (reshaped)")
+                                    else:
+                                        raise ValueError("dx_to_circ returned empty result after reshape")
+                                else:
+                                    raise ValueError("Reshaped flow data contains non-finite values")
+                            else:
+                                raise ValueError(f"Cannot reshape 2D flow data: {xy_flows.shape} for mask shape {masks.shape}")
+                        else:
+                            raise ValueError(f"Unsupported flow shape: {xy_flows.shape}, expected 3D with >=2 channels or reshapeable 2D")
+                    else:
+                        raise ValueError("Flow data is None or incomplete")
+                        
+                except Exception as flow_error:
+                    logger.warning(f"Flow field visualization failed: {str(flow_error)}, using fallback")
+                    # Robust fallback visualization
+                    try:
+                        if len(original_image.shape) == 3:
+                            fallback_base = np.mean(original_image, axis=2)
+                        else:
+                            fallback_base = original_image
+                        axes[ax_idx].imshow(fallback_base, cmap='gray', alpha=0.3)
+                        axes[ax_idx].text(0.5, 0.5, 'Flow visualization unavailable', 
+                                        transform=axes[ax_idx].transAxes, ha='center', va='center',
+                                        bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+                    except Exception as fallback_error:
+                        logger.error(f"Even fallback flow visualization failed: {str(fallback_error)}")
+                
+                axes[ax_idx].set_title('3. Flow Fields', fontsize=12, fontweight='bold')
+                axes[ax_idx].axis('off')
+                ax_idx += 1
+                
+                # Panel 4: Cell Probability Map
+                try:
+                    if len(flows) > 0 and len(flows[0]) > 2:
+                        cell_prob = flows[0][2]  # Cell probability
+                        im = axes[ax_idx].imshow(cell_prob, cmap='viridis')
+                        plt.colorbar(im, ax=axes[ax_idx], fraction=0.046, pad=0.04)
+                    else:
+                        axes[ax_idx].imshow(np.zeros_like(original_image), cmap='gray')
+                        axes[ax_idx].text(0.5, 0.5, 'Probability data unavailable', 
+                                        transform=axes[ax_idx].transAxes, ha='center', va='center')
+                except Exception as e:
+                    axes[ax_idx].imshow(np.zeros_like(original_image), cmap='gray')
+                    axes[ax_idx].text(0.5, 0.5, f'Probability visualization error', 
+                                    transform=axes[ax_idx].transAxes, ha='center', va='center')
+                
+                axes[ax_idx].set_title('4. Cell Probability Map', fontsize=12, fontweight='bold')
+                axes[ax_idx].axis('off')
+                ax_idx += 1
+            
+            # Panel: Final Masks (always show this)
+            if len(original_image.shape) == 3:
+                base_img = np.mean(original_image, axis=2)
+            else:
+                base_img = original_image
+            axes[ax_idx].imshow(base_img, cmap='gray', alpha=0.7)
+            
+            # Create colored overlay for masks
+            colored_masks = np.zeros((*masks.shape, 3))
+            if len(unique_masks) > 0:
+                colors = plt.cm.Set3(np.linspace(0, 1, len(unique_masks)))
+                
+                for i, mask_id in enumerate(unique_masks):
+                    mask_pixels = masks == mask_id
+                    colored_masks[mask_pixels] = colors[i][:3]
+                    
+                axes[ax_idx].imshow(colored_masks, alpha=0.8)
+            else:
+                # No cells detected - show message
+                axes[ax_idx].text(0.5, 0.5, 'No cells detected after filtering', 
+                                transform=axes[ax_idx].transAxes, ha='center', va='center', 
+                                fontsize=12, color='red', fontweight='bold')
+            
+            title_idx = 5 if flows is not None else 2
+            axes[ax_idx].set_title(f'{title_idx}. Final Masks ({len(unique_masks)} cells)', fontsize=12, fontweight='bold')
+            axes[ax_idx].axis('off')
+            ax_idx += 1
+            
+            if flows is not None:
+                # Panel 6: Cell Centers/Poses
+                if len(original_image.shape) == 3:
+                    base_img = np.mean(original_image, axis=2)
+                else:
+                    base_img = original_image
+                axes[ax_idx].imshow(base_img, cmap='gray', alpha=0.7)
+                
+                # Plot cell centers
+                from skimage import measure
+                props = measure.regionprops(masks)
+                for prop in props:
+                    if prop.label > 0:
+                        y, x = prop.centroid
+                        axes[ax_idx].plot(x, y, 'r+', markersize=8, markeredgewidth=2)
+                        axes[ax_idx].text(x+10, y, str(prop.label), fontsize=8, color='red', fontweight='bold')
+                
+                axes[ax_idx].set_title('6. Cell Centers', fontsize=12, fontweight='bold')
+                axes[ax_idx].axis('off')
+            
+            plt.tight_layout()
+            logger.debug("Applied tight layout to figure")
+            
+            # Save visualization with enhanced error handling
+            buffer = None
+            try:
+                logger.debug("Creating BytesIO buffer for figure")
+                buffer = BytesIO()
+                
+                logger.debug("Saving figure to buffer")
+                plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight', facecolor='white')
+                buffer.seek(0)
+                
+                # Validate buffer contents
+                buffer_size = len(buffer.getvalue())
+                if buffer_size == 0:
+                    raise ValueError("Generated image buffer is empty")
+                
+                logger.debug(f"Figure saved to buffer successfully ({buffer_size} bytes)")
+                
+                # Save to analysis model
+                filename = f'analysis_{self.analysis.id}_core_pipeline.png'
+                logger.debug(f"Saving to model field with filename: {filename}")
+                
+                self.analysis.segmentation_image.save(
+                    filename,
+                    ContentFile(buffer.getvalue()),
+                    save=False  # Don't save the analysis model yet
+                )
+                
+                # Verify the image was actually saved
+                if not self.analysis.segmentation_image:
+                    raise RuntimeError("Image field is empty after save operation")
+                
+                logger.info(f"Core pipeline visualization saved successfully ({buffer_size} bytes)")
+                
+            except Exception as save_error:
+                logger.error(f"Failed to save visualization: {str(save_error)}")
+                # Try to save a minimal fallback visualization
+                try:
+                    logger.warning("Attempting to create fallback visualization")
+                    if buffer:
+                        buffer.close()
+                    
+                    # Create minimal fallback figure
+                    fallback_fig, fallback_ax = plt.subplots(1, 1, figsize=(8, 6))
+                    if len(original_image.shape) == 3:
+                        fallback_ax.imshow(original_image)
+                    else:
+                        fallback_ax.imshow(original_image, cmap='gray')
+                    fallback_ax.set_title(f'Analysis Results - {len(unique_masks)} cells detected', fontweight='bold')
+                    fallback_ax.axis('off')
+                    
+                    fallback_buffer = BytesIO()
+                    fallback_fig.savefig(fallback_buffer, format='png', dpi=100, bbox_inches='tight', facecolor='white')
+                    fallback_buffer.seek(0)
+                    
+                    filename = f'analysis_{self.analysis.id}_core_pipeline.png'
+                    self.analysis.segmentation_image.save(
+                        filename,
+                        ContentFile(fallback_buffer.getvalue()),
+                        save=False
+                    )
+                    
+                    plt.close(fallback_fig)
+                    fallback_buffer.close()
+                    logger.info("Fallback visualization saved successfully")
+                    
+                except Exception as fallback_error:
+                    logger.error(f"Fallback visualization also failed: {str(fallback_error)}")
+                    raise save_error  # Re-raise original error
+            
+            finally:
+                # Ensure proper cleanup
+                try:
+                    plt.close(fig)
+                    if buffer:
+                        buffer.close()
+                    logger.debug("Cleaned up matplotlib figure and buffer")
+                except Exception as cleanup_error:
+                    logger.warning(f"Error during cleanup: {str(cleanup_error)}")
+            
+        except Exception as e:
+            logger.error(f"Core pipeline visualization failed: {str(e)}")
+            import traceback
+            logger.error(f"Full traceback: {traceback.format_exc()}")
+            # Don't re-raise - let analysis continue with other visualizations
+    
+    def _save_flow_analysis_visualization(self, original_image, masks, flows, styles, diameters):
+        """Page 2: Advanced Flow Analysis"""
+        try:
+            # Validate flow data at the start
+            flow_data_valid = False
+            if flows is not None and len(flows) > 0:
+                if isinstance(flows[0], (list, tuple)) and len(flows[0]) > 1:
+                    xy_flows = flows[0][1]
+                    if xy_flows is not None and hasattr(xy_flows, 'shape'):
+                        flow_data_valid = True
+                        logger.debug(f"Flow data validation passed - shape: {xy_flows.shape}, type: {type(xy_flows)}")
+                    else:
+                        logger.warning(f"Flow data is None or has no shape attribute: {type(xy_flows)}")
+                else:
+                    logger.warning(f"Flow data structure unexpected: {type(flows[0]) if flows else 'None'}")
+            else:
+                logger.warning(f"No flows data provided: {type(flows)}")
+            
+            fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+            axes = axes.flatten()
+            
+            # Panel 1: Mask Boundaries/Edges  
+            if len(original_image.shape) == 3:
+                base_img = np.mean(original_image, axis=2)
+            else:
+                base_img = original_image
+            axes[0].imshow(base_img, cmap='gray', alpha=0.7)
+            
+            # Add mask boundaries
+            from skimage import measure
+            contours = measure.find_contours(masks > 0, 0.5)
+            for contour in contours:
+                axes[0].plot(contour[:, 1], contour[:, 0], linewidth=2, color='lime')
+            
+            axes[0].set_title('1. Mask Boundaries/Edges', fontsize=12, fontweight='bold')
+            axes[0].axis('off')
+            
+            # Panel 2: Gradient Analysis
+            try:
+                if flow_data_valid and len(flows) > 0 and len(flows[0]) > 1:
+                    xy_flows = flows[0][1]
+                    logger.debug(f"Flow data shape for gradient: {xy_flows.shape}")
+                    
+                    if len(xy_flows.shape) == 3 and xy_flows.shape[2] >= 2:
+                        # Calculate gradients of flow field
+                        flow_x = xy_flows[:,:,0]
+                        flow_y = xy_flows[:,:,1]
+                        
+                        # Check for valid flow data
+                        if np.isfinite(flow_x).any() and np.isfinite(flow_y).any():
+                            grad_x = np.gradient(flow_x)[1]
+                            grad_y = np.gradient(flow_y)[0]
+                            gradient_magnitude = np.sqrt(grad_x**2 + grad_y**2)
+                            
+                            # Normalize gradient magnitude for better visualization
+                            if gradient_magnitude.max() > 0:
+                                gradient_magnitude = gradient_magnitude / gradient_magnitude.max()
+                                im = axes[1].imshow(gradient_magnitude, cmap='viridis', vmin=0, vmax=1)
+                                plt.colorbar(im, ax=axes[1], fraction=0.046, pad=0.04)
+                                logger.debug("Gradient visualization completed successfully")
+                            else:
+                                logger.warning("Gradient magnitude is zero everywhere")
+                                axes[1].imshow(np.zeros_like(masks), cmap='gray')
+                                axes[1].text(0.5, 0.5, 'No gradient data', 
+                                           transform=axes[1].transAxes, ha='center', va='center')
+                        else:
+                            logger.warning("Flow data contains no finite values")
+                            axes[1].imshow(np.zeros_like(masks), cmap='gray')
+                            axes[1].text(0.5, 0.5, 'Invalid flow data', 
+                                       transform=axes[1].transAxes, ha='center', va='center')
+                    else:
+                        logger.warning(f"Unexpected flow shape: {xy_flows.shape}")
+                        axes[1].imshow(np.zeros_like(masks), cmap='gray')
+                        axes[1].text(0.5, 0.5, 'Flow shape error', 
+                                   transform=axes[1].transAxes, ha='center', va='center')
+                else:
+                    logger.info("Creating alternative gradient visualization using mask edges")
+                    # Alternative: show edge gradients from masks
+                    from skimage import filters
+                    if len(original_image.shape) == 3:
+                        gray_img = np.mean(original_image, axis=2)
+                    else:
+                        gray_img = original_image
+                    
+                    # Use Sobel edge detection as alternative
+                    edges = filters.sobel(gray_img)
+                    if edges.max() > 0:
+                        edges_norm = edges / edges.max()
+                        im = axes[1].imshow(edges_norm, cmap='viridis', vmin=0, vmax=1)
+                        plt.colorbar(im, ax=axes[1], fraction=0.046, pad=0.04)
+                        axes[1].text(0.02, 0.98, 'Alternative: Sobel edges', 
+                                   transform=axes[1].transAxes, ha='left', va='top',
+                                   bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.7), fontsize=8)
+                    else:
+                        axes[1].imshow(np.zeros_like(masks), cmap='gray')
+                        axes[1].text(0.5, 0.5, 'No gradient data available', 
+                                   transform=axes[1].transAxes, ha='center', va='center')
+            except Exception as grad_error:
+                logger.error(f"Gradient analysis failed: {str(grad_error)}")
+                axes[1].imshow(np.zeros_like(masks), cmap='gray')
+                axes[1].text(0.5, 0.5, f'Gradient error\n{str(grad_error)[:20]}...', 
+                           transform=axes[1].transAxes, ha='center', va='center', fontsize=10)
+            
+            axes[1].set_title('2. Flow Gradient Analysis', fontsize=12, fontweight='bold')
+            axes[1].axis('off')
+            
+            # Panel 3: Flow Magnitude Heatmap
+            try:
+                if flow_data_valid and len(flows) > 0 and len(flows[0]) > 1:
+                    xy_flows = flows[0][1]  # XY flows at each pixel
+                    logger.debug(f"Flow data shape for magnitude: {xy_flows.shape}")
+                    
+                    if len(xy_flows.shape) == 3 and xy_flows.shape[2] >= 2:
+                        # Calculate flow magnitude
+                        flow_x = xy_flows[:,:,0]
+                        flow_y = xy_flows[:,:,1]
+                        
+                        # Check for valid flow data
+                        if np.isfinite(flow_x).any() and np.isfinite(flow_y).any():
+                            flow_magnitude = np.sqrt(flow_x**2 + flow_y**2)
+                            
+                            # Normalize magnitude for better visualization
+                            if flow_magnitude.max() > 0:
+                                flow_magnitude_norm = flow_magnitude / flow_magnitude.max()
+                                im = axes[2].imshow(flow_magnitude_norm, cmap='hot', vmin=0, vmax=1)
+                                plt.colorbar(im, ax=axes[2], fraction=0.046, pad=0.04)
+                                logger.debug(f"Flow magnitude visualization completed (max: {flow_magnitude.max():.3f})")
+                            else:
+                                logger.warning("Flow magnitude is zero everywhere")
+                                axes[2].imshow(np.zeros_like(masks), cmap='gray')
+                                axes[2].text(0.5, 0.5, 'No flow magnitude', 
+                                           transform=axes[2].transAxes, ha='center', va='center')
+                        else:
+                            logger.warning("Flow data contains no finite values for magnitude")
+                            axes[2].imshow(np.zeros_like(masks), cmap='gray')
+                            axes[2].text(0.5, 0.5, 'Invalid flow data', 
+                                       transform=axes[2].transAxes, ha='center', va='center')
+                    else:
+                        logger.warning(f"Unexpected flow shape for magnitude: {xy_flows.shape}")
+                        axes[2].imshow(np.zeros_like(masks), cmap='gray')
+                        axes[2].text(0.5, 0.5, 'Flow shape error', 
+                                   transform=axes[2].transAxes, ha='center', va='center')
+                else:
+                    logger.info("Creating alternative magnitude visualization using distance transform")
+                    # Alternative: distance transform from mask boundaries  
+                    from scipy import ndimage
+                    binary_masks = masks > 0
+                    if binary_masks.any():
+                        # Distance transform from cell boundaries
+                        distance_transform = ndimage.distance_transform_edt(binary_masks)
+                        if distance_transform.max() > 0:
+                            distance_norm = distance_transform / distance_transform.max()
+                            im = axes[2].imshow(distance_norm, cmap='hot', vmin=0, vmax=1)
+                            plt.colorbar(im, ax=axes[2], fraction=0.046, pad=0.04)
+                            axes[2].text(0.02, 0.98, 'Alternative: Distance from edges', 
+                                       transform=axes[2].transAxes, ha='left', va='top',
+                                       bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.7), fontsize=8)
+                        else:
+                            axes[2].imshow(np.zeros_like(masks), cmap='gray')
+                            axes[2].text(0.5, 0.5, 'No distance data', 
+                                       transform=axes[2].transAxes, ha='center', va='center')
+                    else:
+                        axes[2].imshow(np.zeros_like(masks), cmap='gray')
+                        axes[2].text(0.5, 0.5, 'No masks detected', 
+                                   transform=axes[2].transAxes, ha='center', va='center')
+            except Exception as mag_error:
+                logger.error(f"Flow magnitude analysis failed: {str(mag_error)}")
+                axes[2].imshow(np.zeros_like(masks), cmap='gray')
+                axes[2].text(0.5, 0.5, f'Magnitude error\n{str(mag_error)[:20]}...', 
+                           transform=axes[2].transAxes, ha='center', va='center', fontsize=10)
+            
+            axes[2].set_title('3. Flow Magnitude Heatmap', fontsize=12, fontweight='bold')
+            axes[2].axis('off')
+            
+            # Panel 4: Flow Vector Field (with arrows)
+            if len(original_image.shape) == 3:
+                base_img = np.mean(original_image, axis=2)
+            else:
+                base_img = original_image
+            axes[3].imshow(base_img, cmap='gray', alpha=0.5)
             
             try:
-                # Run cellpose on ROI
-                print(f"DEBUG: Running cellpose on ROI {roi_idx + 1}")
-                roi_masks, _, _ = model.eval(
-                    roi_image,
-                    diameter=diameter,
-                    flow_threshold=flow_threshold,
-                    cellprob_threshold=cellprob_threshold
-                )
-                
-                unique_roi_masks = np.unique(roi_masks)
-                print(f"DEBUG: ROI {roi_idx + 1} detected {len(unique_roi_masks) - 1} cells")
-                
-                # Adjust cell IDs to avoid conflicts
-                roi_masks_adjusted = np.zeros_like(roi_masks)
-                
-                for mask_id in unique_roi_masks:
-                    if mask_id == 0:  # Skip background
-                        continue
-                    roi_masks_adjusted[roi_masks == mask_id] = current_cell_id
-                    current_cell_id += 1
-                
-                # Place ROI results back into full image
-                full_masks[y:y+h, x:x+w] = np.maximum(
-                    full_masks[y:y+h, x:x+w], 
-                    roi_masks_adjusted
-                )
-                
-                print(f"DEBUG: ROI {roi_idx + 1} processed successfully")
-                
-            except Exception as e:
-                print(f"DEBUG: Error processing ROI {roi_idx + 1}: {str(e)}")
-                continue
-        
-        return full_masks
-    
-    def _save_segmentation_image(self, original_image, masks):
-        """Create and save visualization of segmentation results"""
-        fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-        
-        # Original image
-        if len(original_image.shape) == 3:
-            axes[0].imshow(original_image)
-        else:
-            axes[0].imshow(original_image, cmap='gray')
-        axes[0].set_title('Original Image')
-        axes[0].axis('off')
-        
-        # Segmentation overlay
-        if len(original_image.shape) == 3:
-            axes[1].imshow(original_image)
-        else:
-            axes[1].imshow(original_image, cmap='gray')
-        
-        # Create colored overlay for masks
-        colored_masks = np.zeros((*masks.shape, 3))
-        unique_masks = np.unique(masks)[1:]  # Skip background
-        colors = plt.cm.Set3(np.linspace(0, 1, len(unique_masks)))
-        
-        for i, mask_id in enumerate(unique_masks):
-            mask_pixels = masks == mask_id
-            colored_masks[mask_pixels] = colors[i][:3]
-        
-        axes[1].imshow(colored_masks, alpha=0.6)
-        
-        # Draw ROI boundaries if ROI selection was used
-        if self.analysis.use_roi and self.analysis.roi_regions:
-            for roi_idx, roi in enumerate(self.analysis.roi_regions):
-                x, y, w, h = roi['x'], roi['y'], roi['width'], roi['height']
-                rect = plt.Rectangle((x, y), w, h, linewidth=2, edgecolor='red', 
-                                   facecolor='none', linestyle='--')
-                axes[1].add_patch(rect)
-                # Add ROI label
-                axes[1].text(x + 5, y + 15, f'ROI {roi_idx + 1}', 
-                           color='red', fontsize=10, weight='bold')
+                if flow_data_valid and len(flows) > 0 and len(flows[0]) > 1:
+                    xy_flows = flows[0][1]
+                    if len(xy_flows.shape) == 3 and xy_flows.shape[2] >= 2:
+                        # Subsample for arrow visualization
+                        step = max(1, min(xy_flows.shape[:2]) // 20)
+                        y_coords, x_coords = np.meshgrid(
+                            np.arange(0, xy_flows.shape[0], step),
+                            np.arange(0, xy_flows.shape[1], step),
+                            indexing='ij'
+                        )
+                        
+                        u = xy_flows[::step, ::step, 0]
+                        v = xy_flows[::step, ::step, 1]
+                        
+                        axes[3].quiver(x_coords, y_coords, u, -v, 
+                                     angles='xy', scale_units='xy', scale=0.5,
+                                     color='red', alpha=0.7, width=0.003)
+            except Exception:
+                pass
             
-            axes[1].set_title(f'Segmentation ({len(unique_masks)} cells, {len(self.analysis.roi_regions)} ROI regions)')
-        else:
-            axes[1].set_title(f'Segmentation ({len(unique_masks)} cells)')
-        
-        axes[1].axis('off')
-        
-        plt.tight_layout()
-        
-        # Save to bytes
-        buffer = BytesIO()
-        plt.savefig(buffer, format='PNG', dpi=150, bbox_inches='tight')
-        buffer.seek(0)
-        plt.close()
-        
-        # Save to model
-        filename = f"segmentation_{self.analysis.id}_{self.cell.id}.png"
-        self.analysis.segmentation_image.save(
-            filename,
-            ContentFile(buffer.getvalue()),
-            save=False
-        )
-        self.analysis.save()
+            axes[3].set_title('4. Flow Vector Field', fontsize=12, fontweight='bold')
+            axes[3].axis('off')
+            
+            plt.tight_layout()
+            
+            # Save visualization
+            buffer = BytesIO()
+            plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+            buffer.seek(0)
+            
+            filename = f'analysis_{self.analysis.id}_flow_analysis.png'
+            self.analysis.flow_analysis_image.save(
+                filename,
+                ContentFile(buffer.getvalue()),
+                save=False
+            )
+            
+            plt.close()
+            logger.info("Flow analysis visualization saved successfully")
+            
+        except Exception as e:
+            logger.error(f"Flow analysis visualization failed: {str(e)}")
     
+    def _save_style_quality_visualization(self, original_image, masks, flows, styles, diameters):
+        """Page 3: Style & Quality Analysis"""
+        try:
+            fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+            axes = axes.flatten()
+            
+            # Panel 1: Quality Metrics Display
+            axes[0].axis('off')
+            quality_text = "Image Quality Assessment\n\n"
+            if hasattr(self.analysis, 'quality_metrics') and self.analysis.quality_metrics:
+                qm = self.analysis.quality_metrics
+                quality_text += f"Overall Score: {qm.get('overall_score', 0):.1f}/100\n"
+                quality_text += f"Category: {qm.get('quality_category', 'unknown').title()}\n\n"
+                
+                if 'blur_score' in qm:
+                    quality_text += f"Blur Score: {qm['blur_score']:.1f}/100\n"
+                if 'contrast_score' in qm:
+                    quality_text += f"Contrast Score: {qm['contrast_score']:.1f}/100\n"
+                if 'noise_score' in qm:
+                    quality_text += f"Noise Score: {qm['noise_score']:.1f}/100\n"
+            else:
+                quality_text += "Quality metrics not available"
+            
+            axes[0].text(0.1, 0.9, quality_text, transform=axes[0].transAxes, 
+                        fontsize=12, verticalalignment='top', fontfamily='monospace')
+            axes[0].set_title('1. Quality Assessment', fontsize=12, fontweight='bold')
+            
+            # Panel 2: Cell Size Distribution
+            props = measure.regionprops(masks)
+            if props:
+                areas = [prop.area for prop in props if prop.label > 0]
+                if areas:
+                    axes[1].hist(areas, bins=20, alpha=0.7, color='skyblue', edgecolor='black')
+                    axes[1].axvline(np.mean(areas), color='red', linestyle='--', linewidth=2, label=f'Mean: {np.mean(areas):.1f}')
+                    axes[1].legend()
+                    axes[1].set_xlabel('Cell Area (pixels²)')
+                    axes[1].set_ylabel('Frequency')
+                else:
+                    axes[1].text(0.5, 0.5, 'No cells detected', transform=axes[1].transAxes, ha='center', va='center')
+            else:
+                axes[1].text(0.5, 0.5, 'No cells detected', transform=axes[1].transAxes, ha='center', va='center')
+            axes[1].set_title('2. Cell Size Distribution', fontsize=12, fontweight='bold')
+            
+            # Panel 3: Shape Analysis
+            if props:
+                circularities = [4 * np.pi * prop.area / (prop.perimeter ** 2) if prop.perimeter > 0 else 0 
+                               for prop in props if prop.label > 0]
+                eccentricities = [prop.eccentricity for prop in props if prop.label > 0]
+                
+                if circularities and eccentricities:
+                    scatter = axes[2].scatter(circularities, eccentricities, alpha=0.6, c='green', s=30)
+                    axes[2].set_xlabel('Circularity')
+                    axes[2].set_ylabel('Eccentricity')
+                    axes[2].grid(True, alpha=0.3)
+                else:
+                    axes[2].text(0.5, 0.5, 'No shape data', transform=axes[2].transAxes, ha='center', va='center')
+            else:
+                axes[2].text(0.5, 0.5, 'No cells detected', transform=axes[2].transAxes, ha='center', va='center')
+            axes[2].set_title('3. Shape Analysis', fontsize=12, fontweight='bold')
+            
+            # Panel 4: Processing Summary
+            axes[3].axis('off')
+            summary_text = "Analysis Summary\n\n"
+            summary_text += f"Cells Detected: {len(np.unique(masks))-1}\n"
+            summary_text += f"Model Used: {self.analysis.cellpose_model}\n"
+            summary_text += f"Diameter: {self.analysis.cellpose_diameter:.1f} px\n"
+            summary_text += f"Flow Threshold: {self.analysis.flow_threshold}\n"
+            summary_text += f"CellProb Threshold: {self.analysis.cellprob_threshold}\n\n"
+            
+            if hasattr(self.analysis, 'quality_metrics') and 'segmentation_refinement' in self.analysis.quality_metrics:
+                ref_info = self.analysis.quality_metrics['segmentation_refinement']
+                summary_text += "Refinement Applied:\n"
+                for step in ref_info.get('refinement_steps', []):
+                    summary_text += f"• {step}\n"
+            
+            axes[3].text(0.1, 0.9, summary_text, transform=axes[3].transAxes, 
+                        fontsize=10, verticalalignment='top', fontfamily='monospace')
+            axes[3].set_title('4. Processing Summary', fontsize=12, fontweight='bold')
+            
+            plt.tight_layout()
+            
+            # Save visualization
+            buffer = BytesIO()
+            plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+            buffer.seek(0)
+            
+            filename = f'analysis_{self.analysis.id}_style_quality.png'
+            self.analysis.style_quality_image.save(
+                filename,
+                ContentFile(buffer.getvalue()),
+                save=False
+            )
+            
+            plt.close()
+            logger.info("Style & quality visualization saved successfully")
+            
+        except Exception as e:
+            logger.error(f"Style & quality visualization failed: {str(e)}")
+    
+    def _save_edge_boundary_visualization(self, original_image, masks, flows, styles, diameters):
+        """Page 4: Edge & Boundary Analysis"""
+        try:
+            fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+            axes = axes.flatten()
+            
+            # Panel 1: Edge Detection
+            if len(original_image.shape) == 3:
+                gray_img = np.mean(original_image, axis=2)
+            else:
+                gray_img = original_image
+            
+            from skimage import feature
+            edges = feature.canny(gray_img, sigma=1, low_threshold=0.1, high_threshold=0.2)
+            axes[0].imshow(edges, cmap='gray')
+            axes[0].set_title('1. Edge Detection (Canny)', fontsize=12, fontweight='bold')
+            axes[0].axis('off')
+            
+            # Panel 2: Boundary Analysis
+            axes[1].imshow(gray_img, cmap='gray', alpha=0.7)
+            
+            # Overlay cell boundaries
+            from skimage import measure
+            props = measure.regionprops(masks)
+            for prop in props:
+                if prop.label > 0:
+                    # Get boundary coordinates
+                    boundary = measure.find_contours(masks == prop.label, 0.5)
+                    for contour in boundary:
+                        axes[1].plot(contour[:, 1], contour[:, 0], linewidth=2, alpha=0.8)
+            
+            axes[1].set_title('2. Cell Boundary Overlay', fontsize=12, fontweight='bold')
+            axes[1].axis('off')
+            
+            # Panel 3: Morphological Operations
+            binary_masks = masks > 0
+            from skimage import morphology
+            
+            # Apply morphological operations for comparison
+            opened = morphology.opening(binary_masks, morphology.disk(2))
+            closed = morphology.closing(binary_masks, morphology.disk(2))
+            
+            # Create composite image showing differences
+            composite = np.zeros((*binary_masks.shape, 3))
+            composite[:,:,0] = binary_masks  # Original in red
+            composite[:,:,1] = opened       # Opened in green  
+            composite[:,:,2] = closed       # Closed in blue
+            
+            axes[2].imshow(composite)
+            axes[2].set_title('3. Morphological Analysis\n(Red: Original, Green: Opened, Blue: Closed)', fontsize=10, fontweight='bold')
+            axes[2].axis('off')
+            
+            # Panel 4: Size and Shape Validation
+            if props:
+                areas = [prop.area for prop in props if prop.label > 0]
+                perimeters = [prop.perimeter for prop in props if prop.label > 0]
+                
+                if areas and perimeters:
+                    # Create scatter plot of area vs perimeter
+                    axes[3].scatter(areas, perimeters, alpha=0.6, c='purple', s=30)
+                    axes[3].set_xlabel('Area (pixels²)')
+                    axes[3].set_ylabel('Perimeter (pixels)')
+                    axes[3].grid(True, alpha=0.3)
+                    
+                    # Add theoretical circle line for reference
+                    area_range = np.linspace(min(areas), max(areas), 100)
+                    circle_perimeter = 2 * np.sqrt(np.pi * area_range)
+                    axes[3].plot(area_range, circle_perimeter, 'r--', alpha=0.7, label='Perfect Circle')
+                    axes[3].legend()
+                else:
+                    axes[3].text(0.5, 0.5, 'No measurement data', transform=axes[3].transAxes, ha='center', va='center')
+            else:
+                axes[3].text(0.5, 0.5, 'No cells detected', transform=axes[3].transAxes, ha='center', va='center')
+            
+            axes[3].set_title('4. Area vs Perimeter Analysis', fontsize=12, fontweight='bold')
+            
+            plt.tight_layout()
+            
+            # Save visualization
+            buffer = BytesIO()
+            plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+            buffer.seek(0)
+            
+            filename = f'analysis_{self.analysis.id}_edge_boundary.png'
+            self.analysis.edge_boundary_image.save(
+                filename,
+                ContentFile(buffer.getvalue()),
+                save=False
+            )
+            
+            plt.close()
+            logger.info("Edge & boundary visualization saved successfully")
+            
+        except Exception as e:
+            logger.error(f"Edge & boundary visualization failed: {str(e)}")
+            
     def _extract_morphometric_features(self, masks):
-        """Extract morphometric features from segmentation masks"""
-        # Clear existing detected cells
-        self.analysis.detected_cells.all().delete()
-        
-        # Get unique cell IDs (excluding background 0)
-        unique_masks = np.unique(masks)
-        cell_ids = unique_masks[unique_masks > 0]
-        
-        if len(cell_ids) == 0:
-            return
-        
-        # Load original image for texture analysis
-        image_path = self.cell.image.path
-        original_image = imread(image_path)
-        
-        # Convert to grayscale for texture analysis
-        if len(original_image.shape) == 3:
-            intensity_image = np.mean(original_image, axis=2).astype(np.float32)
-        else:
-            intensity_image = original_image.astype(np.float32)
-        
-        # Normalize intensity image to 0-1 range
-        if intensity_image.max() > 1.0:
-            intensity_image = intensity_image / 255.0
-        
-        # Create binary masks for regionprops
-        binary_masks = masks > 0
-        
-        # Use regionprops to get measurements
-        props = measure.regionprops(masks, intensity_image=intensity_image)
-        
-        detected_cells = []
-        
-        for prop in props:
-            if prop.label == 0:  # Skip background
-                continue
-                
-            # Basic measurements
-            area = prop.area
-            perimeter = prop.perimeter
+        """Extract morphometric features from segmented cells with GPU acceleration."""
+        try:
+            # Clear existing detected cells
+            self.analysis.detected_cells.all().delete()
             
-            # Shape descriptors
-            circularity = 4 * np.pi * area / (perimeter ** 2) if perimeter > 0 else 0
-            eccentricity = prop.eccentricity
-            solidity = prop.solidity
-            extent = prop.extent
+            # Try GPU-accelerated morphometrics first
+            use_gpu_morphometrics = getattr(settings, 'ENABLE_GPU_PREPROCESSING', False)
             
-            # Ellipse fitting
-            major_axis_length = prop.major_axis_length
-            minor_axis_length = prop.minor_axis_length
-            aspect_ratio = major_axis_length / minor_axis_length if minor_axis_length > 0 else 0
+            if use_gpu_morphometrics:
+                try:
+                    from .gpu_morphometrics import calculate_morphometrics_gpu, is_gpu_morphometrics_available
+                    
+                    if is_gpu_morphometrics_available():
+                        logger.info("Using GPU-accelerated morphometric calculations")
+                        gpu_start_time = time.time()
+                        
+                        # Calculate all features using GPU
+                        gpu_results = calculate_morphometrics_gpu(masks)
+                        areas = gpu_results['areas']
+                        perimeters = gpu_results['perimeters']
+                        centroids = gpu_results['centroids']
+                        shape_descriptors = gpu_results['shape_descriptors']
+                        
+                        gpu_time = time.time() - gpu_start_time
+                        logger.info(f"GPU morphometric calculations completed in {gpu_time:.3f}s")
+                        
+                        # Create DetectedCell instances from GPU results
+                        for cell_id in areas:
+                            descriptors = shape_descriptors.get(cell_id, {})
+                            centroid = centroids.get(cell_id, (0, 0))
+                            
+                            # Get bounding box from CPU regionprops for complex shapes
+                            try:
+                                cell_mask = (masks == cell_id).astype(np.uint8)
+                                props = measure.regionprops(cell_mask)
+                                if props:
+                                    bbox = props[0].bbox
+                                    bounding_box_y, bounding_box_x = bbox[0], bbox[1]
+                                    bounding_box_height, bounding_box_width = bbox[2] - bbox[0], bbox[3] - bbox[1]
+                                else:
+                                    bounding_box_x = bounding_box_y = 0
+                                    bounding_box_width = bounding_box_height = 1
+                            except:
+                                bounding_box_x = bounding_box_y = 0
+                                bounding_box_width = bounding_box_height = 1
+                            
+                            detected_cell = DetectedCell(
+                                analysis=self.analysis,
+                                cell_id=cell_id,
+                                area=descriptors.get('area', areas[cell_id]),
+                                perimeter=descriptors.get('perimeter', perimeters.get(cell_id, 0)),
+                                circularity=descriptors.get('circularity', 0),
+                                eccentricity=descriptors.get('eccentricity', 0),
+                                solidity=descriptors.get('solidity', 1.0),
+                                extent=descriptors.get('extent', 1.0),
+                                major_axis_length=descriptors.get('major_axis_length', 0),
+                                minor_axis_length=descriptors.get('minor_axis_length', 0),
+                                aspect_ratio=descriptors.get('aspect_ratio', 1.0),
+                                centroid_x=centroid[1],
+                                centroid_y=centroid[0],
+                                bounding_box_x=bounding_box_x,
+                                bounding_box_y=bounding_box_y,
+                                bounding_box_width=bounding_box_width,
+                                bounding_box_height=bounding_box_height
+                            )
+                            
+                            # Calculate physical measurements if scale is available
+                            if self.analysis.cell.scale_set and self.analysis.cell.pixels_per_micron:
+                                ppm = self.analysis.cell.pixels_per_micron
+                                detected_cell.area_microns_sq = detected_cell.area / (ppm ** 2)
+                                detected_cell.perimeter_microns = detected_cell.perimeter / ppm
+                                detected_cell.major_axis_length_microns = detected_cell.major_axis_length / ppm
+                                detected_cell.minor_axis_length_microns = detected_cell.minor_axis_length / ppm
+                            
+                            detected_cell.save()
+                        
+                        num_cells = len(areas)
+                        logger.info(f"GPU morphometric feature extraction completed for {num_cells} cells")
+                        return
+                        
+                    else:
+                        logger.info("GPU morphometrics not available, falling back to CPU")
+                        
+                except Exception as gpu_error:
+                    logger.warning(f"GPU morphometric calculation failed: {str(gpu_error)}")
+                    logger.info("Falling back to CPU morphometric calculations")
             
-            # Position
-            centroid_y, centroid_x = prop.centroid
+            # CPU fallback - original implementation
+            logger.info("Using CPU morphometric calculations")
+            cpu_start_time = time.time()
             
-            # Bounding box
-            min_row, min_col, max_row, max_col = prop.bbox
+            # Get region properties
+            props = measure.regionprops(masks)
             
-            # Extract texture features for this cell
-            cell_mask = (masks == prop.label).astype(np.uint8)
-            texture_features = TextureAnalyzer.extract_all_texture_features(intensity_image, cell_mask)
+            for prop in props:
+                if prop.label > 0:  # Skip background
+                    # Calculate additional metrics
+                    area = prop.area
+                    perimeter = prop.perimeter
+                    circularity = (4 * np.pi * area) / (perimeter ** 2) if perimeter > 0 else 0
+                    
+                    # Calculate aspect ratio
+                    aspect_ratio = prop.major_axis_length / prop.minor_axis_length if prop.minor_axis_length > 0 else 1.0
+                    
+                    # Create DetectedCell instance with correct field names
+                    detected_cell = DetectedCell(
+                        analysis=self.analysis,
+                        cell_id=prop.label,
+                        area=area,
+                        perimeter=perimeter,
+                        circularity=circularity,
+                        eccentricity=prop.eccentricity,
+                        solidity=prop.solidity,
+                        extent=prop.extent,
+                        major_axis_length=prop.major_axis_length,
+                        minor_axis_length=prop.minor_axis_length,
+                        aspect_ratio=aspect_ratio,
+                        centroid_x=prop.centroid[1],
+                        centroid_y=prop.centroid[0],
+                        bounding_box_x=prop.bbox[1],  # min_col 
+                        bounding_box_y=prop.bbox[0],  # min_row
+                        bounding_box_width=prop.bbox[3] - prop.bbox[1],  # max_col - min_col
+                        bounding_box_height=prop.bbox[2] - prop.bbox[0]  # max_row - min_row
+                    )
+                    
+                    # Calculate physical measurements if scale is available
+                    if self.analysis.cell.scale_set and self.analysis.cell.pixels_per_micron:
+                        ppm = self.analysis.cell.pixels_per_micron
+                        detected_cell.area_microns_sq = area / (ppm ** 2)
+                        detected_cell.perimeter_microns = perimeter / ppm
+                        detected_cell.major_axis_length_microns = prop.major_axis_length / ppm
+                        detected_cell.minor_axis_length_microns = prop.minor_axis_length / ppm
+                    
+                    detected_cell.save()
             
-            # Calculate physical measurements if scale is available
-            area_microns_sq = None
-            perimeter_microns = None
-            major_axis_length_microns = None
-            minor_axis_length_microns = None
+            cpu_time = time.time() - cpu_start_time        
+            logger.info(f"CPU morphometric feature extraction completed for {len(props)} cells in {cpu_time:.3f}s")
             
-            if self.cell.scale_set and self.cell.pixels_per_micron:
-                area_microns_sq = self.cell.convert_area_to_microns_squared(area)
-                perimeter_microns = self.cell.convert_pixels_to_microns(perimeter)
-                major_axis_length_microns = self.cell.convert_pixels_to_microns(major_axis_length)
-                minor_axis_length_microns = self.cell.convert_pixels_to_microns(minor_axis_length)
-            
-            # Create DetectedCell instance
-            detected_cell = DetectedCell(
-                analysis=self.analysis,
-                cell_id=prop.label,
-                area=area,
-                perimeter=perimeter,
-                area_microns_sq=area_microns_sq,
-                perimeter_microns=perimeter_microns,
-                circularity=circularity,
-                eccentricity=eccentricity,
-                solidity=solidity,
-                extent=extent,
-                major_axis_length=major_axis_length,
-                minor_axis_length=minor_axis_length,
-                major_axis_length_microns=major_axis_length_microns,
-                minor_axis_length_microns=minor_axis_length_microns,
-                aspect_ratio=aspect_ratio,
-                centroid_x=centroid_x,
-                centroid_y=centroid_y,
-                bounding_box_x=min_col,
-                bounding_box_y=min_row,
-                bounding_box_width=max_col - min_col,
-                bounding_box_height=max_row - min_row,
-                # GLCM Texture Features
-                glcm_contrast=texture_features.get('glcm_contrast'),
-                glcm_correlation=texture_features.get('glcm_correlation'),
-                glcm_energy=texture_features.get('glcm_energy'),
-                glcm_homogeneity=texture_features.get('glcm_homogeneity'),
-                glcm_entropy=texture_features.get('glcm_entropy'),
-                glcm_variance=texture_features.get('glcm_variance'),
-                glcm_sum_average=texture_features.get('glcm_sum_average'),
-                glcm_sum_variance=texture_features.get('glcm_sum_variance'),
-                glcm_sum_entropy=texture_features.get('glcm_sum_entropy'),
-                glcm_difference_average=texture_features.get('glcm_difference_average'),
-                glcm_difference_variance=texture_features.get('glcm_difference_variance'),
-                glcm_difference_entropy=texture_features.get('glcm_difference_entropy'),
-                # First-Order Statistical Features
-                intensity_mean=texture_features.get('intensity_mean'),
-                intensity_std=texture_features.get('intensity_std'),
-                intensity_variance=texture_features.get('intensity_variance'),
-                intensity_skewness=texture_features.get('intensity_skewness'),
-                intensity_kurtosis=texture_features.get('intensity_kurtosis'),
-                intensity_min=texture_features.get('intensity_min'),
-                intensity_max=texture_features.get('intensity_max'),
-                intensity_range=texture_features.get('intensity_range'),
-                intensity_p10=texture_features.get('intensity_p10'),
-                intensity_p25=texture_features.get('intensity_p25'),
-                intensity_p75=texture_features.get('intensity_p75'),
-                intensity_p90=texture_features.get('intensity_p90'),
-                intensity_iqr=texture_features.get('intensity_iqr'),
-                intensity_entropy=texture_features.get('intensity_entropy'),
-                intensity_energy=texture_features.get('intensity_energy'),
-                intensity_median=texture_features.get('intensity_median'),
-                intensity_mad=texture_features.get('intensity_mad'),
-                intensity_cv=texture_features.get('intensity_cv')
-            )
-            
-            detected_cells.append(detected_cell)
-        
-        # Apply morphometric validation based on user settings
-        if self.analysis.enable_outlier_removal or self.analysis.enable_physics_validation:
-            validation_results = MorphometricValidator.validate_cell_measurements(
-                detected_cells,
-                enable_outlier_removal=self.analysis.enable_outlier_removal,
-                outlier_method=self.analysis.outlier_method,
-                outlier_threshold=self.analysis.outlier_threshold,
-                enable_physics_validation=self.analysis.enable_physics_validation
-            )
-            
-            # Store validation information
-            if not hasattr(self.analysis, 'quality_metrics') or not self.analysis.quality_metrics:
-                self.analysis.quality_metrics = {}
-            self.analysis.quality_metrics['morphometric_validation'] = validation_results['validation_summary']
-            
-            # Use only validated cells (remove outliers)
-            valid_detected_cells = validation_results['valid_cells']
-            outlier_count = len(detected_cells) - len(valid_detected_cells)
-            
-            if outlier_count > 0:
-                print(f"Filtered out {outlier_count} outlier cells during validation")
-        else:
-            # No validation filtering - use all detected cells
-            valid_detected_cells = detected_cells
-            print("Morphometric validation disabled - keeping all detected cells")
-        
-        # Bulk create for efficiency (using validated cells only)
-        DetectedCell.objects.bulk_create(valid_detected_cells)
+        except Exception as e:
+            logger.error(f"Feature extraction failed: {str(e)}")
+            raise MorphometricAnalysisError(f"Feature extraction failed: {str(e)}")
     
     def _mark_failed(self, error_message):
-        """Mark analysis as failed with error message"""
+        """Mark analysis as failed with error message."""
         self.analysis.status = 'failed'
         self.analysis.error_message = error_message
         self.analysis.save()
+        logger.error(f"Analysis marked as failed: {error_message}")
 
 
-def run_cell_analysis(analysis_id):
-    """
-    Public function to run cell analysis
-    Usage: run_cell_analysis(analysis.id)
-    """
-    processor = CellAnalysisProcessor(analysis_id)
-    return processor.run_analysis()
-
-
-def get_image_quality_summary(image_path):
-    """Get image quality summary for a given image file"""
-    try:
-        from cellpose.io import imread
-        image_array = imread(image_path)
-        
-        # Convert to RGB if needed
-        if len(image_array.shape) == 3 and image_array.shape[2] > 3:
-            image_array = image_array[:, :, :3]
-        
-        quality_assessment = ImageQualityAssessment.assess_overall_quality(image_array)
-        return quality_assessment
-    except Exception as e:
-        return {
-            'overall_score': 0,
-            'quality_category': 'error',
-            'error': str(e)
-        }
-
-
-def get_analysis_summary(analysis):
-    """Get summary statistics for an analysis"""
-    if analysis.status != 'completed':
-        return None
-    
-    detected_cells = analysis.detected_cells.all()
-    if not detected_cells.exists():
-        return None
-    
-    # Calculate summary statistics (pixels)
-    areas = [cell.area for cell in detected_cells]
-    perimeters = [cell.perimeter for cell in detected_cells]
-    circularities = [cell.circularity for cell in detected_cells]
-    eccentricities = [cell.eccentricity for cell in detected_cells]
-    major_axes = [cell.major_axis_length for cell in detected_cells]
-    minor_axes = [cell.minor_axis_length for cell in detected_cells]
-    
-    summary = {
-        'total_cells': len(areas),
-        'scale_available': analysis.cell.scale_set,
-        'pixels_per_micron': analysis.cell.pixels_per_micron if analysis.cell.scale_set else None,
-        'area_stats': {
-            'mean': np.mean(areas),
-            'std': np.std(areas),
-            'min': np.min(areas),
-            'max': np.max(areas),
-        },
-        'perimeter_stats': {
-            'mean': np.mean(perimeters),
-            'std': np.std(perimeters),
-            'min': np.min(perimeters),
-            'max': np.max(perimeters),
-        },
-        'circularity_stats': {
-            'mean': np.mean(circularities),
-            'std': np.std(circularities),
-            'min': np.min(circularities),
-            'max': np.max(circularities),
-        },
-        'eccentricity_stats': {
-            'mean': np.mean(eccentricities),
-            'std': np.std(eccentricities),
-            'min': np.min(eccentricities),
-            'max': np.max(eccentricities),
-        },
-        'major_axis_stats': {
-            'mean': np.mean(major_axes),
-            'std': np.std(major_axes),
-            'min': np.min(major_axes),
-            'max': np.max(major_axes),
-        },
-        'minor_axis_stats': {
-            'mean': np.mean(minor_axes),
-            'std': np.std(minor_axes),
-            'min': np.min(minor_axes),
-            'max': np.max(minor_axes),
-        }
-    }
-    
-    # Add physical measurements if scale is available
-    if analysis.cell.scale_set:
-        areas_microns = [cell.area_microns_sq for cell in detected_cells if cell.area_microns_sq is not None]
-        perimeters_microns = [cell.perimeter_microns for cell in detected_cells if cell.perimeter_microns is not None]
-        major_axes_microns = [cell.major_axis_length_microns for cell in detected_cells if cell.major_axis_length_microns is not None]
-        minor_axes_microns = [cell.minor_axis_length_microns for cell in detected_cells if cell.minor_axis_length_microns is not None]
-        
-        if areas_microns:
-            summary['area_stats_microns'] = {
-                'mean': np.mean(areas_microns),
-                'std': np.std(areas_microns),
-                'min': np.min(areas_microns),
-                'max': np.max(areas_microns),
-            }
-        
-        if perimeters_microns:
-            summary['perimeter_stats_microns'] = {
-                'mean': np.mean(perimeters_microns),
-                'std': np.std(perimeters_microns),
-                'min': np.min(perimeters_microns),
-                'max': np.max(perimeters_microns),
-            }
-        
-        if major_axes_microns:
-            summary['major_axis_stats_microns'] = {
-                'mean': np.mean(major_axes_microns),
-                'std': np.std(major_axes_microns),
-                'min': np.min(major_axes_microns),
-                'max': np.max(major_axes_microns),
-            }
-        
-        if minor_axes_microns:
-            summary['minor_axis_stats_microns'] = {
-                'mean': np.mean(minor_axes_microns),
-                'std': np.std(minor_axes_microns),
-                'min': np.min(minor_axes_microns),
-                'max': np.max(minor_axes_microns),
-            }
-    
-    return summary
+# Legacy support - maintain backward compatibility
+# These classes are now imported from their respective modules
+__all__ = [
+    'ImageQualityAssessment',
+    'ImagePreprocessor', 
+    'ParameterOptimizer',
+    'SegmentationRefinement',
+    'CellAnalysisProcessor',
+    'run_cell_analysis',
+    'get_image_quality_summary', 
+    'get_analysis_summary'
+]

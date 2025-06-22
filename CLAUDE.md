@@ -64,6 +64,22 @@ python manage.py test
 # Run tests for specific app
 python manage.py test accounts
 python manage.py test cells
+
+# Run GPU acceleration tests
+python manage.py test cells.tests.test_gpu_acceleration
+```
+
+### GPU Benchmarking
+```bash
+# Run GPU performance benchmark
+python manage.py gpu_benchmark
+
+# Benchmark specific operations
+python manage.py gpu_benchmark --operation morphometrics
+python manage.py gpu_benchmark --operation preprocessing
+
+# Run comprehensive benchmark suite
+python manage.py gpu_benchmark --full-suite --iterations 10
 ```
 
 ## Key Dependencies
@@ -99,6 +115,12 @@ Required environment variables (see .env.example):
 - Database: DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
 - Django: SECRET_KEY, DEBUG, ALLOWED_HOSTS
 - Optional: Email settings for notifications
+
+### GPU Acceleration Settings
+- **CELLPOSE_USE_GPU**: Enable GPU for Cellpose segmentation ('auto', 'true', 'false')
+- **ENABLE_GPU_PREPROCESSING**: Enable GPU-accelerated image preprocessing ('auto', 'true', 'false')
+- **GPU_MEMORY_FRACTION**: Fraction of GPU memory to use (default: 0.8)
+- **GPU_BATCH_SIZE**: Batch size for GPU operations (default: 4)
 
 ## Internationalization
 

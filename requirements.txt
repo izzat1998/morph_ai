@@ -17,3 +17,10 @@ scikit-image
 numpy
 scipy
 matplotlib
+psutil
+
+# GPU Acceleration Dependencies (optional)
+# Install with: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+# or: pip install cupy-cuda12x
+# torch>=2.0.0
+# cupy-cuda12x>=12.0.0
