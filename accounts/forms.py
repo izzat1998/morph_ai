@@ -1,7 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import get_user_model
-from django.utils.translation import gettext_lazy as _
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Row, Column
 
@@ -30,7 +29,7 @@ class CustomUserCreationForm(UserCreationForm):
             'email',
             'password1',
             'password2',
-            Submit('submit', _('Sign Up'), css_class='btn btn-primary btn-block')
+            Submit('submit', 'Регистрация', css_class='btn btn-primary btn-block')
         )
 
     def save(self, commit=True):
@@ -50,7 +49,7 @@ class CustomAuthenticationForm(AuthenticationForm):
         self.helper.layout = Layout(
             'username',
             'password',
-            Submit('submit', _('Sign In'), css_class='btn btn-primary btn-block')
+            Submit('submit', 'Войти', css_class='btn btn-primary btn-block')
         )
-        self.fields['username'].widget.attrs.update({'placeholder': _('Email or Username')})
-        self.fields['password'].widget.attrs.update({'placeholder': _('Password')})
+        self.fields['username'].widget.attrs.update({'placeholder': 'Email или имя пользователя'})
+        self.fields['password'].widget.attrs.update({'placeholder': 'Пароль'})

@@ -19,6 +19,11 @@ scipy
 matplotlib
 psutil
 
+# PDF Report Generation Dependencies
+reportlab==4.0.9
+seaborn==0.13.2
+pandas==2.2.3
+
 # GPU Acceleration Dependencies (optional)
 # Install with: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 # or: pip install cupy-cuda12x

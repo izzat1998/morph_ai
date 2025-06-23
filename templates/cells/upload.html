@@ -1,8 +1,7 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
-{% load i18n %}
 
-{% block title %}{% trans "Upload Cell Image" %} - Morph AI{% endblock %}
+{% block title %}Загрузка изображения клеток - Morph AI{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -138,8 +137,8 @@
 <div class="content-form mt-4">
             <!-- Header -->
             <div class="text-center mb-4">
-                <h1 class="display-5 fw-bold text-gradient mb-3">{% trans "Upload Cell Images" %}</h1>
-                <p class="lead text-muted">{% trans "Upload high-quality microscopy images for morphometric analysis" %}</p>
+                <h1 class="display-5 fw-bold text-gradient mb-3">Загрузка изображений клеток</h1>
+                <p class="lead text-muted">Загрузите высококачественные микроскопические изображения для морфометрического анализа</p>
             </div>
             
             <!-- Upload Section -->
@@ -147,7 +146,7 @@
                 <div class="card-header">
                     <h3 class="mb-0">
                         <i class="fas fa-cloud-upload-alt me-2"></i>
-                        {% trans "Image Upload" %}
+Загрузка изображения
                     </h3>
                 </div>
                 <div class="card-body">
@@ -157,8 +156,8 @@
                         <!-- Drag & Drop Upload Zone -->
                         <div class="upload-zone" id="upload-zone">
                             <i class="fas fa-cloud-upload-alt upload-icon"></i>
-                            <div class="upload-text">{% trans "Drag & drop your images here" %}</div>
-                            <div class="upload-hint">{% trans "or click to browse files" %}</div>
+                            <div class="upload-text">Перетащите изображения сюда</div>
+                            <div class="upload-hint">или нажмите для выбора файлов</div>
                             
                             <!-- Hidden file input -->
                             <input type="file" name="image" id="file-input" class="file-input" accept="image/*" multiple>
@@ -174,7 +173,7 @@
                         <!-- Upload Progress -->
                         <div class="upload-progress" id="upload-progress">
                             <div class="d-flex align-items-center justify-content-between mb-2">
-                                <span class="text-muted">{% trans "Uploading..." %}</span>
+                                <span class="text-muted">Загрузка...</span>
                                 <span class="text-muted" id="progress-text">0%</span>
                             </div>
                             <div class="progress-container">
@@ -198,14 +197,14 @@
                         <div class="row mt-4">
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
-                                    <label for="id_name" class="form-label">{% trans "Image Name" %}</label>
-                                    <input type="text" name="name" class="form-control" id="id_name" placeholder="{% trans 'Enter descriptive name for your image' %}">
+                                    <label for="id_name" class="form-label">Название изображения</label>
+                                    <input type="text" name="name" class="form-control" id="id_name" placeholder="Введите описательное название для вашего изображения">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
-                                    <label for="id_description" class="form-label">{% trans "Description (Optional)" %}</label>
-                                    <textarea name="description" class="form-control" id="id_description" rows="3" placeholder="{% trans 'Add any relevant notes about the image' %}"></textarea>
+                                    <label for="id_description" class="form-label">Описание (опционально)</label>
+                                    <textarea name="description" class="form-control" id="id_description" rows="3" placeholder="Добавьте любые соответствующие заметки об изображении"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -214,11 +213,11 @@
                         <div class="text-center mt-4">
                             <button type="submit" class="btn btn-primary btn-lg" id="submit-btn" disabled>
                                 <i class="fas fa-upload me-2"></i>
-                                {% trans "Upload Image" %}
+                                Загрузить изображение
                             </button>
                             <button type="button" class="btn btn-outline-secondary btn-lg ms-2" onclick="resetForm()">
                                 <i class="fas fa-times me-2"></i>
-                                {% trans "Clear" %}
+                                Очистить
                             </button>
                         </div>
                     </form>
@@ -229,29 +228,29 @@
             <div class="upload-tips">
                 <h4 class="mb-3">
                     <i class="fas fa-lightbulb me-2 text-warning"></i>
-                    {% trans "Upload Tips for Best Results" %}
+                    Советы по загрузке для лучших результатов
                 </h4>
                 <div class="row">
                     <div class="col-md-6">
                         <div class="tip-item">
                             <i class="fas fa-check-circle tip-icon"></i>
                             <div>
-                                <strong>{% trans "High Resolution" %}</strong><br>
-                                <small class="text-muted">{% trans "Use images with sufficient resolution for accurate cell detection" %}</small>
+                                <strong>Высокое разрешение</strong><br>
+                                <small class="text-muted">Используйте изображения с достаточным разрешением для точного обнаружения клеток</small>
                             </div>
                         </div>
                         <div class="tip-item">
                             <i class="fas fa-check-circle tip-icon"></i>
                             <div>
-                                <strong>{% trans "Good Contrast" %}</strong><br>
-                                <small class="text-muted">{% trans "Ensure clear distinction between cells and background" %}</small>
+                                <strong>Хороший контраст</strong><br>
+                                <small class="text-muted">Обеспечьте чёткое различие между клетками и фоном</small>
                             </div>
                         </div>
                         <div class="tip-item">
                             <i class="fas fa-check-circle tip-icon"></i>
                             <div>
-                                <strong>{% trans "Proper Focus" %}</strong><br>
-                                <small class="text-muted">{% trans "Sharp, well-focused images improve segmentation accuracy" %}</small>
+                                <strong>Правильная фокусировка</strong><br>
+                                <small class="text-muted">Чёткие, хорошо сфокусированные изображения улучшают точность сегментации</small>
                             </div>
                         </div>
                     </div>
@@ -259,22 +258,22 @@
                         <div class="tip-item">
                             <i class="fas fa-check-circle tip-icon"></i>
                             <div>
-                                <strong>{% trans "Scale Information" %}</strong><br>
-                                <small class="text-muted">{% trans "Include scale bars or prepare calibration data for accurate measurements" %}</small>
+                                <strong>Информация о масштабе</strong><br>
+                                <small class="text-muted">Включите масштабные линейки или подготовьте калибровочные данные для точных измерений</small>
                             </div>
                         </div>
                         <div class="tip-item">
                             <i class="fas fa-check-circle tip-icon"></i>
                             <div>
-                                <strong>{% trans "File Format" %}</strong><br>
-                                <small class="text-muted">{% trans "TIFF format preserves best image quality for analysis" %}</small>
+                                <strong>Формат файла</strong><br>
+                                <small class="text-muted">Формат TIFF сохраняет лучшее качество изображения для анализа</small>
                             </div>
                         </div>
                         <div class="tip-item">
                             <i class="fas fa-check-circle tip-icon"></i>
                             <div>
-                                <strong>{% trans "Clean Background" %}</strong><br>
-                                <small class="text-muted">{% trans "Minimize debris and artifacts in the imaging field" %}</small>
+                                <strong>Чистый фон</strong><br>
+                                <small class="text-muted">Минимизируйте мусор и артефакты в поле обзора</small>
                             </div>
                         </div>
                     </div>
@@ -287,11 +286,11 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h4 class="mb-0">
                         <i class="fas fa-history me-2"></i>
-                        {% trans "Recent Uploads" %}
+                        Последние загрузки
                     </h4>
                     <a href="{% url 'cells:list' %}" class="btn btn-outline-primary btn-sm">
                         <i class="fas fa-eye me-1"></i>
-                        {% trans "View All" %} ({{ user.cells.count }})
+                        Посмотреть все ({{ user.cells.count }})
                     </a>
                 </div>
                 <div class="card-body">
@@ -304,11 +303,11 @@
                                     <div class="position-absolute top-0 end-0 m-2">
                                         {% if cell.has_analysis %}
                                             <span class="badge bg-success">
-                                                <i class="fas fa-check me-1"></i>{% trans "Analyzed" %}
+                                                <i class="fas fa-check me-1"></i>Проанализировано
                                             </span>
                                         {% else %}
                                             <span class="badge bg-secondary">
-                                                <i class="fas fa-clock me-1"></i>{% trans "Pending" %}
+                                                <i class="fas fa-clock me-1"></i>В ожидании
                                             </span>
                                         {% endif %}
                                     </div>
@@ -389,13 +388,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Validate file type
         const validTypes = ['image/jpeg', 'image/png', 'image/tiff', 'image/bmp'];
         if (!validTypes.includes(file.type)) {
-            alert('{% trans "Please select a valid image file (JPEG, PNG, TIFF, BMP)" %}');
+            alert('Пожалуйста, выберите допустимый файл изображения (JPEG, PNG, TIFF, BMP)');
             return;
         }
         
         // Validate file size (max 50MB)
         if (file.size > 50 * 1024 * 1024) {
-            alert('{% trans "File size must be less than 50MB" %}');
+            alert('Размер файла должен быть меньше 50 МБ');
             return;
         }
         
@@ -446,7 +445,7 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         
         if (!fileInput.files.length) {
-            alert('{% trans "Please select a file to upload" %}');
+            alert('Пожалуйста, выберите файл для загрузки');
             return;
         }
         
@@ -455,7 +454,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Show progress
         uploadProgress.style.display = 'block';
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>{% trans "Uploading..." %}';
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Загрузка...';
         
         // Simulate upload progress (in real implementation, use XMLHttpRequest for real progress)
         let progress = 0;
@@ -487,7 +486,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }).catch(error => {
             clearInterval(progressInterval);
-            alert('{% trans "Upload failed. Please try again." %}');
+            alert('Ошибка загрузки. Пожалуйста, попробуйте снова.');
             resetForm();
         });
     });
@@ -498,7 +497,7 @@ document.addEventListener('DOMContentLoaded', function() {
         filePreview.style.display = 'none';
         uploadProgress.style.display = 'none';
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-upload me-2"></i>{% trans "Upload Image" %}';
+        submitBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Загрузить изображение';
         progressBar.style.width = '0%';
         progressText.textContent = '0%';
     };

@@ -1,10 +1,9 @@
-{% load i18n %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE }}">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{% trans "Morph AI" %}{% endblock %}</title>
+    <title>{% block title %}Morph AI{% endblock %}</title>
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔬</text></svg>">
@@ -29,19 +28,19 @@
     {% block extra_css %}{% endblock %}
 
     <!-- Meta Tags -->
-    <meta name="description" content="{% trans 'Advanced cell morphometric analysis using AI-powered segmentation with Cellpose' %}">
-    <meta name="keywords" content="{% trans 'cell analysis, morphometry, microscopy, Cellpose, AI, image analysis' %}">
-    <meta name="author" content="{% trans 'Morph AI' %}">
+    <meta name="description" content="Продвинутый морфометрический анализ клеток с использованием ИИ-сегментации Cellpose">
+    <meta name="keywords" content="анализ клеток, морфометрия, микроскопия, Cellpose, ИИ, анализ изображений">
+    <meta name="author" content="Morph AI">
 </head>
 <body>
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
             <a class="navbar-brand" href="{% url 'home' %}">
-                <span class="text-gradient">{% trans "Morph AI" %}</span>
+                <span class="text-gradient">Morph AI</span>
             </a>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="{% trans 'Toggle navigation' %}">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Переключить навигацию">
                 <i class="fas fa-bars"></i>
             </button>
 
@@ -51,19 +50,19 @@
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'cells:upload' %}">
                                 <i class="fas fa-cloud-upload-alt me-1"></i>
-                                {% trans "Upload Cells" %}
+                                Загрузить клетки
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'cells:list' %}">
                                 <i class="fas fa-images me-1"></i>
-                                {% trans "My Cells" %}
+                                Мои клетки
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'cells:analysis_list' %}">
                                 <i class="fas fa-chart-line me-1"></i>
-                                {% trans "Analyses" %}
+                                Анализы
                             </a>
                         </li>
                     {% endif %}
@@ -76,48 +75,16 @@
                             <div class="d-flex align-items-center text-muted small">
                                 <div class="me-3">
                                     <i class="fas fa-images me-1"></i>
-                                    <span>{{ user.cells.count }} {% trans "images" %}</span>
+                                    <span>{{ user.cells.count }} изображений</span>
                                 </div>
                                 <div class="me-3">
                                     <i class="fas fa-microscope me-1"></i>
-                                    <span>{{ user.total_analyses }} {% trans "analyses" %}</span>
+                                    <span>{{ user.total_analyses }} анализов</span>
                                 </div>
                             </div>
                         </li>
                     {% endif %}
 
-                    <!-- Language Switcher -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-globe me-1"></i>
-                            {% get_current_language as LANGUAGE_CODE %}
-                            {% if LANGUAGE_CODE == 'en' %}EN
-                            {% elif LANGUAGE_CODE == 'ru' %}RU
-                            {% elif LANGUAGE_CODE == 'uz' %}UZ
-                            {% endif %}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            {% get_available_languages as LANGUAGES %}
-                            {% get_current_language as LANGUAGE_CODE %}
-                            {% for lang_code, lang_name in LANGUAGES %}
-                                {% if lang_code != LANGUAGE_CODE %}
-                                    <li>
-                                        <form action="{% url 'set_language' %}" method="post" class="morph-d-inline-flex">
-                                            {% csrf_token %}
-                                            <input name="next" type="hidden" value="{{ redirect_to }}">
-                                            <input name="language" type="hidden" value="{{ lang_code }}">
-                                            <button type="submit" class="dropdown-item d-flex align-items-center morph-border-0 morph-bg-transparent">
-                                                {% if lang_code == 'en' %}<i class="fas fa-flag me-2"></i>{% trans 'English' %}
-                                                {% elif lang_code == 'ru' %}<i class="fas fa-flag me-2"></i>{% trans 'Russian' %}
-                                                {% elif lang_code == 'uz' %}<i class="fas fa-flag me-2"></i>{% trans 'Uzbek' %}
-                                                {% endif %}
-                                            </button>
-                                        </form>
-                                    </li>
-                                {% endif %}
-                            {% endfor %}
-                        </ul>
-                    </li>
 
                     {% if user.is_authenticated %}
                         <li class="nav-item dropdown">
@@ -138,7 +105,7 @@
                                 <li>
                                     <a class="dropdown-item d-flex align-items-center" href="{% url 'accounts:logout' %}">
                                         <i class="fas fa-sign-out-alt me-2"></i>
-                                        {% trans "Logout" %}
+                                        Выход
                                     </a>
                                 </li>
                             </ul>
@@ -147,13 +114,13 @@
                         <li class="nav-item">
                             <a class="btn btn-outline-primary me-2" href="{% url 'accounts:login' %}">
                                 <i class="fas fa-sign-in-alt me-1"></i>
-                                {% trans "Login" %}
+                                Войти
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="btn btn-primary" href="{% url 'accounts:signup' %}">
                                 <i class="fas fa-user-plus me-1"></i>
-                                {% trans "Sign Up" %}
+                                Регистрация
                             </a>
                         </li>
                     {% endif %}
@@ -179,7 +146,7 @@
                         {% endif %}
                         <span>{{ message }}</span>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% trans 'Close' %}"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
                 </div>
             {% endfor %}
         </div>
@@ -196,9 +163,9 @@
             <div class="row py-4">
                 <div class="col-md-6">
                     <div class="d-flex align-items-center mb-3">
-                        <span class="navbar-brand h5 mb-0 me-3">🔬 <span class="text-gradient">{% trans "Morph AI" %}</span></span>
+                        <span class="navbar-brand h5 mb-0 me-3">🔬 <span class="text-gradient">Morph AI</span></span>
                     </div>
-                    <p class="text-light mb-3">{% trans "Advanced cell morphometric analysis using AI-powered segmentation." %}</p>
+                    <p class="text-light mb-3">Продвинутый морфометрический анализ клеток с ИИ-сегментацией.</p>
                     <div class="d-flex gap-3">
                         <a href="#" class="text-light"><i class="fab fa-github fa-lg"></i></a>
                         <a href="#" class="text-light"><i class="fab fa-twitter fa-lg"></i></a>
@@ -206,32 +173,32 @@
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <h6 class="text-light mb-3">{% trans "Features" %}</h6>
+                    <h6 class="text-light mb-3">Возможности</h6>
                     <ul class="list-unstyled">
-                        <li><a href="#" class="text-light text-decoration-none">{% trans "Cell Segmentation" %}</a></li>
-                        <li><a href="#" class="text-light text-decoration-none">{% trans "Morphometric Analysis" %}</a></li>
-                        <li><a href="#" class="text-light text-decoration-none">{% trans "Data Export" %}</a></li>
-                        <li><a href="#" class="text-light text-decoration-none">{% trans "Batch Processing" %}</a></li>
+                        <li><a href="#" class="text-light text-decoration-none">Сегментация клеток</a></li>
+                        <li><a href="#" class="text-light text-decoration-none">Морфометрический анализ</a></li>
+                        <li><a href="#" class="text-light text-decoration-none">Экспорт данных</a></li>
+                        <li><a href="#" class="text-light text-decoration-none">Пакетная обработка</a></li>
                     </ul>
                 </div>
                 <div class="col-md-3">
-                    <h6 class="text-light mb-3">{% trans "Support" %}</h6>
+                    <h6 class="text-light mb-3">Поддержка</h6>
                     <ul class="list-unstyled">
-                        <li><a href="#" class="text-light text-decoration-none">{% trans "Documentation" %}</a></li>
-                        <li><a href="#" class="text-light text-decoration-none">{% trans "API Reference" %}</a></li>
-                        <li><a href="#" class="text-light text-decoration-none">{% trans "Community" %}</a></li>
-                        <li><a href="#" class="text-light text-decoration-none">{% trans "Contact" %}</a></li>
+                        <li><a href="#" class="text-light text-decoration-none">Документация</a></li>
+                        <li><a href="#" class="text-light text-decoration-none">Справочник API</a></li>
+                        <li><a href="#" class="text-light text-decoration-none">Сообщество</a></li>
+                        <li><a href="#" class="text-light text-decoration-none">Контакты</a></li>
                     </ul>
                 </div>
             </div>
             <div class="row border-top border-secondary pt-3">
                 <div class="col-md-6">
-                    <p class="text-light mb-0">&copy; 2024 {% trans "Morph AI" %}. {% trans "All rights reserved." %}</p>
+                    <p class="text-light mb-0">&copy; 2024 Morph AI. Все права защищены.</p>
                 </div>
                 <div class="col-md-6 text-md-end">
                     <p class="text-light mb-0">
-                        {% trans "Powered by" %} <a href="https://cellpose.readthedocs.io/" class="text-light">{% trans "Cellpose" %}</a> & 
-                        <a href="https://scikit-image.org/" class="text-light">{% trans "scikit-image" %}</a>
+                        На основе <a href="https://cellpose.readthedocs.io/" class="text-light">Cellpose</a> & 
+                        <a href="https://scikit-image.org/" class="text-light">scikit-image</a>
                     </p>
                 </div>
             </div>
@@ -253,7 +220,7 @@
                 form.addEventListener('submit', function() {
                     const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
                     if (submitBtn && !submitBtn.disabled) {
-                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>' + (submitBtn.textContent || '{% trans "Processing..." %}');
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>' + (submitBtn.textContent || 'Обработка...');
                         submitBtn.disabled = true;
                     }
                 });

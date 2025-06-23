@@ -4,31 +4,30 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from PIL import Image
 
-
 class Cell(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cells')
-    name = models.CharField(max_length=255, verbose_name=_('Name'))
-    image = models.ImageField(upload_to='cells/', verbose_name=_('Image'))
+    name = models.CharField(max_length=255, verbose_name='Название')
+    image = models.ImageField(upload_to='cells/', verbose_name='Изображение')
     
     # Metadata fields (auto-populated)
-    file_size = models.PositiveIntegerField(null=True, blank=True, verbose_name=_('File Size'))
-    image_width = models.PositiveIntegerField(null=True, blank=True, verbose_name=_('Image Width'))
-    image_height = models.PositiveIntegerField(null=True, blank=True, verbose_name=_('Image Height'))
-    file_format = models.CharField(max_length=10, blank=True, verbose_name=_('File Format'))
+    file_size = models.PositiveIntegerField(null=True, blank=True, verbose_name='Размер файла')
+    image_width = models.PositiveIntegerField(null=True, blank=True, verbose_name='Ширина изображения')
+    image_height = models.PositiveIntegerField(null=True, blank=True, verbose_name='Высота изображения')
+    file_format = models.CharField(max_length=10, blank=True, verbose_name='Формат файла')
     
     # Scale calibration
-    pixels_per_micron = models.FloatField(null=True, blank=True, verbose_name=_('Pixels per Micron'), help_text=_('Pixels per micron for scale calibration'))
-    scale_set = models.BooleanField(default=False, verbose_name=_('Scale Set'), help_text=_('Whether scale calibration has been set'))
-    scale_reference_length_pixels = models.FloatField(null=True, blank=True, verbose_name=_('Reference Length (pixels)'), help_text=_('Reference length in pixels for calibration'))
-    scale_reference_length_microns = models.FloatField(null=True, blank=True, verbose_name=_('Reference Length (microns)'), help_text=_('Known real-world length in microns'))
+    pixels_per_micron = models.FloatField(null=True, blank=True, verbose_name='Пикселей на микрон', help_text='Пикселей на микрон для калибровки масштаба')
+    scale_set = models.BooleanField(default=False, verbose_name='Масштаб установлен', help_text='Установлена ли калибровка масштаба')
+    scale_reference_length_pixels = models.FloatField(null=True, blank=True, verbose_name='Референсная длина (пиксели)', help_text='Референсная длина в пикселях для калибровки')
+    scale_reference_length_microns = models.FloatField(null=True, blank=True, verbose_name='Референсная длина (микроны)', help_text='Известная реальная длина в микронах')
     
     # Analysis tracking
-    has_analysis = models.BooleanField(default=False, verbose_name=_('Has Analysis'))
-    analysis_count = models.PositiveIntegerField(default=0, verbose_name=_('Analysis Count'))
+    has_analysis = models.BooleanField(default=False, verbose_name='Есть анализ')
+    analysis_count = models.PositiveIntegerField(default=0, verbose_name='Количество анализов')
     
     # Timestamp fields
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Created At'))
-    modified_at = models.DateTimeField(auto_now=True, verbose_name=_('Modified At'))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создано')
+    modified_at = models.DateTimeField(auto_now=True, verbose_name='Изменено')
     
     class Meta:
         ordering = ['-created_at']

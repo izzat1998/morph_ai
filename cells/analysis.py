@@ -592,23 +592,158 @@ class CellAnalysisProcessor:
             ax_idx += 1
             
             if flows is not None:
-                # Panel 6: Cell Centers/Poses
+                # Panel 6: Enhanced Morphometric Visualization
                 if len(original_image.shape) == 3:
                     base_img = np.mean(original_image, axis=2)
                 else:
                     base_img = original_image
-                axes[ax_idx].imshow(base_img, cmap='gray', alpha=0.7)
+                axes[ax_idx].imshow(base_img, cmap='gray', alpha=0.6)
                 
-                # Plot cell centers
+                # Get morphometric data from regionprops and DetectedCell model
                 from skimage import measure
                 props = measure.regionprops(masks)
+                
+                # Try to get DetectedCell data if analysis has been saved
+                morphometric_data = {}
+                try:
+                    # Check if we have detected cells data for this analysis
+                    detected_cells = self.analysis.detected_cells.all()
+                    if detected_cells.exists():
+                        for cell in detected_cells:
+                            morphometric_data[cell.cell_id] = {
+                                'circularity': cell.circularity,
+                                'area': cell.area,
+                                'solidity': cell.solidity,
+                                'eccentricity': cell.eccentricity
+                            }
+                        logger.debug(f"Using stored morphometric data for {len(morphometric_data)} cells")
+                    else:
+                        logger.debug("No stored DetectedCell data available, using regionprops only")
+                except Exception as e:
+                    logger.debug(f"Could not access DetectedCell data: {str(e)}, using regionprops")
+                
+                # Calculate morphometric properties for visualization
+                cell_areas = []
+                cell_circularities = []
+                cell_positions = []
+                cell_labels = []
+                
                 for prop in props:
                     if prop.label > 0:
+                        # Get position
                         y, x = prop.centroid
-                        axes[ax_idx].plot(x, y, 'r+', markersize=8, markeredgewidth=2)
-                        axes[ax_idx].text(x+10, y, str(prop.label), fontsize=8, color='red', fontweight='bold')
+                        cell_positions.append((x, y))
+                        cell_labels.append(prop.label)
+                        
+                        # Use stored data if available, otherwise calculate from regionprops
+                        if prop.label in morphometric_data:
+                            circularity = morphometric_data[prop.label]['circularity']
+                            area = morphometric_data[prop.label]['area']
+                        else:
+                            # Calculate circularity: 4π×area/perimeter²
+                            if prop.perimeter > 0:
+                                circularity = 4 * np.pi * prop.area / (prop.perimeter ** 2)
+                            else:
+                                circularity = 0
+                            area = prop.area
+                        
+                        cell_areas.append(area)
+                        cell_circularities.append(circularity)
                 
-                axes[ax_idx].set_title('6. Cell Centers', fontsize=12, fontweight='bold')
+                if cell_areas:
+                    # Normalize areas for size coding (10-100 pixel range for markers)
+                    areas_array = np.array(cell_areas)
+                    if len(areas_array) > 1 and np.std(areas_array) > 0:
+                        normalized_sizes = 10 + 90 * (areas_array - np.min(areas_array)) / (np.max(areas_array) - np.min(areas_array))
+                    else:
+                        normalized_sizes = np.full(len(areas_array), 30)  # Default size
+                    
+                    # Color coding based on circularity (blue=round, red=elongated)
+                    circularities_array = np.array(cell_circularities)
+                    # Clamp circularity to reasonable range for color mapping
+                    circularities_clamped = np.clip(circularities_array, 0, 1)
+                    
+                    # Create colormap: high circularity (round) = blue, low circularity (elongated) = red
+                    from matplotlib.colors import LinearSegmentedColormap
+                    colors_list = ['red', 'orange', 'yellow', 'lightblue', 'blue']
+                    circularity_cmap = LinearSegmentedColormap.from_list('circularity', colors_list, N=256)
+                    
+                    # Plot enhanced cell visualization
+                    scatter = axes[ax_idx].scatter(
+                        [pos[0] for pos in cell_positions],
+                        [pos[1] for pos in cell_positions],
+                        s=normalized_sizes,
+                        c=circularities_clamped,
+                        cmap=circularity_cmap,
+                        alpha=0.8,
+                        edgecolors='white',
+                        linewidth=1.5,
+                        vmin=0,
+                        vmax=1
+                    )
+                    
+                    # Smart labeling: only show labels for largest 20% of cells or cells with extreme properties
+                    if len(cell_areas) > 5:  # Only apply smart labeling if we have enough cells
+                        area_threshold = np.percentile(areas_array, 80)  # Top 20% by area
+                        circularity_extremes = (circularities_array < 0.3) | (circularities_array > 0.8)  # Very elongated or very round
+                        
+                        for i, (pos, label, area, circularity) in enumerate(zip(cell_positions, cell_labels, cell_areas, cell_circularities)):
+                            # Show label if cell is large or has extreme shape
+                            if area >= area_threshold or circularity_extremes[i]:
+                                # Use white text with black outline for better visibility
+                                axes[ax_idx].text(pos[0]+5, pos[1]-5, str(label), 
+                                                fontsize=8, color='white', fontweight='bold',
+                                                bbox=dict(boxstyle='round,pad=0.2', facecolor='black', alpha=0.7))
+                    else:
+                        # For small numbers of cells, show all labels
+                        for pos, label in zip(cell_positions, cell_labels):
+                            axes[ax_idx].text(pos[0]+5, pos[1]-5, str(label), 
+                                            fontsize=8, color='white', fontweight='bold',
+                                            bbox=dict(boxstyle='round,pad=0.2', facecolor='black', alpha=0.7))
+                    
+                    # Add mini colorbar for circularity
+                    from matplotlib.colorbar import ColorbarBase
+                    from matplotlib.ticker import FuncFormatter
+                    
+                    # Create inset axes for colorbar (top-right corner)
+                    colorbar_ax = axes[ax_idx].inset_axes([0.75, 0.85, 0.2, 0.03])
+                    cb = plt.colorbar(scatter, cax=colorbar_ax, orientation='horizontal')
+                    cb.set_label('Circularity', fontsize=8, color='white', fontweight='bold')
+                    cb.ax.tick_params(labelsize=7, colors='white')
+                    
+                    # Add size legend (bottom-right corner)
+                    legend_ax = axes[ax_idx].inset_axes([0.75, 0.05, 0.2, 0.15])
+                    legend_ax.set_xlim(0, 1)
+                    legend_ax.set_ylim(0, 1)
+                    legend_ax.axis('off')
+                    
+                    # Size legend circles
+                    if len(areas_array) > 1:
+                        min_area, max_area = np.min(areas_array), np.max(areas_array)
+                        
+                        # Show 3 size examples
+                        sizes_for_legend = [10, 50, 90]  # Small, medium, large marker sizes
+                        areas_for_legend = [min_area, np.mean(areas_array), max_area]
+                        
+                        for i, (size, area) in enumerate(zip(sizes_for_legend, areas_for_legend)):
+                            y_pos = 0.8 - i * 0.25
+                            legend_ax.scatter(0.2, y_pos, s=size, c='gray', alpha=0.7, edgecolors='white')
+                            legend_ax.text(0.4, y_pos, f'{int(area)} px²', fontsize=7, color='white', 
+                                         verticalalignment='center', fontweight='bold')
+                    
+                    # Add title for size legend
+                    legend_ax.text(0.1, 0.95, 'Size = Area', fontsize=8, color='white', fontweight='bold')
+                    
+                    logger.info(f"Enhanced morphometric visualization: {len(cell_areas)} cells displayed")
+                    
+                else:
+                    # Fallback if no cells detected
+                    axes[ax_idx].text(0.5, 0.5, 'No cells detected', 
+                                    transform=axes[ax_idx].transAxes, ha='center', va='center',
+                                    fontsize=12, color='red', fontweight='bold')
+                
+                axes[ax_idx].set_title('6. Morphometric Analysis\n(Size=Area, Color=Circularity)', 
+                                     fontsize=12, fontweight='bold')
                 axes[ax_idx].axis('off')
             
             plt.tight_layout()

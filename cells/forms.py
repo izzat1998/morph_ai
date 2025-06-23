@@ -10,12 +10,12 @@ class CellUploadForm(forms.ModelForm):
         model = Cell
         fields = ['name', 'image']
         widgets = {
-            'name': forms.TextInput(attrs={'placeholder': _('Enter image name')}),
+            'name': forms.TextInput(attrs={'placeholder': 'Введите название изображения'}),
             'image': forms.FileInput(attrs={'accept': 'image/*'}),
         }
         labels = {
-            'name': _('Image Name'),
-            'image': _('Cell Image'),
+            'name': 'Название изображения',
+            'image': 'Изображение клетки',
         }
     
     def __init__(self, *args, **kwargs):
@@ -26,7 +26,7 @@ class CellUploadForm(forms.ModelForm):
         self.helper.layout = Layout(
             Field('name', css_class='form-control'),
             Field('image', css_class='form-control'),
-            Submit('submit', _('Upload Cell Image'), css_class='btn btn-primary mt-3')
+            Submit('submit', 'Загрузить изображение клетки', css_class='btn btn-primary mt-3')
         )
     
     def clean_image(self):
@@ -34,11 +34,11 @@ class CellUploadForm(forms.ModelForm):
         if image:
             # Check file size (limit to 10MB)
             if image.size > 10 * 1024 * 1024:
-                raise forms.ValidationError(_("Image file too large (max 10MB)"))
+                raise forms.ValidationError("Размер файла слишком большой (макс. 10МБ)")
             
             # Check file type
             if not image.content_type.startswith('image/'):
-                raise forms.ValidationError(_("Please upload a valid image file"))
+                raise forms.ValidationError("Пожалуйста, загрузите корректный файл изображения")
             
             # Additional image quality checks
             try:
@@ -53,11 +53,11 @@ class CellUploadForm(forms.ModelForm):
                 
                 # Check minimum dimensions
                 if pil_image.width < 64 or pil_image.height < 64:
-                    raise forms.ValidationError(_("Image too small (minimum 64x64 pixels)"))
+                    raise forms.ValidationError("Изображение слишком маленькое (минимум 64x64 пикселя)")
                 
                 # Check maximum dimensions (to prevent memory issues)
                 if pil_image.width > 8192 or pil_image.height > 8192:
-                    raise forms.ValidationError(_("Image too large (maximum 8192x8192 pixels)"))
+                    raise forms.ValidationError("Изображение слишком большое (максимум 8192x8192 пикселя)")
                 
                 # Check if image is corrupted by trying to load pixel data
                 pil_image.load()

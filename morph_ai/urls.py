@@ -29,6 +29,7 @@ urlpatterns += i18n_patterns(
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),
     path('cells/', include('cells.urls')), 
+    path('reports/', include('reports.urls')),
     path('', home_view, name='home'),
 )
 

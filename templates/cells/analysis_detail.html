@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
-{% load i18n %}
 
-{% block title %}{% trans "Analysis Results" %} - {{ cell.name }}{% endblock %}
+{% block title %}Результаты анализа - {{ cell.name }}{% endblock %}
 
 {% block content %}
 <div class="mt-4">
@@ -9,15 +8,29 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
-                <h2>{% trans "Analysis Results" %}</h2>
+                <h2>Результаты анализа</h2>
                 <div>
                     {% if analysis.status == 'completed' %}
-                    <a href="{% url 'cells:export_analysis_csv' analysis.id %}" class="btn btn-success">
-                        <i class="fas fa-download"></i> {% trans "Export CSV" %}
-                    </a>
+                    <div class="btn-group me-2" role="group">
+                        <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-download"></i> Экспорт
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'cells:export_analysis_csv' analysis.id %}">
+                                <i class="fas fa-file-csv me-2"></i>CSV данные
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'reports:analysis_pdf_config' analysis.id %}">
+                                <i class="fas fa-cog me-2"></i>Настроить PDF отчет
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'reports:analysis_pdf' analysis.id %}" target="_blank">
+                                <i class="fas fa-file-pdf me-2"></i>Быстрый PDF отчет
+                            </a></li>
+                        </ul>
+                    </div>
                     {% endif %}
                     <a href="{% url 'cells:cell_detail' cell.id %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left"></i> {% trans "Back to Cell" %}
+                        <i class="fas fa-arrow-left"></i> Назад к клетке
                     </a>
                 </div>
             </div>
@@ -37,7 +50,7 @@
                         <div class="col-md-6">
                             <table class="table table-sm">
                                 <tr>
-                                    <td><strong>{% trans "Status:" %}</strong></td>
+                                    <td><strong>Статус:</strong></td>
                                     <td>
                                         <span class="badge bg-{% if analysis.status == 'completed' %}success{% elif analysis.status == 'failed' %}danger{% elif analysis.status == 'processing' %}warning{% else %}secondary{% endif %}">
                                             {{ analysis.get_status_display }}
@@ -45,19 +58,19 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td><strong>{% trans "Analysis Date:" %}</strong></td>
+                                    <td><strong>Дата анализа:</strong></td>
                                     <td>{{ analysis.analysis_date|date:"M d, Y H:i:s" }}</td>
                                 </tr>
                                 {% if analysis.completed_at %}
                                 <tr>
-                                    <td><strong>{% trans "Completed:" %}</strong></td>
+                                    <td><strong>Завершено:</strong></td>
                                     <td>{{ analysis.completed_at|date:"M d, Y H:i:s" }}</td>
                                 </tr>
                                 {% endif %}
                                 {% if analysis.processing_time %}
                                 <tr>
-                                    <td><strong>{% trans "Processing Time:" %}</strong></td>
-                                    <td>{{ analysis.processing_time|floatformat:2 }} {% trans "seconds" %}</td>
+                                    <td><strong>Время обработки:</strong></td>
+                                    <td>{{ analysis.processing_time|floatformat:2 }} секунд</td>
                                 </tr>
                                 {% endif %}
                             </table>
@@ -65,28 +78,28 @@
                         <div class="col-md-6">
                             <table class="table table-sm">
                                 <tr>
-                                    <td><strong>{% trans "Cellpose Model:" %}</strong></td>
+                                    <td><strong>Модель Cellpose:</strong></td>
                                     <td>{{ analysis.get_cellpose_model_display }}</td>
                                 </tr>
                                 <tr>
-                                    <td><strong>{% trans "Diameter:" %}</strong></td>
-                                    <td>{{ analysis.cellpose_diameter|floatformat:1 }} {% trans "px" %}</td>
+                                    <td><strong>Диаметр:</strong></td>
+                                    <td>{{ analysis.cellpose_diameter|floatformat:1 }} пикс</td>
                                 </tr>
                                 <tr>
-                                    <td><strong>{% trans "Flow Threshold:" %}</strong></td>
+                                    <td><strong>Порог потока:</strong></td>
                                     <td>{{ analysis.flow_threshold|floatformat:2 }}</td>
                                 </tr>
                                 <tr>
-                                    <td><strong>{% trans "Cell Prob Threshold:" %}</strong></td>
+                                    <td><strong>Порог вероятности клеток:</strong></td>
                                     <td>{{ analysis.cellprob_threshold|floatformat:2 }}</td>
                                 </tr>
                                 <tr>
-                                    <td><strong>{% trans "Scale Calibration:" %}</strong></td>
+                                    <td><strong>Калибровка масштаба:</strong></td>
                                     <td>
                                         {% if analysis.cell.scale_set %}
                                             <span class="badge bg-success">{{ analysis.cell.pixels_per_micron|floatformat:2 }} px/μm</span>
                                         {% else %}
-                                            <span class="badge bg-warning">{% trans "Not calibrated" %}</span>
+                                            <span class="badge bg-warning">Не откалиброван</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -100,19 +113,19 @@
         <div class="col-md-4">
             <div class="card">
                 <div class="card-header">
-                    <h6 class="mb-0">{% trans "Quick Stats" %}</h6>
+                    <h6 class="mb-0">Быстрая статистика</h6>
                 </div>
                 <div class="card-body text-center">
                     {% if analysis.status == 'completed' %}
                     <h3 class="text-success">{{ validated_cell_count }}</h3>
-                    <p class="mb-0">{% trans "Valid Cells" %}</p>
+                    <p class="mb-0">Валидные клетки</p>
                     {% if cells_filtered > 0 %}
-                        <small class="text-muted">({{ original_cell_count }} {% trans "detected, " %}{{ cells_filtered }} {% trans "filtered" %})</small>
+                        <small class="text-muted">({{ original_cell_count }} обнаружено, {{ cells_filtered }} отфильтровано)</small>
                     {% endif %}
                     {% elif analysis.status == 'failed' %}
                     <div class="text-danger">
                         <i class="fas fa-exclamation-triangle fa-2x"></i>
-                        <p class="mt-2">{% trans "Analysis Failed" %}</p>
+                        <p class="mt-2">Анализ не удался</p>
                         {% if analysis.error_message %}
                         <small>{{ analysis.error_message }}</small>
                         {% endif %}
@@ -120,7 +133,7 @@
                     {% elif analysis.status == 'processing' %}
                     <div class="text-warning">
                         <i class="fas fa-spinner fa-spin fa-2x"></i>
-                        <p class="mt-2">{% trans "Processing..." %}</p>
+                        <p class="mt-2">Обработка...</p>
                     </div>
                     {% endif %}
                 </div>
@@ -135,35 +148,35 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">{% trans "Complete Cellpose Visualization Pipeline" %}</h5>
-                    <p class="mb-0 mt-2 text-muted">{% trans "Comprehensive visualization of all Cellpose analysis stages" %}</p>
+                    <h5 class="mb-0">Полный конвейер визуализации Cellpose</h5>
+                    <p class="mb-0 mt-2 text-muted">Комплексная визуализация всех стадий анализа Cellpose</p>
                 </div>
                 <div class="card-body">
                     <!-- Navigation Tabs -->
                     <ul class="nav nav-tabs mb-3" id="visualizationTabs" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="core-pipeline-tab" data-bs-toggle="tab" data-bs-target="#core-pipeline" type="button" role="tab">
-                                <i class="fas fa-eye me-2"></i>{% trans "Core Pipeline" %}
+                                <i class="fas fa-eye me-2"></i>Основной конвейер
                             </button>
                         </li>
                         {% if analysis.flow_analysis_image %}
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="flow-analysis-tab" data-bs-toggle="tab" data-bs-target="#flow-analysis" type="button" role="tab">
-                                <i class="fas fa-stream me-2"></i>{% trans "Flow Analysis" %}
+                                <i class="fas fa-stream me-2"></i>Анализ потока
                             </button>
                         </li>
                         {% endif %}
                         {% if analysis.style_quality_image %}
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="style-quality-tab" data-bs-toggle="tab" data-bs-target="#style-quality" type="button" role="tab">
-                                <i class="fas fa-chart-bar me-2"></i>{% trans "Style & Quality" %}
+                                <i class="fas fa-chart-bar me-2"></i>Стиль и качество
                             </button>
                         </li>
                         {% endif %}
                         {% if analysis.edge_boundary_image %}
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="edge-boundary-tab" data-bs-toggle="tab" data-bs-target="#edge-boundary" type="button" role="tab">
-                                <i class="fas fa-border-style me-2"></i>{% trans "Edge & Boundary" %}
+                                <i class="fas fa-border-style me-2"></i>Края и границы
                             </button>
                         </li>
                         {% endif %}
@@ -174,13 +187,13 @@
                         <!-- Core Pipeline Tab -->
                         <div class="tab-pane fade show active" id="core-pipeline" role="tabpanel">
                             <div class="text-center">
-                                <h6 class="text-primary">{% trans "Core Pipeline: Original → Outlines → Flow → Probability → Masks → Centers" %}</h6>
-                                <p class="text-muted small">{% trans "6-panel visualization showing the complete Cellpose segmentation pipeline" %}</p>
+                                <h6 class="text-primary">Основной конвейер: Оригинал → Контуры → Поток → Вероятность → Маски → Центры</h6>
+                                <p class="text-muted small">6-панельная визуализация полного конвейера сегментации Cellpose</p>
                                 {% if analysis.segmentation_image %}
                                 <img src="{{ analysis.segmentation_image.url }}" class="img-fluid rounded shadow" alt="Core Pipeline" style="max-width: 100%; height: auto;">
                                 {% else %}
                                 <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 400px;">
-                                    <span class="text-muted">{% trans "Core pipeline visualization not available" %}</span>
+                                    <span class="text-muted">Визуализация основного конвейера недоступна</span>
                                 </div>
                                 {% endif %}
                             </div>
@@ -190,8 +203,8 @@
                         {% if analysis.flow_analysis_image %}
                         <div class="tab-pane fade" id="flow-analysis" role="tabpanel">
                             <div class="text-center">
-                                <h6 class="text-success">{% trans "Advanced Flow Analysis: HSV → Trajectories → Magnitude → Convergence" %}</h6>
-                                <p class="text-muted small">{% trans "4-panel deep dive into Cellpose flow field computations and pixel trajectories" %}</p>
+                                <h6 class="text-success">Расширенный анализ потока: HSV → Траектории → Величина → Сходимость</h6>
+                                <p class="text-muted small">4-панельное глубокое погружение в вычисления поля потока Cellpose и траектории пикселей</p>
                                 <img src="{{ analysis.flow_analysis_image.url }}" class="img-fluid rounded shadow" alt="Flow Analysis" style="max-width: 100%; height: auto;">
                             </div>
                         </div>
@@ -201,8 +214,8 @@
                         {% if analysis.style_quality_image %}
                         <div class="tab-pane fade" id="style-quality" role="tabpanel">
                             <div class="text-center">
-                                <h6 class="text-info">{% trans "Style & Quality Analysis: Style Vector → Diameter → Thresholds → Quality" %}</h6>
-                                <p class="text-muted small">{% trans "4-panel analysis of image characteristics, style vectors, and quality metrics" %}</p>
+                                <h6 class="text-info">Анализ стиля и качества: Вектор стиля → Диаметр → Пороги → Качество</h6>
+                                <p class="text-muted small">4-панельный анализ характеристик изображения, векторов стиля и метрик качества</p>
                                 <img src="{{ analysis.style_quality_image.url }}" class="img-fluid rounded shadow" alt="Style & Quality Analysis" style="max-width: 100%; height: auto;">
                             </div>
                         </div>
@@ -212,8 +225,8 @@
                         {% if analysis.edge_boundary_image %}
                         <div class="tab-pane fade" id="edge-boundary" role="tabpanel">
                             <div class="text-center">
-                                <h6 class="text-warning">{% trans "Edge & Boundary Analysis: Edges → Gradients → Arrows → Combined" %}</h6>
-                                <p class="text-muted small">{% trans "4-panel visualization of cell boundaries, flow gradients, and vector fields" %}</p>
+                                <h6 class="text-warning">Анализ краев и границ: Края → Градиенты → Стрелки → Объединенное</h6>
+                                <p class="text-muted small">4-панельная визуализация границ клеток, градиентов потока и векторных полей</p>
                                 <img src="{{ analysis.edge_boundary_image.url }}" class="img-fluid rounded shadow" alt="Edge & Boundary Analysis" style="max-width: 100%; height: auto;">
                             </div>
                         </div>
@@ -225,31 +238,31 @@
                         <div class="col-12">
                             <div class="alert alert-info">
                                 <h6 class="alert-heading">
-                                    <i class="fas fa-info-circle me-2"></i>{% trans "Visualization Summary" %}
+                                    <i class="fas fa-info-circle me-2"></i>Сводка визуализации
                                 </h6>
                                 <div class="row">
                                     <div class="col-md-6">
                                         <ul class="mb-0 small">
-                                            <li><strong>{% trans "Core Pipeline:" %}</strong> {% trans "6 panels showing complete segmentation process" %}</li>
+                                            <li><strong>Основной конвейер:</strong> 6 панелей, показывающих полный процесс сегментации</li>
                                             {% if analysis.flow_analysis_image %}
-                                            <li><strong>{% trans "Flow Analysis:" %}</strong> {% trans "4 panels of advanced flow field analysis" %}</li>
+                                            <li><strong>Анализ потока:</strong> 4 панели расширенного анализа поля потока</li>
                                             {% endif %}
                                         </ul>
                                     </div>
                                     <div class="col-md-6">
                                         <ul class="mb-0 small">
                                             {% if analysis.style_quality_image %}
-                                            <li><strong>{% trans "Style & Quality:" %}</strong> {% trans "4 panels of image characteristics analysis" %}</li>
+                                            <li><strong>Стиль и качество:</strong> 4 панели анализа характеристик изображения</li>
                                             {% endif %}
                                             {% if analysis.edge_boundary_image %}
-                                            <li><strong>{% trans "Edge & Boundary:" %}</strong> {% trans "4 panels of boundary and gradient analysis" %}</li>
+                                            <li><strong>Края и границы:</strong> 4 панели анализа границ и градиентов</li>
                                             {% endif %}
                                         </ul>
                                     </div>
                                 </div>
                                 <hr class="my-2">
                                 <p class="mb-0 small">
-                                    <strong>{% trans "Total Panels:" %}</strong> 
+                                    <strong>Общее количество панелей:</strong> 
                                     6{% if analysis.flow_analysis_image %} + 4{% endif %}{% if analysis.style_quality_image %} + 4{% endif %}{% if analysis.edge_boundary_image %} + 4{% endif %} = 
                                     {% with total=6 %}
                                         {% if analysis.flow_analysis_image %}{% widthratio total 1 1 as total %}{% endif %}
@@ -257,7 +270,7 @@
                                         {% if analysis.edge_boundary_image %}{% widthratio total 1 1 as total %}{% endif %}
                                         {{ total|add:"0" }}{% if analysis.flow_analysis_image %}{{ 4|add:"0" }}{% endif %}{% if analysis.style_quality_image %}{{ 4|add:"0" }}{% endif %}{% if analysis.edge_boundary_image %}{{ 4|add:"0" }}{% endif %}
                                     {% endwith %} 
-                                    {% trans "comprehensive visualization panels" %}
+                                    панелей комплексной визуализации
                                 </p>
                             </div>
                         </div>
@@ -273,7 +286,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">{% trans "Summary Statistics" %}</h5>
+                    <h5 class="mb-0">Сводная статистика</h5>
                 </div>
                 <div class="card-body">
                     {% if summary.scale_available %}
@@ -281,10 +294,10 @@
                     <div class="text-center mb-3">
                         <div class="btn-group" role="group" aria-label="Unit selection">
                             <input type="radio" class="btn-check" name="unit-toggle" id="pixel-units" checked>
-                            <label class="btn btn-outline-primary" for="pixel-units">{% trans "Pixels" %}</label>
+                            <label class="btn btn-outline-primary" for="pixel-units">Пиксели</label>
                             
                             <input type="radio" class="btn-check" name="unit-toggle" id="micron-units">
-                            <label class="btn btn-outline-primary" for="micron-units">{% trans "Microns" %} (μm)</label>
+                            <label class="btn btn-outline-primary" for="micron-units">Микроны (μm)</label>
                         </div>
                     </div>
                     {% endif %}
@@ -295,40 +308,40 @@
                             <div class="col-md-3">
                                 <div class="card bg-light">
                                     <div class="card-body text-center">
-                                        <h6>{% trans "Area" %} (px²)</h6>
-                                        <p><strong>{% trans "Mean:" %}</strong> {{ summary.area_stats.mean|floatformat:1 }}</p>
-                                        <p><strong>{% trans "Std:" %}</strong> {{ summary.area_stats.std|floatformat:1 }}</p>
-                                        <small>{% trans "Range:" %} {{ summary.area_stats.min|floatformat:1 }} - {{ summary.area_stats.max|floatformat:1 }}</small>
+                                        <h6>Площадь (px²)</h6>
+                                        <p><strong>Среднее:</strong> {{ summary.area_stats.mean|floatformat:1 }}</p>
+                                        <p><strong>Станд. откл.:</strong> {{ summary.area_stats.std|floatformat:1 }}</p>
+                                        <small>Диапазон: {{ summary.area_stats.min|floatformat:1 }} - {{ summary.area_stats.max|floatformat:1 }}</small>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="card bg-light">
                                     <div class="card-body text-center">
-                                        <h6>{% trans "Perimeter" %} (px)</h6>
-                                        <p><strong>{% trans "Mean:" %}</strong> {{ summary.perimeter_stats.mean|floatformat:1 }}</p>
-                                        <p><strong>{% trans "Std:" %}</strong> {{ summary.perimeter_stats.std|floatformat:1 }}</p>
-                                        <small>{% trans "Range:" %} {{ summary.perimeter_stats.min|floatformat:1 }} - {{ summary.perimeter_stats.max|floatformat:1 }}</small>
+                                        <h6>Периметр (px)</h6>
+                                        <p><strong>Среднее:</strong> {{ summary.perimeter_stats.mean|floatformat:1 }}</p>
+                                        <p><strong>Станд. откл.:</strong> {{ summary.perimeter_stats.std|floatformat:1 }}</p>
+                                        <small>Диапазон: {{ summary.perimeter_stats.min|floatformat:1 }} - {{ summary.perimeter_stats.max|floatformat:1 }}</small>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="card bg-light">
                                     <div class="card-body text-center">
-                                        <h6>{% trans "Circularity" %}</h6>
-                                        <p><strong>{% trans "Mean:" %}</strong> {{ summary.circularity_stats.mean|floatformat:3 }}</p>
-                                        <p><strong>{% trans "Std:" %}</strong> {{ summary.circularity_stats.std|floatformat:3 }}</p>
-                                        <small>{% trans "Range:" %} {{ summary.circularity_stats.min|floatformat:3 }} - {{ summary.circularity_stats.max|floatformat:3 }}</small>
+                                        <h6>Округлость</h6>
+                                        <p><strong>Среднее:</strong> {{ summary.circularity_stats.mean|floatformat:3 }}</p>
+                                        <p><strong>Станд. откл.:</strong> {{ summary.circularity_stats.std|floatformat:3 }}</p>
+                                        <small>Диапазон: {{ summary.circularity_stats.min|floatformat:3 }} - {{ summary.circularity_stats.max|floatformat:3 }}</small>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="card bg-light">
                                     <div class="card-body text-center">
-                                        <h6>{% trans "Eccentricity" %}</h6>
-                                        <p><strong>{% trans "Mean:" %}</strong> {{ summary.eccentricity_stats.mean|floatformat:3 }}</p>
-                                        <p><strong>{% trans "Std:" %}</strong> {{ summary.eccentricity_stats.std|floatformat:3 }}</p>
-                                        <small>{% trans "Range:" %} {{ summary.eccentricity_stats.min|floatformat:3 }} - {{ summary.eccentricity_stats.max|floatformat:3 }}</small>
+                                        <h6>Эксцентриситет</h6>
+                                        <p><strong>Среднее:</strong> {{ summary.eccentricity_stats.mean|floatformat:3 }}</p>
+                                        <p><strong>Станд. откл.:</strong> {{ summary.eccentricity_stats.std|floatformat:3 }}</p>
+                                        <small>Диапазон: {{ summary.eccentricity_stats.min|floatformat:3 }} - {{ summary.eccentricity_stats.max|floatformat:3 }}</small>
                                     </div>
                                 </div>
                             </div>
@@ -342,40 +355,40 @@
                             <div class="col-md-3">
                                 <div class="card bg-success bg-opacity-10">
                                     <div class="card-body text-center">
-                                        <h6>{% trans "Area" %} (μm²)</h6>
-                                        <p><strong>{% trans "Mean:" %}</strong> {{ summary.area_stats_microns.mean|floatformat:2 }}</p>
-                                        <p><strong>{% trans "Std:" %}</strong> {{ summary.area_stats_microns.std|floatformat:2 }}</p>
-                                        <small>{% trans "Range:" %} {{ summary.area_stats_microns.min|floatformat:2 }} - {{ summary.area_stats_microns.max|floatformat:2 }}</small>
+                                        <h6>Площадь (μm²)</h6>
+                                        <p><strong>Среднее:</strong> {{ summary.area_stats_microns.mean|floatformat:2 }}</p>
+                                        <p><strong>Станд. откл.:</strong> {{ summary.area_stats_microns.std|floatformat:2 }}</p>
+                                        <small>Диапазон: {{ summary.area_stats_microns.min|floatformat:2 }} - {{ summary.area_stats_microns.max|floatformat:2 }}</small>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="card bg-success bg-opacity-10">
                                     <div class="card-body text-center">
-                                        <h6>{% trans "Perimeter" %} (μm)</h6>
-                                        <p><strong>{% trans "Mean:" %}</strong> {{ summary.perimeter_stats_microns.mean|floatformat:2 }}</p>
-                                        <p><strong>{% trans "Std:" %}</strong> {{ summary.perimeter_stats_microns.std|floatformat:2 }}</p>
-                                        <small>{% trans "Range:" %} {{ summary.perimeter_stats_microns.min|floatformat:2 }} - {{ summary.perimeter_stats_microns.max|floatformat:2 }}</small>
+                                        <h6>Периметр (μm)</h6>
+                                        <p><strong>Среднее:</strong> {{ summary.perimeter_stats_microns.mean|floatformat:2 }}</p>
+                                        <p><strong>Станд. откл.:</strong> {{ summary.perimeter_stats_microns.std|floatformat:2 }}</p>
+                                        <small>Диапазон: {{ summary.perimeter_stats_microns.min|floatformat:2 }} - {{ summary.perimeter_stats_microns.max|floatformat:2 }}</small>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="card bg-light">
                                     <div class="card-body text-center">
-                                        <h6>{% trans "Circularity" %}</h6>
-                                        <p><strong>{% trans "Mean:" %}</strong> {{ summary.circularity_stats.mean|floatformat:3 }}</p>
-                                        <p><strong>{% trans "Std:" %}</strong> {{ summary.circularity_stats.std|floatformat:3 }}</p>
-                                        <small>{% trans "Range:" %} {{ summary.circularity_stats.min|floatformat:3 }} - {{ summary.circularity_stats.max|floatformat:3 }}</small>
+                                        <h6>Округлость</h6>
+                                        <p><strong>Среднее:</strong> {{ summary.circularity_stats.mean|floatformat:3 }}</p>
+                                        <p><strong>Станд. откл.:</strong> {{ summary.circularity_stats.std|floatformat:3 }}</p>
+                                        <small>Диапазон: {{ summary.circularity_stats.min|floatformat:3 }} - {{ summary.circularity_stats.max|floatformat:3 }}</small>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="card bg-light">
                                     <div class="card-body text-center">
-                                        <h6>{% trans "Eccentricity" %}</h6>
-                                        <p><strong>{% trans "Mean:" %}</strong> {{ summary.eccentricity_stats.mean|floatformat:3 }}</p>
-                                        <p><strong>{% trans "Std:" %}</strong> {{ summary.eccentricity_stats.std|floatformat:3 }}</p>
-                                        <small>{% trans "Range:" %} {{ summary.eccentricity_stats.min|floatformat:3 }} - {{ summary.eccentricity_stats.max|floatformat:3 }}</small>
+                                        <h6>Эксцентриситет</h6>
+                                        <p><strong>Среднее:</strong> {{ summary.eccentricity_stats.mean|floatformat:3 }}</p>
+                                        <p><strong>Станд. откл.:</strong> {{ summary.eccentricity_stats.std|floatformat:3 }}</p>
+                                        <small>Диапазон: {{ summary.eccentricity_stats.min|floatformat:3 }} - {{ summary.eccentricity_stats.max|floatformat:3 }}</small>
                                     </div>
                                 </div>
                             </div>
@@ -395,38 +408,38 @@
                 <div class="card-header bg-light">
                     <h6 class="mb-0 text-info">
                         <i class="fas fa-filter me-2"></i>
-                        {% trans "Cell Filtering Process" %}
+                        Процесс фильтрации клеток
                     </h6>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <h6>{% trans "Processing Pipeline:" %}</h6>
+                            <h6>Конвейер обработки:</h6>
                             <ol class="small">
-                                <li>{% trans "Cellpose Detection:" %} <strong>{{ original_cell_count }}</strong> {% trans "cells found" %}</li>
+                                <li>Обнаружение Cellpose: <strong>{{ original_cell_count }}</strong> клеток найдено</li>
                                 {% if filtering_info.refinement %}
-                                    <li>{% trans "Segmentation Refinement:" %} <strong>{{ filtering_info.refinement.refined_count }}</strong> {% trans "cells (shape/size filtering)" %}</li>
+                                    <li>Улучшение сегментации: <strong>{{ filtering_info.refinement.refined_count }}</strong> клеток (фильтрация по форме/размеру)</li>
                                 {% endif %}
                                 {% if filtering_info.validation %}
-                                    <li>{% trans "Quality Validation:" %} <strong>{{ filtering_info.validation.valid_cells }}</strong> {% trans "cells (outlier removal)" %}</li>
+                                    <li>Проверка качества: <strong>{{ filtering_info.validation.valid_cells }}</strong> клеток (удаление выбросов)</li>
                                 {% endif %}
-                                <li class="text-success"><strong>{% trans "Final Result:" %} {{ validated_cell_count }} {% trans "valid cells" %}</strong></li>
+                                <li class="text-success"><strong>Итоговый результат: {{ validated_cell_count }} валидных клеток</strong></li>
                             </ol>
                         </div>
                         <div class="col-md-6">
                             {% if filtering_info.validation.outlier_reasons %}
-                            <h6>{% trans "Filtering Reasons:" %}</h6>
+                            <h6>Причины фильтрации:</h6>
                             <ul class="small">
                                 {% for reason, count in filtering_info.validation.outlier_reasons.items %}
                                     {% if count > 0 %}
                                     <li>
-                                        {% if reason == 'area_outliers' %}{% trans "Area outliers" %}
-                                        {% elif reason == 'perimeter_outliers' %}{% trans "Perimeter outliers" %}
-                                        {% elif reason == 'circularity_outliers' %}{% trans "Circularity outliers" %}
-                                        {% elif reason == 'eccentricity_outliers' %}{% trans "Eccentricity outliers" %}
-                                        {% elif reason == 'physics_violations' %}{% trans "Physics violations" %}
+                                        {% if reason == 'area_outliers' %}Выбросы по площади
+                                        {% elif reason == 'perimeter_outliers' %}Выбросы по периметру
+                                        {% elif reason == 'circularity_outliers' %}Выбросы по округлости
+                                        {% elif reason == 'eccentricity_outliers' %}Выбросы по эксцентриситету
+                                        {% elif reason == 'physics_violations' %}Нарушения физики
                                         {% else %}{{ reason }}{% endif %}
-                                        : <strong>{{ count }}</strong> {% trans "cell" %}{% if count > 1 %}s{% endif %}
+                                        : <strong>{{ count }}</strong> клетка{% if count > 1 %}s{% endif %}
                                     </li>
                                     {% endif %}
                                 {% endfor %}
@@ -435,7 +448,7 @@
                             <div class="mt-2">
                                 <span class="badge bg-info">
                                     {% if filtering_info.validation.outlier_percentage %}
-                                        {{ filtering_info.validation.outlier_percentage|floatformat:1 }}% {% trans "filtered" %}
+                                        {{ filtering_info.validation.outlier_percentage|floatformat:1 }}% отфильтровано
                                     {% endif %}
                                 </span>
                             </div>
@@ -452,113 +465,452 @@
     <div class="section-spaced">
             <div class="card">
                 <div class="card-header flex-between">
-                    <h5 class="mb-0">{% trans "Individual Cell Measurements" %}</h5>
+                    <h5 class="mb-0">Индивидуальные измерения клеток</h5>
                     <div class="flex-center gap-sm">
-                        <span class="badge bg-success">{{ validated_cell_count }} {% trans "valid cells" %}</span>
+                        <span class="badge bg-success">{{ validated_cell_count }} валидных клеток</span>
                         {% if cells_filtered > 0 %}
-                            <span class="badge bg-warning">{{ cells_filtered }} {% trans "filtered" %}</span>
-                            <span class="text-muted small">({{ original_cell_count }} {% trans "detected" %})</span>
+                            <span class="badge bg-warning">{{ cells_filtered }} отфильтровано</span>
+                            <span class="text-muted small">({{ original_cell_count }} обнаружено)</span>
                         {% endif %}
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-container--analysis">
-                        <table class="table table-striped table-hover">
-                            <thead>
-                                <tr>
-                                    <th>{% trans "Cell ID" %}</th>
-                                    <th class="pixel-header">{% trans "Area" %} (px²)</th>
-                                    <th class="pixel-header">{% trans "Perimeter" %} (px)</th>
-                                    <th class="micron-header" style="display: none;">{% trans "Area" %} (μm²)</th>
-                                    <th class="micron-header" style="display: none;">{% trans "Perimeter" %} (μm)</th>
-                                    <th>{% trans "Circularity" %}</th>
-                                    <th>{% trans "Eccentricity" %}</th>
-                                    <th>{% trans "Solidity" %}</th>
-                                    <th>{% trans "Aspect Ratio" %}</th>
-                                    <th class="pixel-header">{% trans "Major Axis" %} (px)</th>
-                                    <th class="pixel-header">{% trans "Minor Axis" %} (px)</th>
-                                    <th class="micron-header" style="display: none;">{% trans "Major Axis" %} (μm)</th>
-                                    <th class="micron-header" style="display: none;">{% trans "Minor Axis" %} (μm)</th>
-                                    <th>{% trans "Centroid" %} (x,y)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for cell_data in page_obj %}
-                                <tr>
-                                    <td><strong>{{ cell_data.cell_id }}</strong></td>
-                                    <td class="pixel-data">{{ cell_data.area|floatformat:1 }}</td>
-                                    <td class="pixel-data">{{ cell_data.perimeter|floatformat:1 }}</td>
-                                    <td class="micron-data" style="display: none;">
-                                        {% if cell_data.area_microns_sq %}
-                                            {{ cell_data.area_microns_sq|floatformat:2 }}
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="micron-data" style="display: none;">
-                                        {% if cell_data.perimeter_microns %}
-                                            {{ cell_data.perimeter_microns|floatformat:2 }}
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ cell_data.circularity|floatformat:3 }}</td>
-                                    <td>{{ cell_data.eccentricity|floatformat:3 }}</td>
-                                    <td>{{ cell_data.solidity|floatformat:3 }}</td>
-                                    <td>{{ cell_data.aspect_ratio|floatformat:2 }}</td>
-                                    <td class="pixel-data">{{ cell_data.major_axis_length|floatformat:1 }}</td>
-                                    <td class="pixel-data">{{ cell_data.minor_axis_length|floatformat:1 }}</td>
-                                    <td class="micron-data" style="display: none;">
-                                        {% if cell_data.major_axis_length_microns %}
-                                            {{ cell_data.major_axis_length_microns|floatformat:2 }}
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="micron-data" style="display: none;">
-                                        {% if cell_data.minor_axis_length_microns %}
-                                            {{ cell_data.minor_axis_length_microns|floatformat:2 }}
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>({{ cell_data.centroid_x|floatformat:1 }}, {{ cell_data.centroid_y|floatformat:1 }})</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    <!-- Enhanced Table Controls -->
+                    <div class="table-controls mb-3">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <div class="table-search">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light">
+                                            <i class="fas fa-search text-muted"></i>
+                                        </span>
+                                        <input type="text" class="form-control" id="cell-search" placeholder="Поиск по ID клетки или значениям...">
+                                        <button class="btn btn-outline-secondary" type="button" id="clear-search">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="table-actions d-flex justify-content-end align-items-center gap-2">
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" id="select-all-cells">
+                                            <i class="fas fa-check-square me-1"></i>Выбрать все
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="clear-selection">
+                                            <i class="fas fa-square me-1"></i>Очистить
+                                        </button>
+                                    </div>
+                                    <div class="dropdown">
+                                        <button class="btn btn-outline-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            <i class="fas fa-download me-1"></i>Экспорт
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="#" id="export-selected-csv">
+                                                <i class="fas fa-file-csv me-2"></i>Выбранные (CSV)
+                                            </a></li>
+                                            <li><a class="dropdown-item" href="#" id="export-all-csv">
+                                                <i class="fas fa-table me-2"></i>Все данные (CSV)
+                                            </a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item" href="#" id="export-summary-pdf">
+                                                <i class="fas fa-file-pdf me-2"></i>Сводка (PDF)
+                                            </a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
-                    <!-- Pagination -->
+                    <!-- Enhanced Table Container -->
+                    <div class="table-container--analysis">
+                        <div class="table-responsive">
+                            <table class="table table-hover analysis-table" id="analysis-results-table">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th class="selection-col">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="select-all-checkbox">
+                                                <label class="form-check-label" for="select-all-checkbox"></label>
+                                            </div>
+                                        </th>
+                                        <th class="cell-id-col">
+                                            <div class="sortable-header" data-sort="cell_id">
+                                                <span>ID клетки</span>
+                                                <i class="fas fa-sort text-muted ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="pixel-header numeric-col">
+                                            <div class="sortable-header" data-sort="area">
+                                                <span>Площадь (px²)</span>
+                                                <i class="fas fa-sort text-muted ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="pixel-header numeric-col">
+                                            <div class="sortable-header" data-sort="perimeter">
+                                                <span>Периметр (px)</span>
+                                                <i class="fas fa-sort text-muted ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="micron-header numeric-col" style="display: none;">
+                                            <div class="sortable-header" data-sort="area_microns">
+                                                <span>Площадь (μm²)</span>
+                                                <i class="fas fa-sort text-muted ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="micron-header numeric-col" style="display: none;">
+                                            <div class="sortable-header" data-sort="perimeter_microns">
+                                                <span>Периметр (μm)</span>
+                                                <i class="fas fa-sort text-muted ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="numeric-col">
+                                            <div class="sortable-header" data-sort="circularity">
+                                                <span>Округлость</span>
+                                                <i class="fas fa-sort text-muted ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="numeric-col">
+                                            <div class="sortable-header" data-sort="eccentricity">
+                                                <span>Эксцентриситет</span>
+                                                <i class="fas fa-sort text-muted ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="numeric-col">
+                                            <div class="sortable-header" data-sort="solidity">
+                                                <span>Плотность</span>
+                                                <i class="fas fa-sort text-muted ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="numeric-col">
+                                            <div class="sortable-header" data-sort="aspect_ratio">
+                                                <span>Соотношение сторон</span>
+                                                <i class="fas fa-sort text-muted ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="pixel-header numeric-col">
+                                            <div class="sortable-header" data-sort="major_axis">
+                                                <span>Главная ось (px)</span>
+                                                <i class="fas fa-sort text-muted ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="pixel-header numeric-col">
+                                            <div class="sortable-header" data-sort="minor_axis">
+                                                <span>Малая ось (px)</span>
+                                                <i class="fas fa-sort text-muted ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="micron-header numeric-col" style="display: none;">
+                                            <div class="sortable-header" data-sort="major_axis_microns">
+                                                <span>Главная ось (μm)</span>
+                                                <i class="fas fa-sort text-muted ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="micron-header numeric-col" style="display: none;">
+                                            <div class="sortable-header" data-sort="minor_axis_microns">
+                                                <span>Малая ось (μm)</span>
+                                                <i class="fas fa-sort text-muted ms-1"></i>
+                                            </div>
+                                        </th>
+                                        <th class="centroid-col">
+                                            <span>Центроид (x,y)</span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for cell_data in page_obj %}
+                                    <tr class="cell-row" data-cell-id="{{ cell_data.cell_id }}">
+                                        <td class="selection-col">
+                                            <div class="form-check">
+                                                <input class="form-check-input cell-checkbox" type="checkbox" value="{{ cell_data.cell_id }}">
+                                            </div>
+                                        </td>
+                                        <td class="cell-id-col">
+                                            <div class="cell-id-badge">
+                                                <span class="badge bg-primary">{{ cell_data.cell_id }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="pixel-data numeric-col">
+                                            <span class="numeric-value" data-value="{{ cell_data.area }}">{{ cell_data.area|floatformat:1 }}</span>
+                                        </td>
+                                        <td class="pixel-data numeric-col">
+                                            <span class="numeric-value" data-value="{{ cell_data.perimeter }}">{{ cell_data.perimeter|floatformat:1 }}</span>
+                                        </td>
+                                        <td class="micron-data numeric-col" style="display: none;">
+                                            {% if cell_data.area_microns_sq %}
+                                                <span class="numeric-value" data-value="{{ cell_data.area_microns_sq }}">{{ cell_data.area_microns_sq|floatformat:2 }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="micron-data numeric-col" style="display: none;">
+                                            {% if cell_data.perimeter_microns %}
+                                                <span class="numeric-value" data-value="{{ cell_data.perimeter_microns }}">{{ cell_data.perimeter_microns|floatformat:2 }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="numeric-col">
+                                            <span class="numeric-value quality-indicator" data-value="{{ cell_data.circularity }}">
+                                                {{ cell_data.circularity|floatformat:3 }}
+                                                {% if cell_data.circularity > 0.8 %}
+                                                    <i class="fas fa-circle text-success ms-1" title="Высокая округлость"></i>
+                                                {% elif cell_data.circularity > 0.6 %}
+                                                    <i class="fas fa-circle text-warning ms-1" title="Средняя округлость"></i>
+                                                {% else %}
+                                                    <i class="fas fa-circle text-danger ms-1" title="Низкая округлость"></i>
+                                                {% endif %}
+                                            </span>
+                                        </td>
+                                        <td class="numeric-col">
+                                            <span class="numeric-value" data-value="{{ cell_data.eccentricity }}">{{ cell_data.eccentricity|floatformat:3 }}</span>
+                                        </td>
+                                        <td class="numeric-col">
+                                            <span class="numeric-value" data-value="{{ cell_data.solidity }}">{{ cell_data.solidity|floatformat:3 }}</span>
+                                        </td>
+                                        <td class="numeric-col">
+                                            <span class="numeric-value" data-value="{{ cell_data.aspect_ratio }}">{{ cell_data.aspect_ratio|floatformat:2 }}</span>
+                                        </td>
+                                        <td class="pixel-data numeric-col">
+                                            <span class="numeric-value" data-value="{{ cell_data.major_axis_length }}">{{ cell_data.major_axis_length|floatformat:1 }}</span>
+                                        </td>
+                                        <td class="pixel-data numeric-col">
+                                            <span class="numeric-value" data-value="{{ cell_data.minor_axis_length }}">{{ cell_data.minor_axis_length|floatformat:1 }}</span>
+                                        </td>
+                                        <td class="micron-data numeric-col" style="display: none;">
+                                            {% if cell_data.major_axis_length_microns %}
+                                                <span class="numeric-value" data-value="{{ cell_data.major_axis_length_microns }}">{{ cell_data.major_axis_length_microns|floatformat:2 }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="micron-data numeric-col" style="display: none;">
+                                            {% if cell_data.minor_axis_length_microns %}
+                                                <span class="numeric-value" data-value="{{ cell_data.minor_axis_length_microns }}">{{ cell_data.minor_axis_length_microns|floatformat:2 }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="centroid-col">
+                                            <small class="text-muted font-monospace">
+                                                ({{ cell_data.centroid_x|floatformat:1 }}, {{ cell_data.centroid_y|floatformat:1 }})
+                                            </small>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Table Summary Footer -->
+                        <div class="table-summary mt-3">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <div class="selection-summary">
+                                        <span id="selection-count" class="badge bg-info">0 выбрано</span>
+                                        <small class="text-muted ms-2">из {{ validated_cell_count }} клеток</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    <div class="table-stats">
+                                        <small class="text-muted">
+                                            Показано {{ page_obj.start_index }}-{{ page_obj.end_index }} 
+                                            из {{ page_obj.paginator.count }} записей
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Enhanced Pagination -->
                     {% if page_obj.has_other_pages %}
-                    <nav aria-label="Cell data pagination">
-                        <ul class="pagination justify-content-center">
-                            {% if page_obj.has_previous %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">{% trans "Previous" %}</a>
-                            </li>
-                            {% endif %}
-                            
-                            {% for page_num in page_obj.paginator.page_range %}
-                            {% if page_num == page_obj.number %}
-                            <li class="page-item active">
-                                <span class="page-link">{{ page_num }}</span>
-                            </li>
-                            {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_num }}">{{ page_num }}</a>
-                            </li>
-                            {% endif %}
-                            {% endfor %}
-                            
-                            {% if page_obj.has_next %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">{% trans "Next" %}</a>
-                            </li>
-                            {% endif %}
-                        </ul>
-                    </nav>
+                    <div class="pagination-container mt-4">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <div class="pagination-info">
+                                    <span class="text-muted">
+                                        Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+                                        (всего {{ page_obj.paginator.count }} записей)
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <nav aria-label="Cell data pagination" class="d-flex justify-content-end">
+                                    <ul class="pagination pagination-sm mb-0">
+                                        {% if page_obj.has_previous %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page=1" title="Первая страница">
+                                                    <i class="fas fa-angle-double-left"></i>
+                                                </a>
+                                            </li>
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}" title="Предыдущая страница">
+                                                    <i class="fas fa-angle-left"></i>
+                                                </a>
+                                            </li>
+                                        {% else %}
+                                            <li class="page-item disabled">
+                                                <span class="page-link">
+                                                    <i class="fas fa-angle-double-left"></i>
+                                                </span>
+                                            </li>
+                                            <li class="page-item disabled">
+                                                <span class="page-link">
+                                                    <i class="fas fa-angle-left"></i>
+                                                </span>
+                                            </li>
+                                        {% endif %}
+                                        
+                                        {% for page_num in page_obj.paginator.page_range %}
+                                            {% if page_num == page_obj.number %}
+                                                <li class="page-item active">
+                                                    <span class="page-link">{{ page_num }}</span>
+                                                </li>
+                                            {% elif page_num == 1 or page_num == page_obj.paginator.num_pages %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ page_num }}">{{ page_num }}</a>
+                                                </li>
+                                            {% elif page_num > page_obj.number|add:'-2' and page_num < page_obj.number|add:'3' %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ page_num }}">{{ page_num }}</a>
+                                                </li>
+                                            {% elif page_num == page_obj.number|add:'-3' or page_num == page_obj.number|add:'3' %}
+                                                <li class="page-item disabled">
+                                                    <span class="page-link">...</span>
+                                                </li>
+                                            {% endif %}
+                                        {% endfor %}
+                                        
+                                        {% if page_obj.has_next %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ page_obj.next_page_number }}" title="Следующая страница">
+                                                    <i class="fas fa-angle-right"></i>
+                                                </a>
+                                            </li>
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" title="Последняя страница">
+                                                    <i class="fas fa-angle-double-right"></i>
+                                                </a>
+                                            </li>
+                                        {% else %}
+                                            <li class="page-item disabled">
+                                                <span class="page-link">
+                                                    <i class="fas fa-angle-right"></i>
+                                                </span>
+                                            </li>
+                                            <li class="page-item disabled">
+                                                <span class="page-link">
+                                                    <i class="fas fa-angle-double-right"></i>
+                                                </span>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </nav>
+                            </div>
+                        </div>
+                        
+                        <!-- Quick Jump -->
+                        {% if page_obj.paginator.num_pages > 10 %}
+                        <div class="row mt-3">
+                            <div class="col-12 text-center">
+                                <div class="quick-jump">
+                                    <div class="input-group input-group-sm d-inline-flex" style="width: auto;">
+                                        <span class="input-group-text">Перейти к странице:</span>
+                                        <input type="number" class="form-control" id="page-jump" min="1" max="{{ page_obj.paginator.num_pages }}" value="{{ page_obj.number }}" style="width: 80px;">
+                                        <button class="btn btn-outline-primary" type="button" id="jump-to-page">
+                                            <i class="fas fa-arrow-right"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
                     {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- PDF Report Generation -->
+    {% if analysis.status == 'completed' %}
+    <div class="section-spaced">
+        <div class="card border-0 shadow-lg">
+            <div class="card-header bg-gradient-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-pdf me-2"></i>
+                        Comprehensive PDF Report
+                    </h5>
+                    <span class="badge bg-light text-dark">
+                        Professional Format
+                    </span>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h6 class="text-primary mb-2">Generate Complete Morphometric Analysis Report</h6>
+                        <p class="text-muted mb-3">
+                            Create a comprehensive PDF report including all visualizations, statistical analysis, 
+                            individual cell data, and detailed methodology. Perfect for research publications, 
+                            presentations, and documentation.
+                        </p>
+                        
+                        <div class="report-features">
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <div class="feature-item">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        <small>Complete visualization pipeline</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="feature-item">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        <small>Statistical analysis & charts</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="feature-item">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        <small>Individual cell measurements</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="feature-item">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        <small>Quality control metrics</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="pdf-preview mb-3">
+                            <i class="fas fa-file-pdf fa-4x text-danger"></i>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'reports:analysis_pdf_config' analysis.id %}" class="btn btn-primary">
+                                <i class="fas fa-cog me-2"></i>
+                                Configure & Generate
+                            </a>
+                            <a href="{% url 'reports:analysis_pdf' analysis.id %}" class="btn btn-outline-primary" target="_blank">
+                                <i class="fas fa-lightning-bolt me-2"></i>
+                                Quick Generate
+                            </a>
+                        </div>
+                        
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                Est. {{ page_obj.paginator.count|default:validated_cell_count|add:10 }} pages
+                            </small>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -569,10 +921,10 @@
     <!-- Delete Analysis Button -->
     {% if analysis.status != 'processing' %}
     <div class="section-spaced text-center">
-            <form method="post" action="{% url 'cells:delete_analysis' analysis.id %}" onsubmit="return confirm('{% trans "Are you sure you want to delete this analysis?" %}');">
+            <form method="post" action="{% url 'cells:delete_analysis' analysis.id %}" onsubmit="return confirm('Вы уверены, что хотите удалить этот анализ?');">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-outline-danger">
-                    <i class="fas fa-trash"></i> {% trans "Delete Analysis" %}
+                    <i class="fas fa-trash"></i> Удалить анализ
                 </button>
             </form>
     </div>
@@ -582,11 +934,224 @@
 <!-- Font Awesome for icons -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
+<!-- Enhanced Table Styles -->
+<style>
+/* Table enhancements */
+.analysis-table {
+    font-size: 0.9rem;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.analysis-table thead th {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 0.75rem 0.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.analysis-table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.analysis-table tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.analysis-table tbody tr.selected {
+    background-color: rgba(13, 110, 253, 0.1);
+    border-left: 3px solid #0d6efd;
+}
+
+.sortable-header {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+    transition: all 0.2s ease;
+}
+
+.sortable-header:hover {
+    color: #0d6efd;
+}
+
+.sortable-header.sorted-asc i:before {
+    content: "\f0de";
+    color: #0d6efd;
+}
+
+.sortable-header.sorted-desc i:before {
+    content: "\f0dd";
+    color: #0d6efd;
+}
+
+.selection-col {
+    width: 40px;
+    text-align: center;
+}
+
+.cell-id-col {
+    width: 80px;
+    text-align: center;
+}
+
+.numeric-col {
+    text-align: right;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    width: 100px;
+}
+
+.centroid-col {
+    width: 120px;
+    text-align: center;
+}
+
+.cell-id-badge .badge {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.6rem;
+}
+
+.numeric-value {
+    display: inline-block;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    background: rgba(108, 117, 125, 0.1);
+    transition: all 0.2s ease;
+}
+
+.numeric-value:hover {
+    background: rgba(13, 110, 253, 0.1);
+    color: #0d6efd;
+}
+
+.quality-indicator {
+    position: relative;
+}
+
+.table-container--analysis {
+    border-radius: 0.5rem;
+    overflow: hidden;
+    border: 1px solid #dee2e6;
+    background: white;
+}
+
+.table-controls {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.table-search .input-group-text {
+    border-right: 0;
+}
+
+.table-search .form-control {
+    border-left: 0;
+    border-right: 0;
+}
+
+.table-search button {
+    border-left: 0;
+}
+
+.table-summary {
+    background: #f8f9fa;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid #dee2e6;
+}
+
+.pagination-container {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid #dee2e6;
+}
+
+.pagination-info {
+    font-size: 0.9rem;
+}
+
+.quick-jump .input-group {
+    max-width: 300px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .analysis-table {
+        font-size: 0.8rem;
+    }
+    
+    .analysis-table th,
+    .analysis-table td {
+        padding: 0.5rem 0.25rem;
+    }
+    
+    .numeric-col {
+        width: 80px;
+    }
+    
+    .table-controls .row > div {
+        margin-bottom: 0.5rem;
+    }
+    
+    .table-actions {
+        justify-content: start !important;
+    }
+    
+    .pagination-container .row > div {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Loading states */
+.table-loading {
+    position: relative;
+}
+
+.table-loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+}
+
+.table-loading::before {
+    content: 'Загрузка...';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 1rem 2rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 21;
+}
+</style>
+
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const pixelUnitsRadio = document.getElementById('pixel-units');
     const micronUnitsRadio = document.getElementById('micron-units');
+    
+    // Initialize enhanced table functionality
+    initializeTableFeatures();
+    initializePagination();
     
     if (pixelUnitsRadio && micronUnitsRadio) {
         // Toggle summary statistics
@@ -628,6 +1193,246 @@ document.addEventListener('DOMContentLoaded', function() {
             pixelData.forEach(el => el.style.display = 'none');
             micronData.forEach(el => el.style.display = '');
         }
+    }
+    
+    function initializeTableFeatures() {
+        // Search functionality
+        const searchInput = document.getElementById('cell-search');
+        const clearSearchBtn = document.getElementById('clear-search');
+        
+        if (searchInput) {
+            searchInput.addEventListener('input', debounce(performSearch, 300));
+        }
+        
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', function() {
+                searchInput.value = '';
+                performSearch();
+            });
+        }
+        
+        // Selection functionality
+        const selectAllCheckbox = document.getElementById('select-all-checkbox');
+        const selectAllBtn = document.getElementById('select-all-cells');
+        const clearSelectionBtn = document.getElementById('clear-selection');
+        
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                toggleAllCells(this.checked);
+            });
+        }
+        
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener('click', function() {
+                selectAllCheckbox.checked = true;
+                toggleAllCells(true);
+            });
+        }
+        
+        if (clearSelectionBtn) {
+            clearSelectionBtn.addEventListener('click', function() {
+                selectAllCheckbox.checked = false;
+                toggleAllCells(false);
+            });
+        }
+        
+        // Individual cell checkboxes
+        const cellCheckboxes = document.querySelectorAll('.cell-checkbox');
+        cellCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateRowSelection(this);
+                updateSelectionCount();
+                updateSelectAllState();
+            });
+        });
+        
+        // Sort functionality
+        const sortableHeaders = document.querySelectorAll('.sortable-header');
+        sortableHeaders.forEach(header => {
+            header.addEventListener('click', function() {
+                const sortField = this.dataset.sort;
+                if (sortField) {
+                    sortTable(sortField, this);
+                }
+            });
+        });
+        
+        // Export functionality
+        const exportSelectedBtn = document.getElementById('export-selected-csv');
+        const exportAllBtn = document.getElementById('export-all-csv');
+        
+        if (exportSelectedBtn) {
+            exportSelectedBtn.addEventListener('click', exportSelectedCells);
+        }
+        
+        if (exportAllBtn) {
+            exportAllBtn.addEventListener('click', exportAllCells);
+        }
+        
+        // Initialize selection count
+        updateSelectionCount();
+    }
+    
+    function initializePagination() {
+        const jumpToPageBtn = document.getElementById('jump-to-page');
+        const pageJumpInput = document.getElementById('page-jump');
+        
+        if (jumpToPageBtn && pageJumpInput) {
+            jumpToPageBtn.addEventListener('click', function() {
+                const pageNum = parseInt(pageJumpInput.value);
+                if (pageNum && pageNum > 0) {
+                    window.location.href = `?page=${pageNum}`;
+                }
+            });
+            
+            pageJumpInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    jumpToPageBtn.click();
+                }
+            });
+        }
+    }
+    
+    function performSearch() {
+        const searchTerm = document.getElementById('cell-search').value.toLowerCase();
+        const rows = document.querySelectorAll('.cell-row');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const cellId = row.dataset.cellId;
+            const rowText = row.textContent.toLowerCase();
+            
+            if (searchTerm === '' || rowText.includes(searchTerm) || cellId.includes(searchTerm)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update visible count
+        const summaryElement = document.querySelector('.table-stats small');
+        if (summaryElement && searchTerm !== '') {
+            summaryElement.textContent = `Найдено ${visibleCount} записей`;
+        }
+    }
+    
+    function toggleAllCells(selected) {
+        const checkboxes = document.querySelectorAll('.cell-checkbox');
+        const rows = document.querySelectorAll('.cell-row');
+        
+        checkboxes.forEach((checkbox, index) => {
+            checkbox.checked = selected;
+            updateRowSelection(checkbox);
+        });
+        
+        updateSelectionCount();
+    }
+    
+    function updateRowSelection(checkbox) {
+        const row = checkbox.closest('.cell-row');
+        if (checkbox.checked) {
+            row.classList.add('selected');
+        } else {
+            row.classList.remove('selected');
+        }
+    }
+    
+    function updateSelectionCount() {
+        const selectedCount = document.querySelectorAll('.cell-checkbox:checked').length;
+        const countElement = document.getElementById('selection-count');
+        
+        if (countElement) {
+            countElement.textContent = `${selectedCount} выбрано`;
+            countElement.className = selectedCount > 0 ? 'badge bg-primary' : 'badge bg-info';
+        }
+    }
+    
+    function updateSelectAllState() {
+        const checkboxes = document.querySelectorAll('.cell-checkbox');
+        const checkedBoxes = document.querySelectorAll('.cell-checkbox:checked');
+        const selectAllCheckbox = document.getElementById('select-all-checkbox');
+        
+        if (selectAllCheckbox) {
+            if (checkedBoxes.length === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            } else if (checkedBoxes.length === checkboxes.length) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+            }
+        }
+    }
+    
+    function sortTable(field, headerElement) {
+        const tbody = document.querySelector('#analysis-results-table tbody');
+        const rows = Array.from(tbody.querySelectorAll('.cell-row'));
+        
+        // Determine sort direction
+        const isAscending = !headerElement.classList.contains('sorted-asc');
+        
+        // Clear all sort classes
+        document.querySelectorAll('.sortable-header').forEach(h => {
+            h.classList.remove('sorted-asc', 'sorted-desc');
+        });
+        
+        // Add appropriate sort class
+        headerElement.classList.add(isAscending ? 'sorted-asc' : 'sorted-desc');
+        
+        // Sort rows
+        rows.sort((a, b) => {
+            let aVal, bVal;
+            
+            if (field === 'cell_id') {
+                aVal = parseInt(a.dataset.cellId);
+                bVal = parseInt(b.dataset.cellId);
+            } else {
+                const aElement = a.querySelector(`[data-value]`);
+                const bElement = b.querySelector(`[data-value]`);
+                aVal = parseFloat(aElement?.dataset.value || 0);
+                bVal = parseFloat(bElement?.dataset.value || 0);
+            }
+            
+            if (isAscending) {
+                return aVal - bVal;
+            } else {
+                return bVal - aVal;
+            }
+        });
+        
+        // Re-append sorted rows
+        rows.forEach(row => tbody.appendChild(row));
+    }
+    
+    function exportSelectedCells() {
+        const selectedRows = document.querySelectorAll('.cell-row.selected');
+        if (selectedRows.length === 0) {
+            alert('Пожалуйста, выберите клетки для экспорта');
+            return;
+        }
+        
+        // Implementation would depend on backend endpoint
+        console.log('Exporting selected cells:', selectedRows.length);
+    }
+    
+    function exportAllCells() {
+        // Implementation would depend on backend endpoint
+        console.log('Exporting all cells');
+    }
+    
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
     }
 });
 </script>

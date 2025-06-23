@@ -1,15 +1,14 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
-{% load i18n %}
 
-{% block title %}{% trans 'Login' %} - Morph AI{% endblock %}
+{% block title %}Войти - Morph AI{% endblock %}
 
 {% block content %}
 <div class="content-form row justify-content-center">
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-10 col-lg-10 col-xl-10">
         <div class="morph-card morph-card--professional">
             <div class="card-header">
-                <h3 class="text-center">{% trans 'Sign In' %}</h3>
+                <h3 class="text-center">Войти</h3>
             </div>
             <div class="card-body">
                 <form method="post">
@@ -19,7 +18,7 @@
                 
                 <hr>
                 <div class="text-center">
-                    <p>{% trans "Don't have an account?" %} <a href="{% url 'accounts:signup' %}">{% trans 'Sign up here' %}</a></p>
+                    <p>Нет учетной записи? <a href="{% url 'accounts:signup' %}">Зарегистрироваться</a></p>
                 </div>
             </div>
         </div>

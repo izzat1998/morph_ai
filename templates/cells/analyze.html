@@ -1,8 +1,7 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
-{% load i18n %}
 
-{% block title %}{% trans 'Analyze' %} {{ cell.name }}{% endblock %}
+{% block title %}Анализировать {{ cell.name }}{% endblock %}
 
 {% block content %}
 <!-- Hero Section with Cell Info -->
@@ -12,12 +11,12 @@
             <div class="col-md-8">
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb mb-2">
-                        <li class="breadcrumb-item"><a href="{% url 'cells:list' %}">{% trans 'Images' %}</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'cells:list' %}">Изображения</a></li>
                         <li class="breadcrumb-item"><a href="{% url 'cells:cell_detail' cell.id %}">{{ cell.name }}</a></li>
-                        <li class="breadcrumb-item active">{% trans 'Analyze' %}</li>
+                        <li class="breadcrumb-item active">Анализировать</li>
                     </ol>
                 </nav>
-                <h1 class="display-6 fw-bold text-gradient mb-2">{% trans 'Morphometric Analysis' %}</h1>
+                <h1 class="display-6 fw-bold text-gradient mb-2">Морфометрический анализ</h1>
                 <p class="lead text-muted mb-0">{{ cell.name }}</p>
             </div>
             <div class="col-md-4 text-md-end">
@@ -29,12 +28,12 @@
                     {% if cell.scale_set %}
                     <small class="text-success">
                         <i class="fas fa-check-circle me-1"></i>
-                        {% trans 'Scale calibrated' %}: {{ cell.pixels_per_micron|floatformat:2 }} px/μm
+                        Масштаб откалиброван: {{ cell.pixels_per_micron|floatformat:2 }} px/μm
                     </small>
                     {% else %}
                     <small class="text-warning">
                         <i class="fas fa-exclamation-triangle me-1"></i>
-                        {% trans 'Scale not calibrated' %}
+                        Масштаб не откалиброван
                     </small>
                     {% endif %}
                 </div>
@@ -54,12 +53,12 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">
                                 <i class="fas fa-image me-2"></i>
-                                {% trans 'Image Preview' %}
+                                Предварительный просмотр изображения
                             </h5>
                             <div class="roi-mode-indicator" id="roi-mode-indicator" style="display: none;">
                                 <span class="badge bg-warning text-dark">
                                     <i class="fas fa-crop me-1"></i>
-                                    {% trans 'ROI Mode Active' %}
+                                    Режим ROI активен
                                 </span>
                             </div>
                         </div>
@@ -72,13 +71,13 @@
                                     <div class="col-md-8">
                                         <div class="btn-group me-3" role="group">
                                             <button type="button" class="btn btn-primary" id="add-roi-btn">
-                                                <i class="fas fa-plus me-2"></i>{% trans 'Add Region' %}
+                                                <i class="fas fa-plus me-2"></i>Добавить регион
                                             </button>
                                             <button type="button" class="btn btn-outline-secondary" id="clear-roi-btn">
-                                                <i class="fas fa-eraser me-2"></i>{% trans 'Clear All' %}
+                                                <i class="fas fa-eraser me-2"></i>Очистить все
                                             </button>
                                             <button type="button" class="btn btn-outline-info" id="zoom-fit-btn">
-                                                <i class="fas fa-search-minus me-2"></i>{% trans 'Fit to View' %}
+                                                <i class="fas fa-search-minus me-2"></i>Подогнать к экрану
                                             </button>
                                         </div>
                                     </div>
@@ -86,7 +85,7 @@
                                         <div class="roi-counter">
                                             <span class="badge bg-success fs-6 px-3 py-2">
                                                 <i class="fas fa-vector-square me-2"></i>
-                                                <span id="roi-count">0</span> {% trans 'Regions' %}
+                                                <span id="roi-count">0</span> Регионы
                                             </span>
                                         </div>
                                     </div>
@@ -94,13 +93,13 @@
                                 <div class="roi-instructions mt-3 p-3 border-start border-primary border-4 bg-white">
                                     <h6 class="text-primary mb-2">
                                         <i class="fas fa-info-circle me-2"></i>
-                                        {% trans 'ROI Instructions' %}
+                                        Инструкции ROI
                                     </h6>
                                     <ol class="mb-0 small">
-                                        <li>{% trans 'Click "Add Region" to enable drawing mode' %}</li>
-                                        <li>{% trans 'Click and drag to draw rectangles around cell areas' %}</li>
-                                        <li>{% trans 'Multiple regions can be selected for analysis' %}</li>
-                                        <li>{% trans 'Use "Clear All" to remove all regions' %}</li>
+                                        <li>Нажмите "Добавить регион" для включения режима рисования</li>
+                                        <li>Нажмите и перетащите для рисования прямоугольников вокруг областей клеток</li>
+                                        <li>Можно выбрать несколько регионов для анализа</li>
+                                        <li>Используйте "Очистить все" для удаления всех регионов</li>
                                     </ol>
                                 </div>
                             </div>
@@ -111,7 +110,7 @@
                                     <canvas id="roi-canvas" class="border border-2 border-primary rounded shadow-sm"></canvas>
                                     <div id="roi-status" class="position-absolute top-0 start-0 bg-primary text-white px-2 py-1 rounded-bottom-end small d-none" style="z-index: 10;">
                                         <i class="fas fa-crosshairs me-1"></i>
-                                        {% trans 'Click and drag to draw rectangle' %}
+                                        Нажмите и перетащите для рисования прямоугольника
                                     </div>
                                 </div>
                             </div>
@@ -122,7 +121,7 @@
                             <div class="image-container position-relative d-inline-block">
                                 <img src="{{ cell.image.url }}" class="img-fluid rounded shadow" alt="{{ cell.name }}" style="max-height: 500px;">
                                 <div class="image-overlay position-absolute top-0 end-0 m-2">
-                                    <button class="btn btn-sm btn-outline-light" onclick="toggleImageFullscreen(this.previousElementSibling)" title="{% trans 'Toggle Fullscreen' %}">
+                                    <button class="btn btn-sm btn-outline-light" onclick="toggleImageFullscreen(this.previousElementSibling)" title="Переключить полноэкранный режим">
                                         <i class="fas fa-expand"></i>
                                     </button>
                                 </div>
@@ -139,7 +138,7 @@
                                         <i class="fas fa-ruler-combined"></i>
                                     </div>
                                     <div class="info-value fw-bold">{{ cell.image_width }}×{{ cell.image_height }}</div>
-                                    <div class="info-label small text-muted">{% trans 'Dimensions' %}</div>
+                                    <div class="info-label small text-muted">Размеры</div>
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
@@ -148,7 +147,7 @@
                                         <i class="fas fa-file-image"></i>
                                     </div>
                                     <div class="info-value fw-bold">{{ cell.file_format|upper }}</div>
-                                    <div class="info-label small text-muted">{% trans 'Format' %}</div>
+                                    <div class="info-label small text-muted">Формат</div>
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
@@ -157,7 +156,7 @@
                                         <i class="fas fa-weight-hanging"></i>
                                     </div>
                                     <div class="info-value fw-bold">{{ cell.file_size|filesizeformat }}</div>
-                                    <div class="info-label small text-muted">{% trans 'File Size' %}</div>
+                                    <div class="info-label small text-muted">Размер файла</div>
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
@@ -172,10 +171,10 @@
                                         <div class="info-icon text-warning mb-1">
                                             <i class="fas fa-exclamation-triangle"></i>
                                         </div>
-                                        <div class="info-value fw-bold small">{% trans 'Not Set' %}</div>
+                                        <div class="info-value fw-bold small">Не установлено</div>
                                         <div class="info-label small">
                                             <a href="{% url 'cells:set_scale_calibration' cell.id %}" class="btn btn-xs btn-outline-primary">
-                                                <i class="fas fa-ruler me-1"></i>{% trans 'Calibrate' %}
+                                                <i class="fas fa-ruler me-1"></i>Калибровать
                                             </a>
                                         </div>
                                     {% endif %}
@@ -186,32 +185,41 @@
                 </div>
             </div>
             
-            <!-- Analysis Configuration Panel -->
+            <!-- Quick Analysis Info Panel -->
             <div class="col-xl-6 col-lg-12">
                 <div class="card border-0 shadow-lg h-100">
-                    <div class="card-header bg-gradient-success text-white">
+                    <div class="card-header bg-gradient-info text-white">
                         <h5 class="mb-0">
-                            <i class="fas fa-cogs me-2"></i>
-                            {% trans 'Analysis Configuration' %}
+                            <i class="fas fa-info-circle me-2"></i>
+                            О анализе Cellpose
                         </h5>
                     </div>
                     <div class="card-body p-4">
-                        <!-- Analysis Info Alert -->
-                        <div class="alert alert-info border-0 shadow-sm mb-4">
-                            <div class="d-flex align-items-start">
-                                <div class="flex-shrink-0">
-                                    <i class="fas fa-info-circle fa-lg text-info"></i>
-                                </div>
-                                <div class="flex-grow-1 ms-3">
-                                    <h6 class="alert-heading mb-2">{% trans 'About Cellpose Analysis' %}</h6>
-                                    <p class="mb-0">{% trans 'This analysis will use Cellpose AI to automatically segment individual cells and extract morphometric features including area, perimeter, circularity, and shape descriptors.' %}</p>
-                                </div>
+                        <div class="text-center mb-4">
+                            <div class="analysis-icon mb-3">
+                                <i class="fas fa-microscope fa-3x text-primary"></i>
                             </div>
+                            <h6 class="fw-bold mb-3">Морфометрический анализ на основе ИИ</h6>
+                            <p class="text-muted">Этот анализ использует ИИ Cellpose для автоматической сегментации отдельных клеток и извлечения морфометрических характеристик.</p>
                         </div>
                         
-                        <!-- Analysis Form -->
-                        <div class="analysis-form">
-                            {% crispy form %}
+                        <div class="features-list">
+                            <div class="feature-item d-flex align-items-center mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <span class="small">Автоматическая сегментация клеток</span>
+                            </div>
+                            <div class="feature-item d-flex align-items-center mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <span class="small">Морфометрические характеристики</span>
+                            </div>
+                            <div class="feature-item d-flex align-items-center mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <span class="small">Анализ текстуры GLCM</span>
+                            </div>
+                            <div class="feature-item d-flex align-items-center mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <span class="small">Контроль качества</span>
+                            </div>
                         </div>
                         
                         <!-- Analysis Status Container (hidden initially) -->
@@ -222,78 +230,8 @@
                                         <span class="visually-hidden">Loading...</span>
                                     </div>
                                     <div>
-                                        <h6 class="mb-1">{% trans 'Analysis in Progress' %}</h6>
-                                        <small class="text-muted">{% trans 'This may take a few minutes depending on image size and complexity...' %}</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Parameter Guide Footer -->
-                    <div class="card-footer bg-light">
-                        <div class="accordion accordion-flush" id="parameterGuide">
-                            <div class="accordion-item">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#parameterGuideContent">
-                                        <i class="fas fa-question-circle me-2"></i>
-                                        {% trans 'Parameter Guide' %}
-                                    </button>
-                                </h2>
-                                <div id="parameterGuideContent" class="accordion-collapse collapse" data-bs-parent="#parameterGuide">
-                                    <div class="accordion-body">
-                                        <div class="row g-3">
-                                            <div class="col-12">
-                                                <div class="parameter-item p-3 border-start border-primary border-3">
-                                                    <h6 class="mb-2 text-primary">{% trans 'Model Selection' %}</h6>
-                                                    <div class="row g-2">
-                                                        <div class="col-md-4">
-                                                            <div class="p-2 bg-light rounded">
-                                                                <strong class="text-primary">{% trans 'Cytoplasm' %}</strong><br>
-                                                                <small>{% trans 'Best for cytoplasmic staining' %}</small>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-4">
-                                                            <div class="p-2 bg-light rounded">
-                                                                <strong class="text-success">{% trans 'Nuclei' %}</strong><br>
-                                                                <small>{% trans 'Best for nuclear staining' %}</small>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-4">
-                                                            <div class="p-2 bg-light rounded">
-                                                                <strong class="text-info">{% trans 'Cytoplasm 2.0' %}</strong><br>
-                                                                <small>{% trans 'Improved cytoplasm model' %}</small>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-12">
-                                                <div class="parameter-item p-3 border-start border-success border-3">
-                                                    <h6 class="mb-2 text-success">{% trans 'Parameter Guidelines' %}</h6>
-                                                    <div class="row g-2">
-                                                        <div class="col-md-4">
-                                                            <div class="p-2 bg-light rounded">
-                                                                <strong>{% trans 'Diameter' %}</strong><br>
-                                                                <small>{% trans 'Set to 0 for automatic detection' %}</small>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-4">
-                                                            <div class="p-2 bg-light rounded">
-                                                                <strong>{% trans 'Flow Threshold' %}</strong><br>
-                                                                <small>{% trans 'Lower values detect more cells' %}</small>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-4">
-                                                            <div class="p-2 bg-light rounded">
-                                                                <strong>{% trans 'Cell Probability' %}</strong><br>
-                                                                <small>{% trans 'Higher values for cleaner segmentation' %}</small>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <h6 class="mb-1">Анализ в процессе</h6>
+                                        <small class="text-muted">Это может занять несколько минут в зависимости от размера и сложности изображения...</small>
                                     </div>
                                 </div>
                             </div>
@@ -310,14 +248,16 @@
     <div class="container-fluid px-4">
         <div class="row">
             <div class="col-12">
-                <div class="card border-0 shadow-lg">
-                    <div class="card-header bg-gradient-primary text-white">
-                        <h5 class="mb-0">
-                            <i class="fas fa-microscope me-2"></i>
-                            {% trans 'Detailed Analysis Configuration' %}
-                        </h5>
-                    </div>
-                    <div class="card-body p-4">
+                <form method="post" class="analysis-form">
+                    {% csrf_token %}
+                    <div class="card border-0 shadow-lg">
+                        <div class="card-header bg-gradient-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-microscope me-2"></i>
+                                Детальная конфигурация анализа
+                            </h5>
+                        </div>
+                        <div class="card-body p-4">
                         <!-- Configuration Dashboard -->
                         <div class="configuration-dashboard">
                             <div class="row g-4">
@@ -327,28 +267,30 @@
                                         <div class="section-header">
                                             <h6 class="text-primary mb-3">
                                                 <i class="fas fa-cogs me-2"></i>
-                                                {% trans 'Core Parameters' %}
+                                                Основные параметры
                                             </h6>
                                         </div>
                                         <div class="parameters-grid">
                                             <div class="parameter-card mb-3 p-3 border rounded">
-                                                <label class="form-label fw-bold">{% trans 'Cellpose Model' %}</label>
-                                                <select class="form-select" id="cellpose-model-preview">
-                                                    <option value="cyto">{% trans 'Cytoplasm' %}</option>
-                                                    <option value="nuclei">{% trans 'Nuclei' %}</option>
-                                                    <option value="cyto2">{% trans 'Cytoplasm 2.0' %}</option>
-                                                </select>
-                                                <small class="text-muted mt-1">{% trans 'Select based on your staining type' %}</small>
+                                                <label class="form-label fw-bold" for="{{ form.cellpose_model.id_for_label }}">Модель Cellpose</label>
+                                                {{ form.cellpose_model }}
+                                                <small class="text-muted mt-1">Выберите на основе вашего типа окрашивания</small>
+                                                {% if form.cellpose_model.errors %}
+                                                    <div class="text-danger small mt-1">{{ form.cellpose_model.errors.0 }}</div>
+                                                {% endif %}
                                             </div>
                                             <div class="parameter-card mb-3 p-3 border rounded">
-                                                <label class="form-label fw-bold">{% trans 'Cell Diameter (pixels)' %}</label>
+                                                <label class="form-label fw-bold" for="{{ form.cellpose_diameter.id_for_label }}">Диаметр клетки (пиксели)</label>
                                                 <div class="input-group">
-                                                    <input type="number" class="form-control" id="diameter-preview" placeholder="30.0" min="0" step="0.1">
+                                                    {{ form.cellpose_diameter }}
                                                     <button class="btn btn-outline-secondary" type="button" id="auto-diameter-btn">
-                                                        <i class="fas fa-magic"></i> {% trans 'Auto' %}
+                                                        <i class="fas fa-magic"></i> Авто
                                                     </button>
                                                 </div>
-                                                <small class="text-muted mt-1">{% trans 'Set to 0 for automatic detection' %}</small>
+                                                <small class="text-muted mt-1">Установите 0 для автоматического обнаружения</small>
+                                                {% if form.cellpose_diameter.errors %}
+                                                    <div class="text-danger small mt-1">{{ form.cellpose_diameter.errors.0 }}</div>
+                                                {% endif %}
                                             </div>
                                         </div>
                                     </div>
@@ -360,30 +302,36 @@
                                         <div class="section-header">
                                             <h6 class="text-success mb-3">
                                                 <i class="fas fa-sliders-h me-2"></i>
-                                                {% trans 'Segmentation Thresholds' %}
+                                                Пороги сегментации
                                             </h6>
                                         </div>
                                         <div class="parameters-grid">
                                             <div class="parameter-card mb-3 p-3 border rounded">
-                                                <label class="form-label fw-bold">{% trans 'Flow Threshold' %}</label>
+                                                <label class="form-label fw-bold" for="{{ form.flow_threshold.id_for_label }}">Порог потока</label>
                                                 <div class="range-input-group">
-                                                    <input type="range" class="form-range" min="0" max="3" step="0.1" value="0.4" id="flow-threshold-range">
-                                                    <input type="number" class="form-control form-control-sm" id="flow-threshold-input" value="0.4" min="0" max="3" step="0.1">
+                                                    <input type="range" class="form-range" min="0" max="3" step="0.1" id="flow-threshold-range">
+                                                    {{ form.flow_threshold }}
                                                 </div>
                                                 <div class="threshold-guide mt-2">
-                                                    <span class="badge bg-success">{% trans 'Lower = More Cells' %}</span>
-                                                    <span class="badge bg-warning">{% trans 'Higher = Fewer Cells' %}</span>
+                                                    <span class="badge bg-success">Ниже = Больше клеток</span>
+                                                    <span class="badge bg-warning">Выше = Меньше клеток</span>
                                                 </div>
+                                                {% if form.flow_threshold.errors %}
+                                                    <div class="text-danger small mt-1">{{ form.flow_threshold.errors.0 }}</div>
+                                                {% endif %}
                                             </div>
                                             <div class="parameter-card mb-3 p-3 border rounded">
-                                                <label class="form-label fw-bold">{% trans 'Cell Probability Threshold' %}</label>
+                                                <label class="form-label fw-bold" for="{{ form.cellprob_threshold.id_for_label }}">Порог вероятности клетки</label>
                                                 <div class="range-input-group">
-                                                    <input type="range" class="form-range" min="-6" max="6" step="0.1" value="0.0" id="cellprob-threshold-range">
-                                                    <input type="number" class="form-control form-control-sm" id="cellprob-threshold-input" value="0.0" min="-6" max="6" step="0.1">
+                                                    <input type="range" class="form-range" min="-6" max="6" step="0.1" id="cellprob-threshold-range">
+                                                    {{ form.cellprob_threshold }}
                                                 </div>
                                                 <div class="threshold-guide mt-2">
-                                                    <span class="badge bg-info">{% trans 'Higher = Cleaner Segmentation' %}</span>
+                                                    <span class="badge bg-info">Выше = Более чистая сегментация</span>
                                                 </div>
+                                                {% if form.cellprob_threshold.errors %}
+                                                    <div class="text-danger small mt-1">{{ form.cellprob_threshold.errors.0 }}</div>
+                                                {% endif %}
                                             </div>
                                         </div>
                                     </div>
@@ -395,47 +343,47 @@
                                         <div class="section-header">
                                             <h6 class="text-info mb-3">
                                                 <i class="fas fa-microscope me-2"></i>
-                                                {% trans 'Advanced Features' %}
+                                                Расширенные функции
                                             </h6>
                                         </div>
                                         <div class="parameters-grid">
                                             <div class="parameter-card mb-3 p-3 border rounded">
                                                 <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="roi-toggle-preview">
-                                                    <label class="form-check-label fw-bold" for="roi-toggle-preview">
-                                                        {% trans 'Intelligent ROI Analysis' %}
+                                                    {{ form.use_roi }}
+                                                    <label class="form-check-label fw-bold" for="{{ form.use_roi.id_for_label }}">
+                                                        Интеллектуальный анализ ROI
                                                     </label>
                                                 </div>
-                                                <small class="text-muted mt-1">{% trans 'AI-powered region selection with density mapping' %}</small>
+                                                <small class="text-muted mt-1">Выбор региона на основе ИИ с картированием плотности</small>
+                                                {% if form.use_roi.errors %}
+                                                    <div class="text-danger small mt-1">{{ form.use_roi.errors.0 }}</div>
+                                                {% endif %}
                                             </div>
                                             <div class="parameter-card mb-3 p-3 border rounded">
                                                 <div class="form-check form-switch">
                                                     <input class="form-check-input" type="checkbox" id="texture-analysis-preview" checked>
                                                     <label class="form-check-label fw-bold" for="texture-analysis-preview">
-                                                        {% trans 'GLCM Texture Analysis' %}
+                                                        Анализ текстуры GLCM
                                                     </label>
                                                 </div>
-                                                <small class="text-muted mt-1">{% trans '12 GLCM + 17 statistical texture features' %}</small>
+                                                <small class="text-muted mt-1">12 GLCM + 17 статистических текстурных характеристик</small>
                                             </div>
                                             <div class="parameter-card mb-3 p-3 border rounded">
                                                 <div class="form-check form-switch">
                                                     <input class="form-check-input" type="checkbox" id="quality-assessment-preview" checked>
                                                     <label class="form-check-label fw-bold" for="quality-assessment-preview">
-                                                        {% trans 'Quality Assessment' %}
+                                                        Оценка качества
                                                     </label>
                                                 </div>
-                                                <small class="text-muted mt-1">{% trans 'Automated image quality scoring & validation' %}</small>
+                                                <small class="text-muted mt-1">Автоматическая оценка качества изображения и валидация</small>
                                             </div>
                                             <div class="parameter-card mb-3 p-3 border rounded">
-                                                <label class="form-label fw-bold">{% trans 'Analysis Mode' %}</label>
-                                                <select class="form-select" id="filtering-mode-preview">
-                                                    <option value="none">{% trans 'No Filtering' %}</option>
-                                                    <option value="basic">{% trans 'Basic' %}</option>
-                                                    <option value="research">{% trans 'Research' %}</option>
-                                                    <option value="clinical" selected>{% trans 'Clinical Grade' %}</option>
-                                                    <option value="custom">{% trans 'Custom Advanced' %}</option>
-                                                </select>
-                                                <small class="text-muted mt-1">{% trans 'Medical-grade filtering with physics validation' %}</small>
+                                                <label class="form-label fw-bold" for="{{ form.filtering_mode.id_for_label }}">Режим анализа</label>
+                                                {{ form.filtering_mode }}
+                                                <small class="text-muted mt-1">Фильтрация медицинского уровня с физической валидацией</small>
+                                                {% if form.filtering_mode.errors %}
+                                                    <div class="text-danger small mt-1">{{ form.filtering_mode.errors.0 }}</div>
+                                                {% endif %}
                                             </div>
                                         </div>
                                     </div>
@@ -449,7 +397,7 @@
                                 <div class="card-header bg-gradient-secondary text-white">
                                     <h6 class="mb-0">
                                         <i class="fas fa-cogs me-2"></i>
-                                        {% trans 'Advanced Image Processing Pipeline' %}
+                                        Расширенный конвейер обработки изображений
                                     </h6>
                                 </div>
                                 <div class="card-body p-4">
@@ -459,36 +407,42 @@
                                             <div class="processing-module">
                                                 <h6 class="text-primary mb-3">
                                                     <i class="fas fa-magic me-2"></i>
-                                                    {% trans 'Preprocessing' %}
+                                                    Предварительная обработка
                                                 </h6>
                                                 <div class="feature-list">
                                                     <div class="feature-item mb-2">
                                                         <div class="form-check form-switch">
-                                                            <input class="form-check-input" type="checkbox" id="noise-reduction-toggle">
-                                                            <label class="form-check-label small fw-bold">{% trans 'Bilateral Noise Reduction' %}</label>
+                                                            {{ form.apply_noise_reduction }}
+                                                            <label class="form-check-label small fw-bold" for="{{ form.apply_noise_reduction.id_for_label }}">Двустороннее шумоподавление</label>
                                                         </div>
-                                                        <small class="text-muted d-block">{% trans 'Edge-preserving denoising' %}</small>
+                                                        <small class="text-muted d-block">Шумоподавление с сохранением краев</small>
+                                                        <div class="mt-1">
+                                                            {{ form.noise_reduction_method }}
+                                                        </div>
                                                     </div>
                                                     <div class="feature-item mb-2">
                                                         <div class="form-check form-switch">
-                                                            <input class="form-check-input" type="checkbox" id="clahe-toggle">
-                                                            <label class="form-check-label small fw-bold">{% trans 'CLAHE Enhancement' %}</label>
+                                                            {{ form.apply_contrast_enhancement }}
+                                                            <label class="form-check-label small fw-bold" for="{{ form.apply_contrast_enhancement.id_for_label }}">Улучшение CLAHE</label>
                                                         </div>
-                                                        <small class="text-muted d-block">{% trans 'Adaptive contrast for microscopy' %}</small>
+                                                        <small class="text-muted d-block">Адаптивный контраст для микроскопии</small>
+                                                        <div class="mt-1">
+                                                            {{ form.contrast_method }}
+                                                        </div>
                                                     </div>
                                                     <div class="feature-item mb-2">
                                                         <div class="form-check form-switch">
-                                                            <input class="form-check-input" type="checkbox" id="sharpening-toggle">
-                                                            <label class="form-check-label small fw-bold">{% trans 'Unsharp Masking' %}</label>
+                                                            {{ form.apply_sharpening }}
+                                                            <label class="form-check-label small fw-bold" for="{{ form.apply_sharpening.id_for_label }}">Маска нерезкости</label>
                                                         </div>
-                                                        <small class="text-muted d-block">{% trans 'Edge enhancement' %}</small>
+                                                        <small class="text-muted d-block">Улучшение краев</small>
                                                     </div>
                                                     <div class="feature-item mb-2">
                                                         <div class="form-check form-switch">
-                                                            <input class="form-check-input" type="checkbox" id="normalization-toggle">
-                                                            <label class="form-check-label small fw-bold">{% trans 'Z-Score Normalization' %}</label>
+                                                            {{ form.apply_normalization }}
+                                                            <label class="form-check-label small fw-bold" for="{{ form.apply_normalization.id_for_label }}">Z-оценка нормализации</label>
                                                         </div>
-                                                        <small class="text-muted d-block">{% trans 'Intensity standardization' %}</small>
+                                                        <small class="text-muted d-block">Стандартизация интенсивности</small>
                                                     </div>
                                                 </div>
                                             </div>
@@ -499,21 +453,21 @@
                                             <div class="processing-module">
                                                 <h6 class="text-success mb-3">
                                                     <i class="fas fa-fingerprint me-2"></i>
-                                                    {% trans 'Texture Analysis' %}
+                                                    Анализ текстуры
                                                 </h6>
                                                 <div class="feature-list">
                                                     <div class="feature-highlight mb-3 p-2 bg-light rounded">
-                                                        <strong class="text-success">{% trans 'GLCM Features (12)' %}</strong>
+                                                        <strong class="text-success">Характеристики GLCM (12)</strong>
                                                         <small class="text-muted d-block">Contrast, Correlation, Energy, Homogeneity, Entropy, Variance, etc.</small>
                                                     </div>
                                                     <div class="feature-highlight mb-3 p-2 bg-light rounded">
-                                                        <strong class="text-info">{% trans 'Statistical Features (17)' %}</strong>
+                                                        <strong class="text-info">Статистические характеристики (17)</strong>
                                                         <small class="text-muted d-block">Mean, Std, Skewness, Kurtosis, Percentiles, IQR, etc.</small>
                                                     </div>
                                                     <div class="texture-settings">
-                                                        <label class="form-label small">{% trans 'GLCM Distance' %}</label>
+                                                        <label class="form-label small">Расстояние GLCM</label>
                                                         <input type="range" class="form-range" min="1" max="5" value="1" id="glcm-distance">
-                                                        <small class="text-muted">{% trans 'Pixel distance for co-occurrence' %}</small>
+                                                        <small class="text-muted">Расстояние пикселей для совместного встречаемости</small>
                                                     </div>
                                                 </div>
                                             </div>
@@ -524,24 +478,24 @@
                                             <div class="processing-module">
                                                 <h6 class="text-warning mb-3">
                                                     <i class="fas fa-shield-alt me-2"></i>
-                                                    {% trans 'Quality Control' %}
+                                                    Контроль качества
                                                 </h6>
                                                 <div class="feature-list">
                                                     <div class="feature-item mb-2">
-                                                        <strong class="text-primary small">{% trans 'Blur Detection' %}</strong>
+                                                        <strong class="text-primary small">Обнаружение размытия</strong>
                                                         <small class="text-muted d-block">Laplacian variance + Tenengrad</small>
                                                     </div>
                                                     <div class="feature-item mb-2">
-                                                        <strong class="text-primary small">{% trans 'Contrast Assessment' %}</strong>
+                                                        <strong class="text-primary small">Оценка контраста</strong>
                                                         <small class="text-muted d-block">RMS, Michelson, Entropy</small>
                                                     </div>
                                                     <div class="feature-item mb-2">
-                                                        <strong class="text-primary small">{% trans 'Noise Analysis' %}</strong>
+                                                        <strong class="text-primary small">Анализ шума</strong>
                                                         <small class="text-muted d-block">SNR estimation (dB)</small>
                                                     </div>
                                                     <div class="quality-score mt-3 p-2 bg-success bg-opacity-10 rounded">
                                                         <div class="d-flex justify-content-between">
-                                                            <span class="small fw-bold">{% trans 'Quality Score' %}</span>
+                                                            <span class="small fw-bold">Оценка качества</span>
                                                             <span class="badge bg-success" id="quality-score">85/100</span>
                                                         </div>
                                                         <div class="progress mt-1" style="height: 4px;">
@@ -557,20 +511,20 @@
                                             <div class="processing-module">
                                                 <h6 class="text-danger mb-3">
                                                     <i class="fas fa-check-double me-2"></i>
-                                                    {% trans 'Validation' %}
+                                                    Валидация
                                                 </h6>
                                                 <div class="feature-list">
                                                     <div class="feature-item mb-2">
                                                         <div class="form-check form-switch">
                                                             <input class="form-check-input" type="checkbox" id="physics-validation" checked>
-                                                            <label class="form-check-label small fw-bold">{% trans 'Physics Validation' %}</label>
+                                                            <label class="form-check-label small fw-bold">Физическая валидация</label>
                                                         </div>
-                                                        <small class="text-muted d-block">{% trans 'Area-perimeter relationships' %}</small>
+                                                        <small class="text-muted d-block">Соотношения площадь-периметр</small>
                                                     </div>
                                                     <div class="feature-item mb-2">
                                                         <div class="form-check form-switch">
                                                             <input class="form-check-input" type="checkbox" id="outlier-detection" checked>
-                                                            <label class="form-check-label small fw-bold">{% trans 'Outlier Detection' %}</label>
+                                                            <label class="form-check-label small fw-bold">Обнаружение выбросов</label>
                                                         </div>
                                                         <select class="form-select form-select-sm mt-1">
                                                             <option value="iqr">IQR Method</option>
@@ -581,9 +535,9 @@
                                                     <div class="feature-item mb-2">
                                                         <div class="form-check form-switch">
                                                             <input class="form-check-input" type="checkbox" id="watershed-split" checked>
-                                                            <label class="form-check-label small fw-bold">{% trans 'Watershed Splitting' %}</label>
+                                                            <label class="form-check-label small fw-bold">Разделение водоразделом</label>
                                                         </div>
-                                                        <small class="text-muted d-block">{% trans 'Split touching cells' %}</small>
+                                                        <small class="text-muted d-block">Разделить соприкасающиеся клетки</small>
                                                     </div>
                                                 </div>
                                             </div>
@@ -597,7 +551,7 @@
                         <div class="parameter-preview mt-4 p-3 bg-light rounded">
                             <h6 class="text-primary mb-3">
                                 <i class="fas fa-eye me-2"></i>
-                                {% trans 'Current Configuration Summary' %}
+                                Сводка текущей конфигурации
                             </h6>
                             <div class="row g-3">
                                 <div class="col-md-2">
@@ -605,8 +559,8 @@
                                         <div class="preview-icon text-primary mb-1">
                                             <i class="fas fa-brain"></i>
                                         </div>
-                                        <div class="preview-value fw-bold" id="model-preview-value">{% trans 'Cytoplasm' %}</div>
-                                        <div class="preview-label small text-muted">{% trans 'Model' %}</div>
+                                        <div class="preview-value fw-bold" id="model-preview-value">Цитоплазма</div>
+                                        <div class="preview-label small text-muted">Модель</div>
                                     </div>
                                 </div>
                                 <div class="col-md-2">
@@ -615,7 +569,7 @@
                                             <i class="fas fa-ruler-combined"></i>
                                         </div>
                                         <div class="preview-value fw-bold" id="diameter-preview-value">30.0 px</div>
-                                        <div class="preview-label small text-muted">{% trans 'Diameter' %}</div>
+                                        <div class="preview-label small text-muted">Диаметр</div>
                                     </div>
                                 </div>
                                 <div class="col-md-2">
@@ -624,7 +578,7 @@
                                             <i class="fas fa-stream"></i>
                                         </div>
                                         <div class="preview-value fw-bold" id="flow-preview-value">0.4</div>
-                                        <div class="preview-label small text-muted">{% trans 'Flow Threshold' %}</div>
+                                        <div class="preview-label small text-muted">Порог потока</div>
                                     </div>
                                 </div>
                                 <div class="col-md-2">
@@ -633,7 +587,7 @@
                                             <i class="fas fa-percentage"></i>
                                         </div>
                                         <div class="preview-value fw-bold" id="cellprob-preview-value">0.0</div>
-                                        <div class="preview-label small text-muted">{% trans 'Cell Probability' %}</div>
+                                        <div class="preview-label small text-muted">Вероятность клетки</div>
                                     </div>
                                 </div>
                                 <div class="col-md-2">
@@ -642,7 +596,7 @@
                                             <i class="fas fa-fingerprint"></i>
                                         </div>
                                         <div class="preview-value fw-bold" id="texture-preview-value">29</div>
-                                        <div class="preview-label small text-muted">{% trans 'Texture Features' %}</div>
+                                        <div class="preview-label small text-muted">Текстурные характеристики</div>
                                     </div>
                                 </div>
                                 <div class="col-md-2">
@@ -651,13 +605,38 @@
                                             <i class="fas fa-shield-alt"></i>
                                         </div>
                                         <div class="preview-value fw-bold" id="validation-preview-value">Clinical</div>
-                                        <div class="preview-label small text-muted">{% trans 'Validation' %}</div>
+                                        <div class="preview-label small text-muted">Валидация</div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Hidden preprocessing toggle field -->
+                        <div style="display: none;">
+                            {{ form.apply_preprocessing }}
+                        </div>
+                        
+                        <!-- Submit Section -->
+                        <div class="mt-4 p-4 bg-light rounded">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h6 class="mb-2 text-primary">
+                                        <i class="fas fa-play-circle me-2"></i>
+                                        Готов к запуску анализа?
+                                    </h6>
+                                    <p class="text-muted mb-0 small">Убедитесь, что все параметры настроены правильно. Анализ может занять несколько минут.</p>
+                                </div>
+                                <div class="col-md-4 text-md-end">
+                                    <button type="submit" class="btn btn-primary btn-lg px-4 py-2">
+                                        <i class="fas fa-microscope me-2"></i>
+                                        Запустить анализ
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+                </form>
             </div>
         </div>
     </div>
@@ -672,10 +651,10 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i class="fas fa-history me-2"></i>
-                        {% trans 'Previous Analyses' %}
+                        Предыдущие анализы
                     </h5>
                     <span class="badge bg-light text-dark">
-                        {{ cell.analyses.count }} {% trans 'Total' %}
+                        {{ cell.analyses.count }} Всего
                     </span>
                 </div>
             </div>
@@ -684,12 +663,12 @@
                     <table class="table table-hover mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th class="px-4">{% trans 'Date' %}</th>
-                                <th>{% trans 'Status' %}</th>
-                                <th>{% trans 'Model' %}</th>
-                                <th>{% trans 'Diameter' %}</th>
-                                <th class="text-center">{% trans 'Cells Found' %}</th>
-                                <th class="text-center">{% trans 'Actions' %}</th>
+                                <th class="px-4">Дата</th>
+                                <th>Статус</th>
+                                <th>Модель</th>
+                                <th>Диаметр</th>
+                                <th class="text-center">Найдено клеток</th>
+                                <th class="text-center">Действия</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -740,17 +719,17 @@
                                     {% if analysis.status == 'completed' %}
                                         <a href="{% url 'cells:analysis_detail' analysis.id %}" class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-eye me-1"></i>
-                                            {% trans 'View' %}
+                                            Просмотр
                                         </a>
                                     {% elif analysis.status == 'processing' %}
                                         <span class="text-muted small">
                                             <i class="fas fa-clock me-1"></i>
-                                            {% trans 'In progress...' %}
+                                            В процессе...
                                         </span>
                                     {% elif analysis.status == 'failed' %}
                                         <span class="text-danger small">
                                             <i class="fas fa-exclamation-triangle me-1"></i>
-                                            {% trans 'Failed' %}
+                                            Не удалось
                                         </span>
                                     {% endif %}
                                 </td>
@@ -762,9 +741,9 @@
                 {% if cell.analyses.count > 5 %}
                 <div class="card-footer bg-light text-center">
                     <small class="text-muted">
-                        {% trans 'Showing 5 most recent analyses.' %} 
+                        Показано 5 последних анализов. 
                         <a href="{% url 'cells:cell_detail' cell.id %}" class="text-decoration-none">
-                            {% trans 'View all' %} ({{ cell.analyses.count }})
+                            Посмотреть все ({{ cell.analyses.count }})
                         </a>
                     </small>
                 </div>
@@ -1062,52 +1041,9 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeConfigurationSync() {
-    // Sync preview controls with actual form fields
-    const syncElements = [
-        { preview: 'cellpose-model-preview', actual: 'id_cellpose_model' },
-        { preview: 'diameter-preview', actual: 'id_cellpose_diameter' },
-        { preview: 'flow-threshold-input', actual: 'id_flow_threshold' },
-        { preview: 'cellprob-threshold-input', actual: 'id_cellprob_threshold' },
-        { preview: 'roi-toggle-preview', actual: 'id_use_roi' },
-        { preview: 'filtering-mode-preview', actual: 'id_filtering_mode' }
-    ];
-    
-    syncElements.forEach(({preview, actual}) => {
-        const previewEl = document.getElementById(preview);
-        const actualEl = document.getElementById(actual);
-        
-        if (previewEl && actualEl) {
-            // Initialize preview with actual value
-            if (previewEl.type === 'checkbox') {
-                previewEl.checked = actualEl.checked;
-            } else {
-                previewEl.value = actualEl.value;
-            }
-            
-            // Sync changes from preview to actual
-            previewEl.addEventListener('change', function() {
-                if (this.type === 'checkbox') {
-                    actualEl.checked = this.checked;
-                } else {
-                    actualEl.value = this.value;
-                }
-                updatePreviewSummary();
-                
-                // Trigger any form validation or change events
-                actualEl.dispatchEvent(new Event('change'));
-            });
-            
-            // Sync changes from actual to preview
-            actualEl.addEventListener('change', function() {
-                if (this.type === 'checkbox') {
-                    previewEl.checked = this.checked;
-                } else {
-                    previewEl.value = this.value;
-                }
-                updatePreviewSummary();
-            });
-        }
-    });
+    // Since we're now using actual form fields directly, no sync needed
+    // Just initialize the range inputs to sync with their corresponding number inputs
+    initializeRangeInputs();
 }
 
 function initializeRangeInputs() {
@@ -1157,13 +1093,11 @@ function initializeRangeInputs() {
     
     // Auto diameter button
     const autoDiameterBtn = document.getElementById('auto-diameter-btn');
-    const diameterPreview = document.getElementById('diameter-preview');
-    const diameterActual = document.getElementById('id_cellpose_diameter');
+    const diameterInput = document.getElementById('id_cellpose_diameter');
     
-    if (autoDiameterBtn && diameterPreview && diameterActual) {
+    if (autoDiameterBtn && diameterInput) {
         autoDiameterBtn.addEventListener('click', function() {
-            diameterPreview.value = '0';
-            diameterActual.value = '0';
+            diameterInput.value = '0';
             updatePreviewSummary();
             
             // Visual feedback
@@ -1180,11 +1114,27 @@ function initializeRangeInputs() {
 function initializePreviewUpdates() {
     // Update preview values on page load
     updatePreviewSummary();
+    
+    // Add event listeners to form fields for real-time preview updates
+    const fieldsToWatch = [
+        'id_cellpose_model',
+        'id_cellpose_diameter', 
+        'id_flow_threshold',
+        'id_cellprob_threshold'
+    ];
+    
+    fieldsToWatch.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('change', updatePreviewSummary);
+            field.addEventListener('input', updatePreviewSummary);
+        }
+    });
 }
 
 function updatePreviewSummary() {
     // Update model preview
-    const modelSelect = document.getElementById('cellpose-model-preview');
+    const modelSelect = document.getElementById('id_cellpose_model');
     const modelPreview = document.getElementById('model-preview-value');
     if (modelSelect && modelPreview) {
         const selectedText = modelSelect.options[modelSelect.selectedIndex].text;
@@ -1192,7 +1142,7 @@ function updatePreviewSummary() {
     }
     
     // Update diameter preview
-    const diameterInput = document.getElementById('diameter-preview');
+    const diameterInput = document.getElementById('id_cellpose_diameter');
     const diameterPreview = document.getElementById('diameter-preview-value');
     if (diameterInput && diameterPreview) {
         const value = parseFloat(diameterInput.value) || 0;
@@ -1200,14 +1150,14 @@ function updatePreviewSummary() {
     }
     
     // Update flow threshold preview
-    const flowInput = document.getElementById('flow-threshold-input');
+    const flowInput = document.getElementById('id_flow_threshold');
     const flowPreview = document.getElementById('flow-preview-value');
     if (flowInput && flowPreview) {
         flowPreview.textContent = parseFloat(flowInput.value).toFixed(1);
     }
     
     // Update cell probability preview
-    const cellprobInput = document.getElementById('cellprob-threshold-input');
+    const cellprobInput = document.getElementById('id_cellprob_threshold');
     const cellprobPreview = document.getElementById('cellprob-preview-value');
     if (cellprobInput && cellprobPreview) {
         cellprobPreview.textContent = parseFloat(cellprobInput.value).toFixed(1);
@@ -1582,6 +1532,9 @@ function updatePreviewSummary() {
                 addROIDataToForm();
             }
             
+            // Show full-screen progress overlay
+            showProgressOverlay();
+            
             // Show processing state
             submitBtn.disabled = true;
             submitBtn.value = 'Processing...';
@@ -1597,6 +1550,59 @@ function updatePreviewSummary() {
                 }
             }, 2000);
         });
+    }
+    
+    function showProgressOverlay() {
+        const overlay = document.getElementById('progress-overlay');
+        if (overlay) {
+            overlay.classList.remove('d-none');
+            
+            // Simulate progress stages
+            const stages = [
+                { progress: 15, stage: 'Загрузка изображения...', detail: 'Подготовка данных для анализа' },
+                { progress: 30, stage: 'Предварительная обработка...', detail: 'Улучшение качества изображения' },
+                { progress: 50, stage: 'Сегментация Cellpose...', detail: 'ИИ анализирует клетки' },
+                { progress: 70, stage: 'Извлечение характеристик...', detail: 'Измерение морфометрических параметров' },
+                { progress: 85, stage: 'Контроль качества...', detail: 'Валидация результатов' },
+                { progress: 95, stage: 'Завершение анализа...', detail: 'Генерация отчетов и визуализаций' }
+            ];
+            
+            let currentStage = 0;
+            const progressBar = document.getElementById('analysis-progress-bar');
+            const stageElement = document.getElementById('progress-stage');
+            const detailElement = document.getElementById('progress-detail');
+            
+            function updateProgress() {
+                if (currentStage < stages.length) {
+                    const stage = stages[currentStage];
+                    
+                    if (progressBar) {
+                        progressBar.style.width = stage.progress + '%';
+                    }
+                    
+                    if (stageElement) {
+                        stageElement.textContent = stage.stage;
+                        stageElement.style.animation = 'none';
+                        setTimeout(() => {
+                            stageElement.style.animation = 'slideInUp 0.5s ease-in-out';
+                        }, 10);
+                    }
+                    
+                    if (detailElement) {
+                        detailElement.textContent = stage.detail;
+                    }
+                    
+                    currentStage++;
+                    
+                    // Random interval between 1-3 seconds for realistic feel
+                    const nextInterval = Math.random() * 2000 + 1000;
+                    setTimeout(updateProgress, nextInterval);
+                }
+            }
+            
+            // Start progress simulation after a short delay
+            setTimeout(updateProgress, 500);
+        }
     }
     
     function addROIDataToForm() {
@@ -1690,4 +1696,218 @@ function updatePreviewSummary() {
 })();
 </script>
 {% endblock %}
+
+<!-- Full-Screen Progress Overlay -->
+<div id="progress-overlay" class="progress-overlay d-none">
+    <div class="progress-content">
+        <div class="progress-animation">
+            <div class="progress-circle">
+                <div class="progress-circle-inner">
+                    <i class="fas fa-microscope fa-3x text-white"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="progress-info mt-4">
+            <h4 class="text-primary mb-3">Анализ в процессе</h4>
+            <div class="progress mb-3" style="height: 8px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%" id="analysis-progress-bar"></div>
+            </div>
+            <p class="progress-stage text-muted mb-2" id="progress-stage">Инициализация анализа...</p>
+            <small class="text-muted" id="progress-detail">Подготовка данных для обработки</small>
+        </div>
+        
+        <div class="progress-stats mt-4">
+            <div class="row text-center">
+                <div class="col-4">
+                    <div class="stat-item">
+                        <div class="stat-icon text-info mb-2">
+                            <i class="fas fa-image fa-2x"></i>
+                        </div>
+                        <div class="stat-label small text-muted">Обработка изображения</div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="stat-item">
+                        <div class="stat-icon text-warning mb-2">
+                            <i class="fas fa-brain fa-2x"></i>
+                        </div>
+                        <div class="stat-label small text-muted">ИИ сегментация</div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="stat-item">
+                        <div class="stat-icon text-success mb-2">
+                            <i class="fas fa-chart-line fa-2x"></i>
+                        </div>
+                        <div class="stat-label small text-muted">Анализ характеристик</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="progress-tips mt-4">
+            <div class="alert alert-info border-0" style="background: rgba(13, 110, 253, 0.1);">
+                <h6 class="alert-heading text-primary">
+                    <i class="fas fa-lightbulb me-2"></i>Что происходит?
+                </h6>
+                <ul class="mb-0 small">
+                    <li>Cellpose анализирует ваше изображение с помощью глубокого обучения</li>
+                    <li>Каждая клетка сегментируется и измеряется индивидуально</li>
+                    <li>Извлекаются морфометрические характеристики и текстурные особенности</li>
+                    <li>Результаты проходят контроль качества и валидацию</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Progress Overlay Styles -->
+<style>
+.progress-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.95) 0%, rgba(108, 117, 125, 0.95) 100%);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.progress-content {
+    text-align: center;
+    max-width: 600px;
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 1rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.progress-animation {
+    position: relative;
+    display: inline-block;
+}
+
+.progress-circle {
+    width: 120px;
+    height: 120px;
+    border: 4px solid rgba(13, 110, 253, 0.2);
+    border-top: 4px solid #0d6efd;
+    border-radius: 50%;
+    animation: spin 2s linear infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.progress-circle-inner {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #0d6efd 0%, #6c757d 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.stat-item {
+    padding: 1rem;
+    transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+    transform: translateY(-5px);
+}
+
+.stat-icon {
+    opacity: 0.6;
+    transition: all 0.3s ease;
+}
+
+.stat-item:hover .stat-icon {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 0.8;
+    }
+}
+
+/* Progress stages animation */
+.progress-stage {
+    animation: slideInUp 0.5s ease-in-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .progress-content {
+        margin: 1rem;
+        padding: 1.5rem;
+        max-width: 90vw;
+    }
+    
+    .progress-circle {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .progress-circle-inner {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .progress-circle-inner i {
+        font-size: 2rem;
+    }
+    
+    .stat-icon i {
+        font-size: 1.5rem !important;
+    }
+}
+</style>
+
 {% endblock %}

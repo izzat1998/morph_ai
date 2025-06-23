@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
-{% load i18n %}
 
-{% block title %}{% trans "Cell Image Gallery" %} - {% trans "Morph AI" %}{% endblock %}
+{% block title %}Галерея изображений клеток - Morph AI{% endblock %}
 
 {% block extra_css %}{% endblock %}
 
@@ -11,13 +10,13 @@
     <div class="morph-card morph-bg-light morph-mb-5 morph-p-5 section-spaced">
         <div class="row align-items-center">
             <div class="col-md-8">
-                <h1 class="display-5 fw-bold text-gradient mb-2">{% trans "Cell Image Gallery" %}</h1>
-                <p class="lead mb-0">{% trans "Manage and analyze your microscopy image collection" %}</p>
+                <h1 class="display-5 fw-bold text-gradient mb-2">Галерея изображений клеток</h1>
+                <p class="lead mb-0">Управляйте и анализируйте вашу коллекцию микроскопических изображений</p>
             </div>
             <div class="col-md-4 text-md-end">
                 <a href="{% url 'cells:upload' %}" class="btn btn-primary btn-lg">
                     <i class="fas fa-plus me-2"></i>
-                    {% trans "Upload New Image" %}
+Загрузить новое изображение
                 </a>
             </div>
         </div>
@@ -29,25 +28,25 @@
         <div class="card bg-light text-center hover-scale">
             <div class="card-body">
                 <div class="h4 fw-bold text-primary mb-1">{{ cells|length }}</div>
-                <div class="small text-muted">{% trans "Total Images" %}</div>
+                <div class="small text-muted">Всего изображений</div>
             </div>
         </div>
         <div class="card bg-light text-center hover-scale">
             <div class="card-body">
                 <div class="h4 fw-bold text-success mb-1">{{ analyzed_count|default:0 }}</div>
-                <div class="small text-muted">{% trans "Analyzed" %}</div>
+                <div class="small text-muted">Проанализировано</div>
             </div>
         </div>
         <div class="card bg-light text-center hover-scale">
             <div class="card-body">
                 <div class="h4 fw-bold text-info mb-1">{{ total_cells_detected|default:0 }}</div>
-                <div class="small text-muted">{% trans "Cells Detected" %}</div>
+                <div class="small text-muted">Обнаружено клеток</div>
             </div>
         </div>
         <div class="card bg-light text-center hover-scale">
             <div class="card-body">
                 <div class="h4 fw-bold text-warning mb-1">{{ calibrated_count|default:0 }}</div>
-                <div class="small text-muted">{% trans "Calibrated" %}</div>
+                <div class="small text-muted">Откалиброванных</div>
             </div>
         </div>
     </div>
@@ -61,33 +60,33 @@
                     <span class="input-group-text">
                         <i class="fas fa-search"></i>
                     </span>
-                    <input type="text" class="form-control" placeholder="{% trans 'Search images...' %}" id="search-input">
+                    <input type="text" class="form-control" placeholder="Поиск изображений..." id="search-input">
                 </div>
             </div>
             <div class="col-md-3">
                 <select class="form-select sort-dropdown" id="sort-select">
-                    <option value="newest">{% trans "Newest First" %}</option>
-                    <option value="oldest">{% trans "Oldest First" %}</option>
-                    <option value="name">{% trans "Name A-Z" %}</option>
-                    <option value="size">{% trans "File Size" %}</option>
-                    <option value="analyzed">{% trans "Analyzed First" %}</option>
+                    <option value="newest">Сначала новые</option>
+                    <option value="oldest">Сначала старые</option>
+                    <option value="name">По имени А-Я</option>
+                    <option value="size">По размеру файла</option>
+                    <option value="analyzed">Сначала проанализированные</option>
                 </select>
             </div>
             <div class="col-md-3">
                 <select class="form-select" id="filter-select">
-                    <option value="all">{% trans "All Images" %}</option>
-                    <option value="analyzed">{% trans "Analyzed Only" %}</option>
-                    <option value="unanalyzed">{% trans "Not Analyzed" %}</option>
-                    <option value="calibrated">{% trans "Calibrated" %}</option>
-                    <option value="uncalibrated">{% trans "Not Calibrated" %}</option>
+                    <option value="all">Все изображения</option>
+                    <option value="analyzed">Только проанализированные</option>
+                    <option value="unanalyzed">Не проанализированные</option>
+                    <option value="calibrated">Откалиброванные</option>
+                    <option value="uncalibrated">Не откалиброванные</option>
                 </select>
             </div>
             <div class="col-md-2 text-end">
                 <div class="morph-view-toggle">
-                    <button type="button" class="morph-view-toggle__button morph-view-toggle__button--active" data-view="grid" title="{% trans 'Grid View' %}">
+                    <button type="button" class="morph-view-toggle__button morph-view-toggle__button--active" data-view="grid" title="Сетка">
                         <i class="fas fa-th"></i>
                     </button>
-                    <button type="button" class="morph-view-toggle__button" data-view="list" title="{% trans 'List View' %}">
+                    <button type="button" class="morph-view-toggle__button" data-view="list" title="Список">
                         <i class="fas fa-list"></i>
                     </button>
                 </div>
@@ -121,17 +120,17 @@
                         <div class="morph-image-card__badge-container">
                             {% if cell.has_analysis %}
                             <span class="badge bg-success morph-image-card__badge">
-                                <i class="fas fa-check-circle me-1"></i>{% trans "Analyzed" %}
+                                <i class="fas fa-check-circle me-1"></i>Проанализировано
                             </span>
                             {% else %}
                             <span class="badge bg-warning morph-image-card__badge">
-                                <i class="fas fa-clock me-1"></i>{% trans "Pending" %}
+                                <i class="fas fa-clock me-1"></i>В ожидании
                             </span>
                             {% endif %}
 
                             {% if cell.scale_set %}
                             <span class="badge bg-info morph-image-card__badge">
-                                <i class="fas fa-ruler me-1"></i>{% trans "Calibrated" %}
+                                <i class="fas fa-ruler me-1"></i>Откалибровано
                             </span>
                             {% endif %}
                         </div>
@@ -139,14 +138,14 @@
                         <!-- Hover Overlay -->
                         <div class="morph-image-card__overlay">
                             <div class="morph-image-card__actions">
-                                <a href="{% url 'cells:cell_detail' cell.id %}" class="btn btn-light btn-sm" title="{% trans 'View Details' %}">
+                                <a href="{% url 'cells:cell_detail' cell.id %}" class="btn btn-light btn-sm" title="Просмотр деталей">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success btn-sm" title="{% trans 'Analyze' %}">
+                                <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success btn-sm" title="Анализировать">
                                     <i class="fas fa-microscope"></i>
                                 </a>
                                 {% if cell.has_analysis %}
-                                <a href="{% url 'cells:analysis_list' %}?cell={{ cell.id }}" class="btn btn-info btn-sm" title="{% trans 'View Results' %}">
+                                <a href="{% url 'cells:analysis_list' %}?cell={{ cell.id }}" class="btn btn-info btn-sm" title="Просмотр результатов">
                                     <i class="fas fa-chart-line"></i>
                                 </a>
                                 {% endif %}
@@ -184,7 +183,7 @@
                             <div class="d-flex align-items-center justify-content-between">
                                 <small class="text-success fw-bold">
                                     <i class="fas fa-microscope me-1"></i>
-                                    {{ cell.latest_analysis.num_cells_detected }} {% trans "cells detected" %}
+                                    {{ cell.latest_analysis.num_cells_detected }} клеток обнаружено
                                 </small>
                                 <small class="text-muted">{{ cell.latest_analysis.analysis_date|timesince }}</small>
                             </div>
@@ -197,15 +196,15 @@
                         <div class="d-grid gap-1">
                             <div class="btn-group" role="group">
                                 <a href="{% url 'cells:cell_detail' cell.id %}" class="btn btn-outline-primary btn-sm">
-                                    <i class="fas fa-eye me-1"></i>{% trans "View" %}
+                                    <i class="fas fa-eye me-1"></i>Просмотр
                                 </a>
                                 <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success btn-sm">
-                                    <i class="fas fa-microscope me-1"></i>{% trans "Analyze" %}
+                                    <i class="fas fa-microscope me-1"></i>Анализ
                                 </a>
                             </div>
                             {% if not cell.scale_set %}
                             <a href="{% url 'cells:set_scale_calibration' cell.id %}" class="btn btn-warning btn-sm">
-                                <i class="fas fa-ruler me-1"></i>{% trans "Set Scale" %}
+                                <i class="fas fa-ruler me-1"></i>Установить масштаб
                             </a>
                             {% endif %}
                         </div>
@@ -219,7 +218,7 @@
     <div class="text-center section-spaced">
         <button class="btn btn-outline-primary morph-hide" id="load-more">
             <i class="fas fa-plus me-2"></i>
-            {% trans "Load More Images" %}
+            Загрузить больше изображений
         </button>
     </div>
 
@@ -229,13 +228,13 @@
         <div class="morph-empty-state__icon">
             <i class="fas fa-images"></i>
         </div>
-        <h3 class="text-muted mb-3">{% trans "No cell images uploaded yet" %}</h3>
+        <h3 class="text-muted mb-3">Изображения клеток еще не загружены</h3>
         <p class="text-muted mb-4">
-            {% trans "Upload your first cell image to get started with morphometric analysis!" %}
+            Загрузите ваше первое изображение клетки для начала морфометрического анализа!
         </p>
         <a href="{% url 'cells:upload' %}" class="btn btn-primary btn-lg">
             <i class="fas fa-cloud-upload-alt me-2"></i>
-            {% trans "Upload Your First Image" %}
+            Загрузить первое изображение
         </a>
     </div>
     {% endif %}
@@ -401,17 +400,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (currentFilters.search) {
             chips.push({
                 type: 'search',
-                label: `{% trans "Search" %}: ${currentFilters.search}`,
+                label: `Поиск: ${currentFilters.search}`,
                 value: currentFilters.search
             });
         }
 
         if (currentFilters.filter !== 'all') {
             const filterLabels = {
-                'analyzed': '{% trans "Analyzed" %}',
-                'unanalyzed': '{% trans "Not Analyzed" %}',
-                'calibrated': '{% trans "Calibrated" %}',
-                'uncalibrated': '{% trans "Not Calibrated" %}'
+                'analyzed': 'Проанализированные',
+                'unanalyzed': 'Не проанализированные',
+                'calibrated': 'Откалиброванные',
+                'uncalibrated': 'Не откалиброванные'
             };
 
             chips.push({
@@ -426,7 +425,7 @@ document.addEventListener('DOMContentLoaded', function() {
             activeFilters.innerHTML = chips.map(chip => `
                 <div class="filter-chip">
                     ${chip.label}
-                    <button onclick="removeFilter('${chip.type}', '${chip.value}')" aria-label="{% trans 'Remove filter' %}">
+                    <button onclick="removeFilter('${chip.type}', '${chip.value}')" aria-label="Удалить фильтр">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>

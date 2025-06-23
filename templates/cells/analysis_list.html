@@ -1,14 +1,13 @@
 {% extends 'base.html' %}
-{% load i18n %}
 
-{% block title %}{% trans "My Analyses" %}{% endblock %}
+{% block title %}Мои анализы{% endblock %}
 
 {% block content %}
 <div class="content-gallery mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>{% trans "My Analyses" %}</h2>
+        <h2>Мои анализы</h2>
         <a href="{% url 'cells:list' %}" class="btn btn-primary">
-            <i class="fas fa-images"></i> {% trans "View My Cells" %}
+            <i class="fas fa-images"></i> Посмотреть мои клетки
         </a>
     </div>
     
@@ -19,16 +18,16 @@
                 <div class="card-body">
                     <form method="get" class="d-flex">
                         <select name="status" class="form-select me-2">
-                            <option value="">{% trans "All Statuses" %}</option>
+                            <option value="">Все статусы</option>
                             {% for status_value, status_label in status_choices %}
                             <option value="{{ status_value }}" {% if status_filter == status_value %}selected{% endif %}>
                                 {{ status_label }}
                             </option>
                             {% endfor %}
                         </select>
-                        <button type="submit" class="btn btn-outline-primary">{% trans "Filter" %}</button>
+                        <button type="submit" class="btn btn-outline-primary">Фильтр</button>
                         {% if status_filter %}
-                        <a href="{% url 'cells:analysis_list' %}" class="btn btn-outline-secondary ms-2">{% trans "Clear" %}</a>
+                        <a href="{% url 'cells:analysis_list' %}" class="btn btn-outline-secondary ms-2">Очистить</a>
                         {% endif %}
                     </form>
                 </div>
@@ -40,11 +39,11 @@
                     <div class="row text-center">
                         <div class="col">
                             <h5>{{ page_obj.paginator.count }}</h5>
-                            <small class="text-muted">{% trans "Total Analyses" %}</small>
+                            <small class="text-muted">Всего анализов</small>
                         </div>
                         <div class="col">
                             <h5>{{ page_obj.object_list|length }}</h5>
-                            <small class="text-muted">{% trans "On This Page" %}</small>
+                            <small class="text-muted">На этой странице</small>
                         </div>
                     </div>
                 </div>
@@ -74,12 +73,12 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-6">
-                            <small class="text-muted">{% trans "Date:" %}</small><br>
+                            <small class="text-muted">Дата:</small><br>
                             <strong>{{ analysis.analysis_date|date:"M d, Y" }}</strong><br>
                             <small>{{ analysis.analysis_date|date:"H:i" }}</small>
                         </div>
                         <div class="col-6">
-                            <small class="text-muted">{% trans "Model:" %}</small><br>
+                            <small class="text-muted">Модель:</small><br>
                             <strong>{{ analysis.get_cellpose_model_display }}</strong>
                         </div>
                     </div>
@@ -88,11 +87,11 @@
                     <hr>
                     <div class="row">
                         <div class="col-6">
-                            <small class="text-muted">{% trans "Cells Found:" %}</small><br>
+                            <small class="text-muted">Найдено клеток:</small><br>
                             <strong class="text-success">{{ analysis.num_cells_detected }}</strong>
                         </div>
                         <div class="col-6">
-                            <small class="text-muted">{% trans "Time:" %}</small><br>
+                            <small class="text-muted">Время:</small><br>
                             <strong>{{ analysis.processing_time|floatformat:1 }}s</strong>
                         </div>
                     </div>
@@ -104,7 +103,7 @@
                     {% elif analysis.status == 'processing' %}
                     <hr>
                     <div class="text-warning">
-                        <small><i class="fas fa-spinner fa-spin"></i> {% trans "Analysis in progress..." %}</small>
+                        <small><i class="fas fa-spinner fa-spin"></i> Идет анализ...</small>
                     </div>
                     {% endif %}
                 </div>
@@ -113,25 +112,25 @@
                     <div class="btn-group w-100" role="group">
                         {% if analysis.status == 'completed' %}
                         <a href="{% url 'cells:analysis_detail' analysis.id %}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-chart-bar"></i> {% trans "View Results" %}
+                            <i class="fas fa-chart-bar"></i> Просмотреть результаты
                         </a>
                         <a href="{% url 'cells:export_analysis_csv' analysis.id %}" class="btn btn-success btn-sm">
-                            <i class="fas fa-download"></i> {% trans "CSV" %}
+                            <i class="fas fa-download"></i> CSV
                         </a>
                         {% elif analysis.status == 'failed' %}
                         <a href="{% url 'cells:analyze_cell' analysis.cell.id %}" class="btn btn-warning btn-sm">
-                            <i class="fas fa-redo"></i> {% trans "Retry" %}
+                            <i class="fas fa-redo"></i> Повторить
                         </a>
                         <a href="{% url 'cells:analysis_detail' analysis.id %}" class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-info"></i> {% trans "Details" %}
+                            <i class="fas fa-info"></i> Детали
                         </a>
                         {% else %}
                         <a href="{% url 'cells:analysis_detail' analysis.id %}" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-eye"></i> {% trans "View" %}
+                            <i class="fas fa-eye"></i> Просмотр
                         </a>
                         {% endif %}
                         <a href="{% url 'cells:cell_detail' analysis.cell.id %}" class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-image"></i> {% trans "Cell" %}
+                            <i class="fas fa-image"></i> Клетка
                         </a>
                     </div>
                 </div>
@@ -147,7 +146,7 @@
             {% if page_obj.has_previous %}
             <li class="page-item">
                 <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}">
-                    <i class="fas fa-chevron-left"></i> {% trans "Previous" %}
+                    <i class="fas fa-chevron-left"></i> Предыдущая
                 </a>
             </li>
             {% endif %}
@@ -175,7 +174,7 @@
             {% if page_obj.has_next %}
             <li class="page-item">
                 <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}">
-                    {% trans "Next" %} <i class="fas fa-chevron-right"></i>
+                    Следующая <i class="fas fa-chevron-right"></i>
                 </a>
             </li>
             {% endif %}
@@ -187,13 +186,13 @@
     <!-- Empty State -->
     <div class="text-center py-5">
         <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
-        <h4 class="text-muted">{% trans "No Analyses Found" %}</h4>
+        <h4 class="text-muted">Анализы не найдены</h4>
         {% if status_filter %}
-        <p class="text-muted">{% blocktrans with status=status_filter|title %}No analyses found with status "{{ status }}".{% endblocktrans %}</p>
-        <a href="{% url 'cells:analysis_list' %}" class="btn btn-outline-primary">{% trans "View All Analyses" %}</a>
+        <p class="text-muted">Анализы со статусом "{{ status_filter|title }}" не найдены.</p>
+        <a href="{% url 'cells:analysis_list' %}" class="btn btn-outline-primary">Посмотреть все анализы</a>
         {% else %}
-        <p class="text-muted">{% trans "Start by uploading cell images and running morphometric analysis." %}</p>
-        <a href="{% url 'cells:upload' %}" class="btn btn-primary">{% trans "Upload Cell Images" %}</a>
+        <p class="text-muted">Начните с загрузки изображений клеток и запуска морфометрического анализа.</p>
+        <a href="{% url 'cells:upload' %}" class="btn btn-primary">Загрузить изображения клеток</a>
         {% endif %}
     </div>
     {% endif %}

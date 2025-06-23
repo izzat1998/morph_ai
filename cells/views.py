@@ -3,13 +3,12 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
-from django.utils.translation import gettext as _
 import csv
 import json
 from .forms import CellUploadForm, CellAnalysisForm, ScaleCalibrationForm
 from .models import Cell, CellAnalysis, DetectedCell
 from .analysis import run_cell_analysis, get_analysis_summary, get_image_quality_summary
-
+from django.utils.translation import gettext as _
 
 @login_required
 def upload_cell(request):
@@ -19,7 +18,7 @@ def upload_cell(request):
             cell = form.save(commit=False)
             cell.user = request.user
             cell.save()
-            messages.success(request, _('Cell image "%(name)s" uploaded successfully!') % {'name': cell.name})
+            messages.success(request, f'Изображение клетки "{cell.name}" успешно загружено!')
             return redirect('cells:upload')
     else:
         form = CellUploadForm()
@@ -93,10 +92,10 @@ def analyze_cell(request, cell_id):
             success = run_cell_analysis(analysis.id)
             
             if success:
-                messages.success(request, _('Analysis completed successfully!'))
+                messages.success(request, 'Анализ завершен успешно!')
                 return redirect('cells:analysis_detail', analysis_id=analysis.id)
             else:
-                messages.error(request, _('Analysis failed. Please check the error details.'))
+                messages.error(request, 'Ошибка анализа. Пожалуйста, проверьте детали ошибки.')
                 return redirect('cells:analysis_detail', analysis_id=analysis.id)
     else:
         form = CellAnalysisForm()
