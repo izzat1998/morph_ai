@@ -5,7 +5,7 @@
 
 {% block content %}
 <!-- Hero Section -->
-<section class="hero-section-redesigned">
+<section class="hero-section-redesigned" aria-labelledby="hero-heading">
     <div class="container">
         <div class="row align-items-center min-vh-75">
             <div class="col-lg-6">
@@ -14,7 +14,7 @@
                         <i class="fas fa-microscope me-2"></i>
                         <span>Научная точность с ИИ</span>
                     </div>
-                    <h1 class="hero-title-new">
+                    <h1 id="hero-heading" class="hero-title-new">
                         Трансформируйте анализ клеток с помощью 
                         <span class="text-gradient-primary">искусственного интеллекта</span>
                     </h1>
@@ -24,24 +24,24 @@
 
                     {% if not user.is_authenticated %}
                         <div class="hero-actions-new">
-                            <a class="btn btn-primary-custom btn-lg" href="{% url 'accounts:signup' %}" role="button">
+                            <a class="btn btn-primary-custom btn-lg" href="{% url 'accounts:signup' %}" role="button" aria-describedby="signup-description">
                                 <i class="fas fa-rocket me-2"></i>
                                 Начать бесплатно
                                 <i class="fas fa-arrow-right ms-2"></i>
                             </a>
-                            <a class="btn btn-outline-primary-custom btn-lg" href="{% url 'accounts:login' %}" role="button">
+                            <a class="btn btn-outline-primary-custom btn-lg" href="{% url 'accounts:login' %}" role="button" aria-describedby="login-description">
                                 <i class="fas fa-sign-in-alt me-2"></i>
                                 Войти
                             </a>
                         </div>
                     {% else %}
                         <div class="hero-actions-new">
-                            <a class="btn btn-primary-custom btn-lg" href="{% url 'cells:upload' %}" role="button">
+                            <a class="btn btn-primary-custom btn-lg" href="{% url 'cells:upload' %}" role="button" aria-describedby="upload-description">
                                 <i class="fas fa-cloud-upload-alt me-2"></i>
                                 Загрузить изображения
                                 <i class="fas fa-arrow-right ms-2"></i>
                             </a>
-                            <a class="btn btn-outline-primary-custom btn-lg" href="{% url 'cells:list' %}" role="button">
+                            <a class="btn btn-outline-primary-custom btn-lg" href="{% url 'cells:list' %}" role="button" aria-describedby="gallery-description">
                                 <i class="fas fa-images me-2"></i>
                                 Просмотр галереи
                             </a>
@@ -52,46 +52,56 @@
             <div class="col-lg-6">
                 <div class="hero-visual">
                     <!-- Hero Stats Cards -->
+                    <div class="sr-only">
+                        <p id="signup-description">Create a free account to start analyzing your cell images</p>
+                        <p id="login-description">Sign in to access your existing projects and analyses</p>
+                        <p id="upload-description">Upload new microscopy images for morphometric analysis</p>
+                        <p id="gallery-description">View and manage your existing cell image collection</p>
+                    </div>
                     <div class="stats-grid">
-                        <div class="stat-card-new stat-primary">
-                            <div class="stat-icon-new">
+                        <div class="stat-card-new stat-primary" role="img" aria-labelledby="stat1-label" aria-describedby="stat1-desc">
+                            <div class="stat-icon-new" aria-hidden="true">
                                 <i class="fas fa-bullseye"></i>
                             </div>
                             <div class="stat-content-new">
                                 <div class="stat-number-new" data-target="99">0</div>
                                 <div class="stat-suffix-new">%</div>
                             </div>
-                            <div class="stat-label-new">Точность сегментации</div>
+                            <div id="stat1-label" class="stat-label-new">Точность сегментации</div>
+                            <div id="stat1-desc" class="sr-only">99 процентов точность автоматической сегментации клеток</div>
                         </div>
-                        <div class="stat-card-new stat-secondary">
-                            <div class="stat-icon-new">
+                        <div class="stat-card-new stat-secondary" role="img" aria-labelledby="stat2-label" aria-describedby="stat2-desc">
+                            <div class="stat-icon-new" aria-hidden="true">
                                 <i class="fas fa-list-ul"></i>
                             </div>
                             <div class="stat-content-new">
                                 <div class="stat-number-new" data-target="15">0</div>
                                 <div class="stat-suffix-new">+</div>
                             </div>
-                            <div class="stat-label-new">Морфометрических параметров</div>
+                            <div id="stat2-label" class="stat-label-new">Морфометрических параметров</div>
+                            <div id="stat2-desc" class="sr-only">Более 15 различных морфометрических параметров для анализа</div>
                         </div>
-                        <div class="stat-card-new stat-success">
-                            <div class="stat-icon-new">
+                        <div class="stat-card-new stat-success" role="img" aria-labelledby="stat3-label" aria-describedby="stat3-desc">
+                            <div class="stat-icon-new" aria-hidden="true">
                                 <i class="fas fa-clock"></i>
                             </div>
                             <div class="stat-content-new">
                                 <div class="stat-number-new">&lt;5</div>
                                 <div class="stat-suffix-new">мин</div>
                             </div>
-                            <div class="stat-label-new">Время анализа</div>
+                            <div id="stat3-label" class="stat-label-new">Время анализа</div>
+                            <div id="stat3-desc" class="sr-only">Менее 5 минут на полный морфометрический анализ</div>
                         </div>
-                        <div class="stat-card-new stat-info">
-                            <div class="stat-icon-new">
+                        <div class="stat-card-new stat-info" role="img" aria-labelledby="stat4-label" aria-describedby="stat4-desc">
+                            <div class="stat-icon-new" aria-hidden="true">
                                 <i class="fas fa-brain"></i>
                             </div>
                             <div class="stat-content-new">
                                 <div class="stat-number-new" data-target="4">0</div>
                                 <div class="stat-suffix-new"></div>
                             </div>
-                            <div class="stat-label-new">ИИ модели</div>
+                            <div id="stat4-label" class="stat-label-new">ИИ модели</div>
+                            <div id="stat4-desc" class="sr-only">4 различные модели искусственного интеллекта для сегментации</div>
                         </div>
                     </div>
                 </div>

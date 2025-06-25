@@ -57,82 +57,113 @@
         {% for analysis in page_obj %}
         <div class="col-md-6 col-lg-4 mb-4">
             <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">{{ analysis.cell.name }}</h6>
-                    <span class="badge bg-{% if analysis.status == 'completed' %}success{% elif analysis.status == 'failed' %}danger{% elif analysis.status == 'processing' %}warning{% else %}secondary{% endif %}">
-                        {{ analysis.get_status_display }}
-                    </span>
+                <div class="card-header">
+                    <h6 class="mb-0 text-truncate">{{ analysis.cell.name }}</h6>
                 </div>
                 
                 {% if analysis.cell.image %}
-                <div class="text-center p-2">
-                    <img src="{{ analysis.cell.image.url }}" class="img-fluid rounded" alt="{{ analysis.cell.name }}" style="max-height: 150px; object-fit: cover;">
+                <div class="position-relative">
+                    <img src="{{ analysis.cell.image.url }}" class="card-img-top" alt="{{ analysis.cell.name }}" style="height: 250px; object-fit: cover;">
+                    <div class="position-absolute top-0 end-0 m-2">
+                        <span class="badge bg-{% if analysis.status == 'completed' %}success{% elif analysis.status == 'failed' %}danger{% elif analysis.status == 'processing' %}warning{% else %}secondary{% endif %} shadow-sm">
+                            {{ analysis.get_status_display }}
+                        </span>
+                    </div>
                 </div>
                 {% endif %}
                 
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-6">
-                            <small class="text-muted">Дата:</small><br>
-                            <strong>{{ analysis.analysis_date|date:"M d, Y" }}</strong><br>
-                            <small>{{ analysis.analysis_date|date:"H:i" }}</small>
+                <div class="card-body pb-2">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <small class="text-muted"><i class="fas fa-calendar"></i> Дата анализа</small>
+                            <small class="text-muted"><i class="fas fa-brain"></i> Модель</small>
                         </div>
-                        <div class="col-6">
-                            <small class="text-muted">Модель:</small><br>
-                            <strong>{{ analysis.get_cellpose_model_display }}</strong>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong class="d-block">{{ analysis.analysis_date|date:"d.m.Y" }}</strong>
+                                <small class="text-muted">{{ analysis.analysis_date|date:"H:i" }}</small>
+                            </div>
+                            <div class="text-end">
+                                <strong>{{ analysis.get_cellpose_model_display }}</strong>
+                            </div>
                         </div>
                     </div>
                     
                     {% if analysis.status == 'completed' %}
-                    <hr>
-                    <div class="row">
-                        <div class="col-6">
-                            <small class="text-muted">Найдено клеток:</small><br>
-                            <strong class="text-success">{{ analysis.num_cells_detected }}</strong>
-                        </div>
-                        <div class="col-6">
-                            <small class="text-muted">Время:</small><br>
-                            <strong>{{ analysis.processing_time|floatformat:1 }}s</strong>
+                    <div class="border-top pt-3">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="text-success">
+                                    <i class="fas fa-microscope fa-lg mb-1"></i>
+                                    <div><strong class="fs-5">{{ analysis.num_cells_detected }}</strong></div>
+                                    <small class="text-muted">клеток найдено</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-info">
+                                    <i class="fas fa-clock fa-lg mb-1"></i>
+                                    <div><strong class="fs-5">{{ analysis.processing_time|floatformat:1 }}s</strong></div>
+                                    <small class="text-muted">время обработки</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     {% elif analysis.status == 'failed' %}
-                    <hr>
-                    <div class="text-danger">
-                        <small><i class="fas fa-exclamation-triangle"></i> {{ analysis.error_message|truncatechars:50 }}</small>
+                    <div class="border-top pt-3">
+                        <div class="text-center text-danger">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                            <div><small>{{ analysis.error_message|truncatechars:60 }}</small></div>
+                        </div>
                     </div>
                     {% elif analysis.status == 'processing' %}
-                    <hr>
-                    <div class="text-warning">
-                        <small><i class="fas fa-spinner fa-spin"></i> Идет анализ...</small>
+                    <div class="border-top pt-3">
+                        <div class="text-center text-warning">
+                            <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
+                            <div><small>Идет анализ изображения...</small></div>
+                        </div>
                     </div>
                     {% endif %}
                 </div>
                 
-                <div class="card-footer">
-                    <div class="btn-group w-100" role="group">
-                        {% if analysis.status == 'completed' %}
+                <div class="card-footer p-2">
+                    {% if analysis.status == 'completed' %}
+                    <div class="d-grid gap-2">
                         <a href="{% url 'cells:analysis_detail' analysis.id %}" class="btn btn-primary btn-sm">
                             <i class="fas fa-chart-bar"></i> Просмотреть результаты
                         </a>
-                        <a href="{% url 'cells:export_analysis_csv' analysis.id %}" class="btn btn-success btn-sm">
-                            <i class="fas fa-download"></i> CSV
-                        </a>
-                        {% elif analysis.status == 'failed' %}
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'cells:export_analysis_csv' analysis.id %}" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-download"></i> CSV
+                            </a>
+                            <a href="{% url 'cells:cell_detail' analysis.cell.id %}" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-image"></i> Клетка
+                            </a>
+                        </div>
+                    </div>
+                    {% elif analysis.status == 'failed' %}
+                    <div class="d-grid gap-2">
                         <a href="{% url 'cells:analyze_cell' analysis.cell.id %}" class="btn btn-warning btn-sm">
-                            <i class="fas fa-redo"></i> Повторить
+                            <i class="fas fa-redo"></i> Повторить анализ
                         </a>
-                        <a href="{% url 'cells:analysis_detail' analysis.id %}" class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-info"></i> Детали
-                        </a>
-                        {% else %}
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'cells:analysis_detail' analysis.id %}" class="btn btn-outline-info btn-sm">
+                                <i class="fas fa-info"></i> Детали
+                            </a>
+                            <a href="{% url 'cells:cell_detail' analysis.cell.id %}" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-image"></i> Клетка
+                            </a>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="d-grid gap-2">
                         <a href="{% url 'cells:analysis_detail' analysis.id %}" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-eye"></i> Просмотр
+                            <i class="fas fa-eye"></i> Просмотр статуса
                         </a>
-                        {% endif %}
                         <a href="{% url 'cells:cell_detail' analysis.cell.id %}" class="btn btn-outline-secondary btn-sm">
                             <i class="fas fa-image"></i> Клетка
                         </a>
                     </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

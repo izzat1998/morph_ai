@@ -843,21 +843,21 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i class="fas fa-file-pdf me-2"></i>
-                        Comprehensive PDF Report
+                        Полный PDF отчет
                     </h5>
                     <span class="badge bg-light text-dark">
-                        Professional Format
+                        Профессиональный формат
                     </span>
                 </div>
             </div>
             <div class="card-body p-4">
                 <div class="row align-items-center">
                     <div class="col-md-8">
-                        <h6 class="text-primary mb-2">Generate Complete Morphometric Analysis Report</h6>
+                        <h6 class="text-primary mb-2">Создать полный отчет морфометрического анализа</h6>
                         <p class="text-muted mb-3">
-                            Create a comprehensive PDF report including all visualizations, statistical analysis, 
-                            individual cell data, and detailed methodology. Perfect for research publications, 
-                            presentations, and documentation.
+                            Создать полный PDF отчет, включающий все визуализации, статистический анализ, 
+                            данные отдельных клеток и подробную методологию. Идеально для научных публикаций, 
+                            презентаций и документации.
                         </p>
                         
                         <div class="report-features">
@@ -865,25 +865,25 @@
                                 <div class="col-md-6">
                                     <div class="feature-item">
                                         <i class="fas fa-check-circle text-success me-2"></i>
-                                        <small>Complete visualization pipeline</small>
+                                        <small>Полный конвейер визуализации</small>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="feature-item">
                                         <i class="fas fa-check-circle text-success me-2"></i>
-                                        <small>Statistical analysis & charts</small>
+                                        <small>Статистический анализ и диаграммы</small>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="feature-item">
                                         <i class="fas fa-check-circle text-success me-2"></i>
-                                        <small>Individual cell measurements</small>
+                                        <small>Измерения отдельных клеток</small>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="feature-item">
                                         <i class="fas fa-check-circle text-success me-2"></i>
-                                        <small>Quality control metrics</small>
+                                        <small>Метрики контроля качества</small>
                                     </div>
                                 </div>
                             </div>
@@ -897,17 +897,17 @@
                         <div class="d-grid gap-2">
                             <a href="{% url 'reports:analysis_pdf_config' analysis.id %}" class="btn btn-primary">
                                 <i class="fas fa-cog me-2"></i>
-                                Configure & Generate
+                                Настроить и создать
                             </a>
                             <a href="{% url 'reports:analysis_pdf' analysis.id %}" class="btn btn-outline-primary" target="_blank">
                                 <i class="fas fa-lightning-bolt me-2"></i>
-                                Quick Generate
+                                Быстрое создание
                             </a>
                         </div>
                         
                         <div class="mt-2">
                             <small class="text-muted">
-                                Est. {{ page_obj.paginator.count|default:validated_cell_count|add:10 }} pages
+                                Примерно {{ page_obj.paginator.count|default:validated_cell_count|add:10 }} страниц
                             </small>
                         </div>
                     </div>

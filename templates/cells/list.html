@@ -7,10 +7,10 @@
 {% block content %}
 <div class="content-gallery mt-4">
     <!-- Gallery Header -->
-    <div class="morph-card morph-bg-light morph-mb-5 morph-p-5 section-spaced">
+    <header class="morph-card morph-bg-light morph-mb-5 morph-p-5 section-spaced">
         <div class="row align-items-center">
             <div class="col-md-8">
-                <h1 class="display-5 fw-bold text-gradient mb-2">Галерея изображений клеток</h1>
+                <h1 id="gallery-heading" class="display-5 fw-bold text-gradient mb-2">Галерея изображений клеток</h1>
                 <p class="lead mb-0">Управляйте и анализируйте вашу коллекцию микроскопических изображений</p>
             </div>
             <div class="col-md-4 text-md-end">
@@ -20,15 +20,16 @@
                 </a>
             </div>
         </div>
-    </div>
+    </header>
 
     <!-- Statistics Overview -->
     {% if cells %}
-    <div class="stats-grid stats-grid--compact section-spaced">
-        <div class="card bg-light text-center hover-scale">
+    <section aria-labelledby="stats-heading" class="stats-grid stats-grid--compact section-spaced">
+        <h2 id="stats-heading" class="sr-only">Статистика галереи</h2>
+        <div class="card bg-light text-center hover-scale" role="img" aria-labelledby="total-images">
             <div class="card-body">
                 <div class="h4 fw-bold text-primary mb-1">{{ cells|length }}</div>
-                <div class="small text-muted">Всего изображений</div>
+                <div id="total-images" class="small text-muted">Всего изображений</div>
             </div>
         </div>
         <div class="card bg-light text-center hover-scale">
@@ -49,22 +50,24 @@
                 <div class="small text-muted">Откалиброванных</div>
             </div>
         </div>
-    </div>
+    </section>
     {% endif %}
 
     <!-- Search and Filter Bar -->
-    <div class="morph-search-bar section-spaced">
+    <section aria-labelledby="search-heading" class="morph-search-bar section-spaced">
+        <h2 id="search-heading" class="sr-only">Поиск и фильтрация</h2>
         <div class="row align-items-center">
             <div class="col-md-4">
                 <div class="input-group">
                     <span class="input-group-text">
                         <i class="fas fa-search"></i>
                     </span>
-                    <input type="text" class="form-control" placeholder="Поиск изображений..." id="search-input">
+                    <input type="text" class="form-control" placeholder="Поиск изображений..." id="search-input" aria-label="Поиск по названию изображения">
                 </div>
             </div>
             <div class="col-md-3">
-                <select class="form-select sort-dropdown" id="sort-select">
+                <label for="sort-select" class="sr-only">Сортировать по</label>
+                <select class="form-select sort-dropdown" id="sort-select" aria-label="Сортировать изображения">
                     <option value="newest">Сначала новые</option>
                     <option value="oldest">Сначала старые</option>
                     <option value="name">По имени А-Я</option>
@@ -73,7 +76,8 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <select class="form-select" id="filter-select">
+                <label for="filter-select" class="sr-only">Фильтровать по</label>
+                <select class="form-select" id="filter-select" aria-label="Фильтровать изображения">
                     <option value="all">Все изображения</option>
                     <option value="analyzed">Только проанализированные</option>
                     <option value="unanalyzed">Не проанализированные</option>
@@ -97,11 +101,12 @@
         <div class="morph-filter-chips morph-hide" id="active-filters">
             <!-- Dynamically populated by JavaScript -->
         </div>
-    </div>
+    </section>
 
     <!-- Image Gallery -->
     {% if cells %}
-    <div class="section-spaced" id="image-gallery">
+    <section aria-labelledby="gallery-section-heading" class="section-spaced" id="image-gallery">
+        <h2 id="gallery-section-heading" class="sr-only">Галерея изображений</h2>
         <div class="card-grid card-grid--constrained">
             {% for cell in cells %}
             <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4 gallery-item" 
@@ -224,11 +229,11 @@
 
     {% else %}
     <!-- Empty State -->
-    <div class="morph-empty-state section-spaced text-center">
+    <section aria-labelledby="empty-state-heading" class="morph-empty-state section-spaced text-center">
         <div class="morph-empty-state__icon">
             <i class="fas fa-images"></i>
         </div>
-        <h3 class="text-muted mb-3">Изображения клеток еще не загружены</h3>
+        <h3 id="empty-state-heading" class="text-muted mb-3">Изображения клеток еще не загружены</h3>
         <p class="text-muted mb-4">
             Загрузите ваше первое изображение клетки для начала морфометрического анализа!
         </p>
@@ -236,7 +241,7 @@
             <i class="fas fa-cloud-upload-alt me-2"></i>
             Загрузить первое изображение
         </a>
-    </div>
+    </section>
     {% endif %}
 </div>
 

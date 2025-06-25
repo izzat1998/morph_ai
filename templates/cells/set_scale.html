@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
 
-{% block title %}Set Scale - {{ cell.name }}{% endblock %}
+{% block title %}Установить масштаб - {{ cell.name }}{% endblock %}
 
 {% block content %}
 <div class="content-detail mt-4">
@@ -10,26 +10,26 @@
             <div class="morph-card morph-card--professional">
                 <div class="card-header">
                     <h3 class="mb-0">
-                        <i class="fas fa-ruler"></i> Scale Calibration - {{ cell.name }}
+                        <i class="fas fa-ruler"></i> Калибровка масштаба - {{ cell.name }}
                     </h3>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-8">
-                            <h5>Image with Measurement Tool</h5>
+                            <h5>Изображение с инструментом измерения</h5>
                             
                             {% if cell.scale_set %}
                             <div class="alert alert-success">
-                                <h6><i class="fas fa-check-circle"></i> Scale Already Set</h6>
+                                <h6><i class="fas fa-check-circle"></i> Масштаб уже установлен</h6>
                                 <p class="mb-0">
-                                    Current scale: <strong>{{ cell.pixels_per_micron|floatformat:2 }} pixels/μm</strong><br>
-                                    Reference: {{ cell.scale_reference_length_pixels|floatformat:1 }} pixels = {{ cell.scale_reference_length_microns|floatformat:2 }} μm
+                                    Текущий масштаб: <strong>{{ cell.pixels_per_micron|floatformat:2 }} пикселей/μm</strong><br>
+                                    Референс: {{ cell.scale_reference_length_pixels|floatformat:1 }} пикселей = {{ cell.scale_reference_length_microns|floatformat:2 }} μm
                                 </p>
                             </div>
                             {% else %}
                             <div class="alert alert-warning">
-                                <h6><i class="fas fa-exclamation-triangle"></i> Scale Not Set</h6>
-                                <p class="mb-0">Set scale calibration to get measurements in real-world units (microns).</p>
+                                <h6><i class="fas fa-exclamation-triangle"></i> Масштаб не установлен</h6>
+                                <p class="mb-0">Установите калибровку масштаба для получения измерений в реальных единицах (микроны).</p>
                             </div>
                             {% endif %}
                             
@@ -43,34 +43,34 @@
                             <div class="mt-3">
                                 <div class="btn-group" role="group">
                                     <button type="button" class="btn btn-outline-primary" id="measureBtn" onclick="startMeasuring()">
-                                        <i class="fas fa-ruler"></i> Measure
+                                        <i class="fas fa-ruler"></i> Измерить
                                     </button>
                                     <button type="button" class="btn btn-outline-secondary" id="clearBtn" onclick="clearMeasurement()">
-                                        <i class="fas fa-eraser"></i> Clear
+                                        <i class="fas fa-eraser"></i> Очистить
                                     </button>
                                 </div>
                                 <div class="mt-2">
                                     <small class="text-muted">
-                                        Click and drag to measure distance. Current measurement: 
-                                        <span id="currentMeasurement" class="fw-bold">0.0 pixels</span>
+                                        Кликните и потяните для измерения расстояния. Текущее измерение: 
+                                        <span id="currentMeasurement" class="fw-bold">0.0 пикселей</span>
                                     </small>
                                 </div>
                             </div>
                         </div>
                         
                         <div class="col-md-4">
-                            <h5>Set Scale</h5>
+                            <h5>Установить масштаб</h5>
                             
                             <div class="morph-card morph-bg-light morph-mb-4">
                                 <div class="card-body">
-                                    <h6>Current Image Info</h6>
+                                    <h6>Информация о текущем изображении</h6>
                                     <ul class="list-unstyled mb-0">
-                                        <li><strong>Dimensions:</strong> {{ cell.image_width }}×{{ cell.image_height }} px</li>
-                                        <li><strong>Format:</strong> {{ cell.file_format|upper }}</li>
+                                        <li><strong>Размеры:</strong> {{ cell.image_width }}×{{ cell.image_height }} px</li>
+                                        <li><strong>Формат:</strong> {{ cell.file_format|upper }}</li>
                                         {% if cell.scale_set %}
-                                        <li><strong>Scale:</strong> {{ cell.pixels_per_micron|floatformat:2 }} px/μm</li>
+                                        <li><strong>Масштаб:</strong> {{ cell.pixels_per_micron|floatformat:2 }} px/μm</li>
                                         {% else %}
-                                        <li><strong>Scale:</strong> <span class="text-muted">Not set</span></li>
+                                        <li><strong>Масштаб:</strong> <span class="text-muted">Не установлен</span></li>
                                         {% endif %}
                                     </ul>
                                 </div>
@@ -80,7 +80,7 @@
                             
                             <div class="mt-3">
                                 <a href="{% url 'cells:cell_detail' cell.id %}" class="btn btn-secondary">
-                                    <i class="fas fa-arrow-left"></i> Back to Cell Details
+                                    <i class="fas fa-arrow-left"></i> Вернуться к подробностям клетки
                                 </a>
                             </div>
                         </div>
@@ -150,7 +150,7 @@ function startMeasuring() {
 
 function clearMeasurement() {
     currentDistance = 0;
-    document.getElementById('currentMeasurement').textContent = '0.0 pixels';
+    document.getElementById('currentMeasurement').textContent = '0.0 пикселей';
     document.getElementById('id_reference_length_pixels').value = '';
     redrawCanvas();
 }
@@ -190,12 +190,12 @@ function draw(e) {
     const avgScale = (scaleX + scaleY) / 2;
     currentDistance = distance * avgScale;
     
-    document.getElementById('currentMeasurement').textContent = currentDistance.toFixed(1) + ' pixels';
+    document.getElementById('currentMeasurement').textContent = currentDistance.toFixed(1) + ' пикселей';
     
     // Draw distance text
     ctx.fillStyle = '#ff0000';
     ctx.font = '12px Arial';
-    ctx.fillText(currentDistance.toFixed(1) + ' px', endX + 5, endY - 5);
+    ctx.fillText(currentDistance.toFixed(1) + ' пикс', endX + 5, endY - 5);
 }
 
 function stopDrawing() {

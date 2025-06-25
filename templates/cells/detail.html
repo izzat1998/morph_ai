@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ cell.name }} - Cell Detail{% endblock %}
+{% block title %}{{ cell.name }} - Подробности клетки{% endblock %}
 
 {% block content %}
 <div class="content-detail mt-4">
@@ -11,13 +11,13 @@
                     <h3 class="mb-0">{{ cell.name }}</h3>
                     <div class="flex-center gap-sm">
                         <a href="{% url 'cells:set_scale_calibration' cell.id %}" class="btn btn-{% if cell.scale_set %}outline-primary{% else %}warning{% endif %} btn-sm">
-                            <i class="fas fa-ruler"></i> {% if cell.scale_set %}Update Scale{% else %}Set Scale{% endif %}
+                            <i class="fas fa-ruler"></i> {% if cell.scale_set %}Обновить масштаб{% else %}Установить масштаб{% endif %}
                         </a>
                         <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success btn-sm">
-                            <i class="fas fa-microscope"></i> Analyze
+                            <i class="fas fa-microscope"></i> Анализировать
                         </a>
                         <a href="{% url 'cells:list' %}" class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-arrow-left"></i> Back to List
+                            <i class="fas fa-arrow-left"></i> Вернуться к списку
                         </a>
                     </div>
                 </div>
@@ -29,40 +29,40 @@
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <h5 class="mb-3">Image Details</h5>
+                            <h5 class="mb-3">Подробности изображения</h5>
                             <div class="detail-table-container">
                                 <table class="table table-sm">
                                 <tr>
-                                    <td><strong>Dimensions:</strong></td>
+                                    <td><strong>Размеры:</strong></td>
                                     <td>{{ cell.image_width }}×{{ cell.image_height }} px</td>
                                 </tr>
                                 <tr>
-                                    <td><strong>Format:</strong></td>
+                                    <td><strong>Формат:</strong></td>
                                     <td>{{ cell.file_format|upper }}</td>
                                 </tr>
                                 <tr>
-                                    <td><strong>File Size:</strong></td>
+                                    <td><strong>Размер файла:</strong></td>
                                     <td>{{ cell.file_size|filesizeformat }}</td>
                                 </tr>
                                 <tr>
-                                    <td><strong>Uploaded:</strong></td>
-                                    <td>{{ cell.created_at|date:"M d, Y H:i" }}</td>
+                                    <td><strong>Загружено:</strong></td>
+                                    <td>{{ cell.created_at|date:"d M Y H:i" }}</td>
                                 </tr>
                                 <tr>
-                                    <td><strong>Scale:</strong></td>
+                                    <td><strong>Масштаб:</strong></td>
                                     <td>
                                         {% if cell.scale_set %}
                                             <span class="badge bg-success">{{ cell.pixels_per_micron|floatformat:2 }} px/μm</span>
                                         {% else %}
-                                            <span class="badge bg-warning">Not calibrated</span>
+                                            <span class="badge bg-warning">Не откалиброван</span>
                                         {% endif %}
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td><strong>Analyses:</strong></td>
+                                    <td><strong>Анализы:</strong></td>
                                     <td>
                                         <span class="badge bg-{{ cell.has_analysis|yesno:'success,secondary' }}">
-                                            {{ cell.analysis_count }} analysis{{ cell.analysis_count|pluralize:"es" }}
+                                            {{ cell.analysis_count }} анализ{{ cell.analysis_count|pluralize:"ов" }}
                                         </span>
                                     </td>
                                 </tr>
@@ -78,32 +78,32 @@
             {% if latest_analysis %}
             <div class="card hover-scale">
                 <div class="card-header">
-                    <h5 class="mb-0">Latest Analysis</h5>
+                    <h5 class="mb-0">Последний анализ</h5>
                 </div>
                 <div class="card-body">
                     <div class="flex-between mb-2">
                         <span class="badge bg-{% if latest_analysis.status == 'completed' %}success{% elif latest_analysis.status == 'failed' %}danger{% elif latest_analysis.status == 'processing' %}warning{% else %}secondary{% endif %}">
                             {{ latest_analysis.get_status_display }}
                         </span>
-                        <small class="text-muted">{{ latest_analysis.analysis_date|date:"M d, H:i" }}</small>
+                        <small class="text-muted">{{ latest_analysis.analysis_date|date:"d M, H:i" }}</small>
                     </div>
                     
                     {% if latest_analysis.status == 'completed' %}
-                    <p class="mb-2"><strong>Cells Detected:</strong> {{ latest_analysis.num_cells_detected }}</p>
-                    <p class="mb-3"><strong>Processing Time:</strong> {{ latest_analysis.processing_time|floatformat:2 }}s</p>
-                    <a href="{% url 'cells:analysis_detail' latest_analysis.id %}" class="btn btn-primary btn-sm w-100">View Results</a>
+                    <p class="mb-2"><strong>Обнаружено клеток:</strong> {{ latest_analysis.num_cells_detected }}</p>
+                    <p class="mb-3"><strong>Время обработки:</strong> {{ latest_analysis.processing_time|floatformat:2 }}с</p>
+                    <a href="{% url 'cells:analysis_detail' latest_analysis.id %}" class="btn btn-primary btn-sm w-100">Посмотреть результаты</a>
                     {% elif latest_analysis.status == 'failed' %}
                     <p class="text-danger mb-3"><small>{{ latest_analysis.error_message }}</small></p>
-                    <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success btn-sm w-100">Try Again</a>
+                    <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success btn-sm w-100">Попробовать снова</a>
                     {% endif %}
                 </div>
             </div>
             {% else %}
             <div class="card hover-scale">
                 <div class="card-body text-center">
-                    <h5 class="mb-3">No Analysis Yet</h5>
-                    <p class="text-muted mb-3">Start morphometric analysis to detect and measure cells in this image.</p>
-                    <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success w-100">Start Analysis</a>
+                    <h5 class="mb-3">Анализ пока не проведен</h5>
+                    <p class="text-muted mb-3">Запустите морфометрический анализ для обнаружения и измерения клеток на этом изображении.</p>
+                    <a href="{% url 'cells:analyze_cell' cell.id %}" class="btn btn-success w-100">Начать анализ</a>
                 </div>
             </div>
             {% endif %}
@@ -114,25 +114,25 @@
     <div class="section-spaced">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">Analysis History</h5>
+                <h5 class="mb-0">История анализов</h5>
             </div>
             <div class="card-body">
                 <div class="table-container--analysis">
                     <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>Date</th>
-                                    <th>Status</th>
-                                    <th>Model</th>
-                                    <th>Cells Detected</th>
-                                    <th>Processing Time</th>
-                                    <th>Actions</th>
+                                    <th>Дата</th>
+                                    <th>Статус</th>
+                                    <th>Модель</th>
+                                    <th>Найдено клеток</th>
+                                    <th>Время обработки</th>
+                                    <th>Действия</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for analysis in analyses %}
                                 <tr>
-                                    <td>{{ analysis.analysis_date|date:"M d, Y H:i" }}</td>
+                                    <td>{{ analysis.analysis_date|date:"d M Y H:i" }}</td>
                                     <td>
                                         <span class="badge bg-{% if analysis.status == 'completed' %}success{% elif analysis.status == 'failed' %}danger{% elif analysis.status == 'processing' %}warning{% else %}secondary{% endif %}">
                                             {{ analysis.get_status_display }}
@@ -143,9 +143,9 @@
                                     <td>{{ analysis.processing_time|floatformat:2|default:"-" }}s</td>
                                     <td>
                                         {% if analysis.status == 'completed' %}
-                                        <a href="{% url 'cells:analysis_detail' analysis.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                                        <a href="{% url 'cells:analysis_detail' analysis.id %}" class="btn btn-sm btn-outline-primary">Просмотр</a>
                                         {% elif analysis.status == 'failed' %}
-                                        <button class="btn btn-sm btn-outline-danger" title="{{ analysis.error_message }}">Error</button>
+                                        <button class="btn btn-sm btn-outline-danger" title="{{ analysis.error_message }}">Ошибка</button>
                                         {% endif %}
                                     </td>
                                 </tr>

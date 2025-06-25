@@ -19,6 +19,8 @@ from reportlab.platypus import (
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 from django.conf import settings
 from django.utils import timezone
@@ -26,6 +28,57 @@ from cells.models import Cell, CellAnalysis, DetectedCell
 from .charts import MorphometricChartGenerator
 
 logger = logging.getLogger(__name__)
+
+
+def register_fonts():
+    """Register fonts that support Russian characters."""
+    try:
+        # Try to register DejaVu Sans (commonly available and supports Cyrillic)
+        base_paths = [
+            '/usr/share/fonts/truetype/dejavu/',
+            '/System/Library/Fonts/',  # macOS
+            'C:/Windows/Fonts/',  # Windows
+            '/usr/share/fonts/TTF/',  # Some Linux distributions
+            '/usr/share/fonts/truetype/liberation/',  # Alternative
+        ]
+        
+        font_registered = False
+        
+        for base_path in base_paths:
+            regular_font = os.path.join(base_path, 'DejaVuSans.ttf')
+            bold_font = os.path.join(base_path, 'DejaVuSans-Bold.ttf')
+            
+            if os.path.exists(regular_font):
+                pdfmetrics.registerFont(TTFont('DejaVuSans', regular_font))
+                logger.info(f"Registered regular font: {regular_font}")
+                font_registered = True
+                
+                if os.path.exists(bold_font):
+                    pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', bold_font))
+                    logger.info(f"Registered bold font: {bold_font}")
+                
+                return 'DejaVuSans'
+        
+        # Try alternative fonts
+        alternative_fonts = [
+            ('/System/Library/Fonts/Arial.ttf', 'Arial'),
+            ('C:/Windows/Fonts/arial.ttf', 'Arial'),
+            ('/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf', 'LiberationSans'),
+        ]
+        
+        for font_path, font_name in alternative_fonts:
+            if os.path.exists(font_path):
+                pdfmetrics.registerFont(TTFont(font_name, font_path))
+                logger.info(f"Registered alternative font: {font_path}")
+                return font_name
+        
+        # If no specific font found, try to use built-in fonts with Unicode support
+        logger.warning("No suitable Unicode font found, using Helvetica with Unicode fallback")
+        return 'Helvetica'
+        
+    except Exception as e:
+        logger.error(f"Error registering fonts: {e}")
+        return 'Helvetica'
 
 
 class MorphometricPDFReport:
@@ -58,6 +111,9 @@ class MorphometricPDFReport:
         self.margin = 2*cm
         self.doc = None
         self.story = []
+        
+        # Register fonts for Russian support
+        self.font_name = register_fonts()
         self.styles = self._create_styles()
         
     def generate_report(self) -> io.BytesIO:
@@ -116,7 +172,7 @@ class MorphometricPDFReport:
         """Create custom paragraph styles for the report."""
         styles = getSampleStyleSheet()
         
-        # Custom styles
+        # Custom styles with Russian font support
         custom_styles = {
             'Title': ParagraphStyle(
                 'CustomTitle',
@@ -124,7 +180,8 @@ class MorphometricPDFReport:
                 fontSize=24,
                 spaceAfter=30,
                 alignment=TA_CENTER,
-                textColor=colors.HexColor('#2E86AB')
+                textColor=colors.HexColor('#2E86AB'),
+                fontName=self.font_name
             ),
             'Heading1': ParagraphStyle(
                 'CustomHeading1',
@@ -132,7 +189,8 @@ class MorphometricPDFReport:
                 fontSize=16,
                 spaceAfter=12,
                 spaceBefore=20,
-                textColor=colors.HexColor('#2E86AB')
+                textColor=colors.HexColor('#2E86AB'),
+                fontName=self.font_name
             ),
             'Heading2': ParagraphStyle(
                 'CustomHeading2',
@@ -140,14 +198,16 @@ class MorphometricPDFReport:
                 fontSize=14,
                 spaceAfter=10,
                 spaceBefore=15,
-                textColor=colors.HexColor('#A23B72')
+                textColor=colors.HexColor('#A23B72'),
+                fontName=self.font_name
             ),
             'Normal': ParagraphStyle(
                 'CustomNormal',
                 parent=styles['Normal'],
                 fontSize=11,
                 spaceAfter=6,
-                alignment=TA_JUSTIFY
+                alignment=TA_JUSTIFY,
+                fontName=self.font_name
             ),
             'Caption': ParagraphStyle(
                 'Caption',
@@ -155,31 +215,44 @@ class MorphometricPDFReport:
                 fontSize=9,
                 spaceAfter=12,
                 alignment=TA_CENTER,
-                textColor=colors.grey
+                textColor=colors.grey,
+                fontName=self.font_name
             ),
             'TableHeader': ParagraphStyle(
                 'TableHeader',
                 parent=styles['Normal'],
                 fontSize=10,
                 alignment=TA_CENTER,
-                textColor=colors.white
+                textColor=colors.white,
+                fontName=self.font_name
             )
         }
         
         return custom_styles
     
+    def _get_table_font(self, bold=False):
+        """Get appropriate font name for tables with Russian support."""
+        if self.font_name == 'DejaVuSans':
+            return 'DejaVuSans-Bold' if bold else 'DejaVuSans'
+        elif self.font_name == 'Arial':
+            return 'Arial-Bold' if bold else 'Arial'
+        elif self.font_name == 'LiberationSans':
+            return 'LiberationSans-Bold' if bold else 'LiberationSans'
+        else:
+            return 'Helvetica-Bold' if bold else 'Helvetica'
+    
     def _add_cover_page(self):
         """Add cover page to the report."""
         # Title
-        title = f"Morphometric Analysis Report"
+        title = f"Отчет морфометрического анализа"
         self.story.append(Paragraph(title, self.styles['Title']))
         self.story.append(Spacer(1, 0.5*inch))
         
         # Cell information
-        cell_info = f"<b>Cell Image:</b> {self.cell.name}<br/>"
-        cell_info += f"<b>Analysis Date:</b> {self.analysis.analysis_date.strftime('%B %d, %Y')}<br/>"
-        cell_info += f"<b>Analysis ID:</b> {self.analysis.id}<br/>"
-        cell_info += f"<b>Status:</b> {self.analysis.get_status_display()}"
+        cell_info = f"<b>Изображение клетки:</b> {self.cell.name}<br/>"
+        cell_info += f"<b>Дата анализа:</b> {self.analysis.analysis_date.strftime('%B %d, %Y')}<br/>"
+        cell_info += f"<b>ID анализа:</b> {self.analysis.id}<br/>"
+        cell_info += f"<b>Статус:</b> {self.analysis.get_status_display()}"
         
         self.story.append(Paragraph(cell_info, self.styles['Normal']))
         self.story.append(Spacer(1, 0.5*inch))
@@ -192,7 +265,7 @@ class MorphometricPDFReport:
                 if os.path.exists(img_path):
                     img = Image(img_path, width=4*inch, height=3*inch)
                     self.story.append(img)
-                    self.story.append(Paragraph("Original Cell Image", self.styles['Caption']))
+                    self.story.append(Paragraph("Исходное изображение клетки", self.styles['Caption']))
             except Exception as e:
                 logger.warning(f"Could not add cover image: {e}")
         
@@ -202,11 +275,11 @@ class MorphometricPDFReport:
         if self.analysis.status == 'completed':
             detected_cells = DetectedCell.objects.filter(analysis=self.analysis)
             summary = f"""
-            <b>Analysis Summary:</b><br/>
-            • Total cells detected: {detected_cells.count()}<br/>
-            • Cellpose model: {self.analysis.get_cellpose_model_display()}<br/>
-            • Processing time: {self.analysis.processing_time:.2f} seconds<br/>
-            • Scale calibration: {'Yes' if self.cell.scale_set else 'No'}
+            <b>Обзор анализа:</b><br/>
+            • Обнаружено клеток: {detected_cells.count()}<br/>
+            • Модель Cellpose: {self.analysis.get_cellpose_model_display()}<br/>
+            • Время обработки: {self.analysis.processing_time:.2f} секунд<br/>
+            • Калибровка масштаба: {'Да' if self.cell.scale_set else 'Нет'}
             """
             self.story.append(Paragraph(summary, self.styles['Normal']))
         
@@ -214,17 +287,17 @@ class MorphometricPDFReport:
     
     def _add_table_of_contents(self):
         """Add simple table of contents."""
-        self.story.append(Paragraph("Table of Contents", self.styles['Heading1']))
+        self.story.append(Paragraph("Оглавление", self.styles['Heading1']))
         
         # Simple TOC without automatic page numbering
         toc_items = [
-            "1. Executive Summary",
-            "2. Methodology" if self.include_methodology else None,
-            "3. Image Processing Pipeline", 
-            "4. Statistical Analysis" if self.include_charts else None,
-            "5. Individual Cell Results" if self.include_individual_cells else None,
-            "6. Quality Control" if self.include_quality_control else None,
-            "7. Technical Appendix"
+            "1. Краткий обзор",
+            "2. Методология" if self.include_methodology else None,
+            "3. Конвейер обработки изображений", 
+            "4. Статистический анализ" if self.include_charts else None,
+            "5. Результаты отдельных клеток" if self.include_individual_cells else None,
+            "6. Контроль качества" if self.include_quality_control else None,
+            "7. Техническое приложение"
         ]
         
         # Filter out None items and renumber
@@ -241,7 +314,7 @@ class MorphometricPDFReport:
     
     def _add_executive_summary(self):
         """Add executive summary section."""
-        self.story.append(Paragraph("Executive Summary", self.styles['Heading1']))
+        self.story.append(Paragraph("Краткий обзор", self.styles['Heading1']))
         
         if self.analysis.status == 'completed':
             detected_cells = DetectedCell.objects.filter(analysis=self.analysis)
@@ -254,32 +327,32 @@ class MorphometricPDFReport:
                 
                 import numpy as np
                 summary_text = f"""
-                This morphometric analysis successfully processed the cell image "{self.cell.name}" 
-                using the Cellpose {self.analysis.get_cellpose_model_display()} model. 
-                The analysis identified <b>{len(areas)} cells</b> with the following key characteristics:
+                Данный морфометрический анализ успешно обработал изображение клетки "{self.cell.name}" 
+                с использованием модели Cellpose {self.analysis.get_cellpose_model_display()}. 
+                Анализ выявил <b>{len(areas)} клеток</b> со следующими ключевыми характеристиками:
                 
                 <br/><br/>
-                <b>Morphometric Summary:</b><br/>
-                • Average cell area: {np.mean(areas):.1f} ± {np.std(areas):.1f} px²<br/>
-                • Average perimeter: {np.mean(perimeters):.1f} ± {np.std(perimeters):.1f} px<br/>
-                • Average circularity: {np.mean(circularities):.3f} ± {np.std(circularities):.3f}<br/>
-                • Size range: {np.min(areas):.1f} - {np.max(areas):.1f} px²
+                <b>Морфометрический обзор:</b><br/>
+                • Средняя площадь клетки: {np.mean(areas):.1f} ± {np.std(areas):.1f} пкс²<br/>
+                • Средний периметр: {np.mean(perimeters):.1f} ± {np.std(perimeters):.1f} пкс<br/>
+                • Средняя круглость: {np.mean(circularities):.3f} ± {np.std(circularities):.3f}<br/>
+                • Диапазон размеров: {np.min(areas):.1f} - {np.max(areas):.1f} пкс²
                 
                 <br/><br/>
-                <b>Quality Assessment:</b><br/>
-                • Processing completed successfully in {self.analysis.processing_time:.1f} seconds<br/>
-                • {'Scale calibrated' if self.cell.scale_set else 'Scale not calibrated'}<br/>
-                • Data quality: High confidence segmentation results
+                <b>Оценка качества:</b><br/>
+                • Обработка успешно завершена за {self.analysis.processing_time:.1f} секунд<br/>
+                • {'Масштаб откалиброван' if self.cell.scale_set else 'Масштаб не откалиброван'}<br/>
+                • Качество данных: Высокоточные результаты сегментации
                 """
             else:
                 summary_text = f"""
-                The morphometric analysis of "{self.cell.name}" was completed, but no cells were 
-                detected with the current parameters. This may indicate that the image requires 
-                different segmentation parameters or preprocessing settings.
+                Морфометрический анализ "{self.cell.name}" был завершен, но клетки не были 
+                обнаружены с текущими параметрами. Это может указывать на то, что изображение требует 
+                других параметров сегментации или настроек предварительной обработки.
                 """
         else:
             summary_text = f"""
-            The morphometric analysis of "{self.cell.name}" has status: {self.analysis.get_status_display()}.
+            Морфометрический анализ "{self.cell.name}" имеет статус: {self.analysis.get_status_display()}.
             """
         
         self.story.append(Paragraph(summary_text, self.styles['Normal']))
@@ -287,39 +360,39 @@ class MorphometricPDFReport:
     
     def _add_methodology_section(self):
         """Add methodology section."""
-        self.story.append(Paragraph("Methodology", self.styles['Heading1']))
+        self.story.append(Paragraph("Методология", self.styles['Heading1']))
         
         # Analysis parameters
         params_text = f"""
-        <b>Image Processing Pipeline:</b><br/>
-        This analysis employed a state-of-the-art deep learning approach using Cellpose for 
-        automated cell segmentation, followed by comprehensive morphometric feature extraction.
+        <b>Конвейер обработки изображений:</b><br/>
+        Данный анализ использует современный подход глубокого обучения с Cellpose для 
+        автоматической сегментации клеток, с последующей всеобъемлющей экстракцией морфометрических признаков.
         
         <br/><br/>
-        <b>Segmentation Parameters:</b><br/>
-        • Model: {self.analysis.get_cellpose_model_display()}<br/>
-        • Cell diameter: {self.analysis.cellpose_diameter} pixels {'(auto-detected)' if self.analysis.cellpose_diameter == 0 else ''}<br/>
-        • Flow threshold: {self.analysis.flow_threshold}<br/>
-        • Cell probability threshold: {self.analysis.cellprob_threshold}<br/>
-        • ROI analysis: {'Enabled' if self.analysis.use_roi else 'Disabled'}
+        <b>Параметры сегментации:</b><br/>
+        • Модель: {self.analysis.get_cellpose_model_display()}<br/>
+        • Диаметр клетки: {self.analysis.cellpose_diameter} пикселей {'(автоопределение)' if self.analysis.cellpose_diameter == 0 else ''}<br/>
+        • Порог потока: {self.analysis.flow_threshold}<br/>
+        • Порог вероятности клетки: {self.analysis.cellprob_threshold}<br/>
+        • Анализ ROI: {'Включен' if self.analysis.use_roi else 'Отключен'}
         
         <br/><br/>
-        <b>Feature Extraction:</b><br/>
-        Morphometric features were calculated using scikit-image regionprops, including:
-        • Geometric measurements (area, perimeter, centroid)<br/>
-        • Shape descriptors (circularity, eccentricity, solidity)<br/>
-        • Ellipse fitting parameters (major/minor axes, aspect ratio)
+        <b>Экстракция признаков:</b><br/>
+        Морфометрические признаки вычислялись с использованием scikit-image regionprops, включая:
+        • Геометрические измерения (площадь, периметр, центроид)<br/>
+        • Описатели формы (круглость, эксцентриситет, плотность)<br/>
+        • Параметры аппроксимации эллипсом (большая/малая оси, соотношение сторон)
         """
         
         if hasattr(self.analysis, 'apply_preprocessing') and self.analysis.apply_preprocessing:
             preprocessing_text = f"""
             <br/><br/>
-            <b>Image Preprocessing:</b><br/>
-            Advanced preprocessing was applied to enhance image quality:
-            • Noise reduction: {'Applied' if getattr(self.analysis, 'apply_noise_reduction', False) else 'Not applied'}<br/>
-            • Contrast enhancement: {'Applied' if getattr(self.analysis, 'apply_contrast_enhancement', False) else 'Not applied'}<br/>
-            • Sharpening: {'Applied' if getattr(self.analysis, 'apply_sharpening', False) else 'Not applied'}<br/>
-            • Normalization: {'Applied' if getattr(self.analysis, 'apply_normalization', False) else 'Not applied'}
+            <b>Предварительная обработка изображения:</b><br/>
+            Применялась продвинутая предварительная обработка для улучшения качества изображения:
+            • Подавление шума: {'Применено' if getattr(self.analysis, 'apply_noise_reduction', False) else 'Не применено'}<br/>
+            • Улучшение контраста: {'Применено' if getattr(self.analysis, 'apply_contrast_enhancement', False) else 'Не применено'}<br/>
+            • Повышение резкости: {'Применено' if getattr(self.analysis, 'apply_sharpening', False) else 'Не применено'}<br/>
+            • Нормализация: {'Применена' if getattr(self.analysis, 'apply_normalization', False) else 'Не применена'}
             """
             params_text += preprocessing_text
         
@@ -328,11 +401,11 @@ class MorphometricPDFReport:
     
     def _add_image_processing_pipeline(self):
         """Add image processing pipeline visualization."""
-        self.story.append(Paragraph("Image Processing Pipeline", self.styles['Heading1']))
+        self.story.append(Paragraph("Конвейер обработки изображений", self.styles['Heading1']))
         
         pipeline_text = """
-        The following visualizations show the complete Cellpose processing pipeline, 
-        from the original image through segmentation to final cell identification.
+        Следующие визуализации показывают полный конвейер обработки Cellpose, 
+        от исходного изображения через сегментацию до финальной идентификации клеток.
         """
         self.story.append(Paragraph(pipeline_text, self.styles['Normal']))
         
@@ -484,7 +557,8 @@ class MorphometricPDFReport:
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E86AB')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTNAME', (0, 0), (-1, 0), self._get_table_font(bold=True)),
+                ('FONTNAME', (0, 1), (-1, -1), self._get_table_font(bold=False)),
                 ('FONTSIZE', (0, 0), (-1, 0), 10),
                 ('FONTSIZE', (0, 1), (-1, -1), 9),
                 ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
@@ -574,7 +648,8 @@ class MorphometricPDFReport:
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E86AB')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (-1, 0), self._get_table_font(bold=True)),
+            ('FONTNAME', (0, 1), (-1, -1), self._get_table_font(bold=False)),
             ('FONTSIZE', (0, 0), (-1, 0), 10),
             ('FONTSIZE', (0, 1), (-1, -1), 9),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),

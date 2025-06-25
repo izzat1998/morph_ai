@@ -16,6 +16,21 @@ document.addEventListener('DOMContentLoaded', function() {
     initializePerformanceMonitoring();
     initializeScrollAnimations();
     initializeHeroParallax();
+    
+    // Initialize accessibility enhancements
+    enhanceFormValidation();
+    createAnnouncementRegion();
+    
+    // Set initial ARIA states
+    document.querySelectorAll('.morph-view-toggle button').forEach((btn, index) => {
+        btn.setAttribute('aria-pressed', index === 0 ? 'true' : 'false');
+    });
+    
+    // Make main content focusable for skip link
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) {
+        mainContent.setAttribute('tabindex', '-1');
+    }
 });
 
 // ==========================================
@@ -339,7 +354,7 @@ function initializeScrollEffects() {
 }
 
 // ==========================================
-// KEYBOARD SHORTCUTS
+// ACCESSIBILITY & KEYBOARD SHORTCUTS
 // ==========================================
 function initializeKeyboardShortcuts() {
     document.addEventListener('keydown', function(e) {
@@ -362,9 +377,19 @@ function initializeKeyboardShortcuts() {
         
         // Gallery view toggle (G)
         if (e.key === 'g' && !e.ctrlKey && !e.metaKey) {
-            const viewToggle = document.querySelector('.view-toggle button:not(.active)');
+            const viewToggle = document.querySelector('.morph-view-toggle button:not([aria-pressed="true"])');
             if (viewToggle && document.activeElement.tagName !== 'INPUT') {
                 viewToggle.click();
+            }
+        }
+        
+        // Skip to main content (Alt + M)
+        if (e.altKey && e.key === 'm') {
+            e.preventDefault();
+            const mainContent = document.getElementById('main-content');
+            if (mainContent) {
+                mainContent.focus();
+                mainContent.scrollIntoView({ behavior: 'smooth' });
             }
         }
         
@@ -381,6 +406,106 @@ function initializeKeyboardShortcuts() {
                 bootstrap.Dropdown.getInstance(dropdown.previousElementSibling).hide();
             });
         }
+    });
+    
+    // Enhanced focus management for upload zone
+    const uploadZone = document.getElementById('upload-zone');
+    if (uploadZone) {
+        uploadZone.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                const fileInput = document.getElementById('file-input');
+                if (fileInput) fileInput.click();
+            }
+        });
+    }
+    
+    // ARIA state updates for view toggle buttons
+    const viewToggleButtons = document.querySelectorAll('.morph-view-toggle button');
+    viewToggleButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            viewToggleButtons.forEach(btn => btn.setAttribute('aria-pressed', 'false'));
+            this.setAttribute('aria-pressed', 'true');
+            
+            // Announce view change to screen readers
+            announceToScreenReader(`View changed to ${this.dataset.view} layout`);
+        });
+    });
+}
+
+// Screen reader announcements
+function announceToScreenReader(message) {
+    const announcement = document.getElementById('sr-announcements') || createAnnouncementRegion();
+    announcement.textContent = message;
+    
+    // Clear after announcement
+    setTimeout(() => {
+        announcement.textContent = '';
+    }, 1000);
+}
+
+function createAnnouncementRegion() {
+    const region = document.createElement('div');
+    region.id = 'sr-announcements';
+    region.setAttribute('aria-live', 'polite');
+    region.setAttribute('aria-atomic', 'true');
+    region.className = 'sr-only';
+    document.body.appendChild(region);
+    return region;
+}
+
+// Enhanced form validation with ARIA feedback
+function enhanceFormValidation() {
+    const forms = document.querySelectorAll('form');
+    
+    forms.forEach(form => {
+        const inputs = form.querySelectorAll('input, textarea, select');
+        
+        inputs.forEach(input => {
+            // Real-time validation with ARIA feedback
+            input.addEventListener('invalid', function(e) {
+                e.preventDefault();
+                
+                // Create or update error message
+                const errorId = this.id + '-error';
+                let errorMessage = document.getElementById(errorId);
+                
+                if (!errorMessage) {
+                    errorMessage = document.createElement('div');
+                    errorMessage.id = errorId;
+                    errorMessage.className = 'invalid-feedback d-block';
+                    errorMessage.setAttribute('role', 'alert');
+                    this.parentNode.appendChild(errorMessage);
+                }
+                
+                // Set error message and ARIA attributes
+                errorMessage.textContent = this.validationMessage;
+                this.setAttribute('aria-describedby', errorId);
+                this.setAttribute('aria-invalid', 'true');
+                
+                // Visual feedback
+                this.classList.add('is-invalid');
+                
+                // Announce error to screen readers
+                announceToScreenReader(`Error: ${this.validationMessage}`);
+            });
+            
+            input.addEventListener('input', function() {
+                if (this.checkValidity()) {
+                    // Clear error state
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                    this.setAttribute('aria-invalid', 'false');
+                    
+                    const errorId = this.id + '-error';
+                    const errorMessage = document.getElementById(errorId);
+                    if (errorMessage) {
+                        errorMessage.remove();
+                        this.removeAttribute('aria-describedby');
+                    }
+                }
+            });
+        });
     });
 }
 

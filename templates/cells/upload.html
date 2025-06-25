@@ -136,10 +136,10 @@
 {% block content %}
 <div class="content-form mt-4">
             <!-- Header -->
-            <div class="text-center mb-4">
-                <h1 class="display-5 fw-bold text-gradient mb-3">Загрузка изображений клеток</h1>
+            <header class="text-center mb-4">
+                <h1 id="upload-heading" class="display-5 fw-bold text-gradient mb-3">Загрузка изображений клеток</h1>
                 <p class="lead text-muted">Загрузите высококачественные микроскопические изображения для морфометрического анализа</p>
-            </div>
+            </header>
             
             <!-- Upload Section -->
             <div class="card card-professional shadow-strong mb-4">
@@ -154,15 +154,15 @@
                         {% csrf_token %}
                         
                         <!-- Drag & Drop Upload Zone -->
-                        <div class="upload-zone" id="upload-zone">
-                            <i class="fas fa-cloud-upload-alt upload-icon"></i>
-                            <div class="upload-text">Перетащите изображения сюда</div>
-                            <div class="upload-hint">или нажмите для выбора файлов</div>
+                        <div class="upload-zone" id="upload-zone" role="button" tabindex="0" aria-labelledby="upload-zone-label" aria-describedby="upload-zone-desc">
+                            <i class="fas fa-cloud-upload-alt upload-icon" aria-hidden="true"></i>
+                            <div id="upload-zone-label" class="upload-text">Перетащите изображения сюда</div>
+                            <div id="upload-zone-desc" class="upload-hint">или нажмите для выбора файлов</div>
                             
                             <!-- Hidden file input -->
-                            <input type="file" name="image" id="file-input" class="file-input" accept="image/*" multiple>
+                            <input type="file" name="image" id="file-input" class="file-input" accept="image/*" multiple aria-label="Выберите файлы изображений" aria-describedby="supported-formats">
                             
-                            <div class="supported-formats">
+                            <div id="supported-formats" class="supported-formats" role="group" aria-label="Поддерживаемые форматы">
                                 <span class="format-badge">TIFF</span>
                                 <span class="format-badge">PNG</span>
                                 <span class="format-badge">JPEG</span>
@@ -171,10 +171,10 @@
                         </div>
                         
                         <!-- Upload Progress -->
-                        <div class="upload-progress" id="upload-progress">
+                        <div class="upload-progress" id="upload-progress" role="progressbar" aria-live="polite" aria-labelledby="progress-label">
                             <div class="d-flex align-items-center justify-content-between mb-2">
-                                <span class="text-muted">Загрузка...</span>
-                                <span class="text-muted" id="progress-text">0%</span>
+                                <span id="progress-label" class="text-muted">Загрузка...</span>
+                                <span class="text-muted" id="progress-text" aria-live="polite">0%</span>
                             </div>
                             <div class="progress-container">
                                 <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
@@ -194,31 +194,35 @@
                         </div>
                         
                         <!-- Form Fields -->
-                        <div class="row mt-4">
+                        <fieldset class="row mt-4">
+                            <legend class="sr-only">Информация об изображении</legend>
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
-                                    <label for="id_name" class="form-label">Название изображения</label>
-                                    <input type="text" name="name" class="form-control" id="id_name" placeholder="Введите описательное название для вашего изображения">
+                                    <label for="id_name" class="form-label">Название изображения <span class="text-danger">*</span></label>
+                                    <input type="text" name="name" class="form-control" id="id_name" placeholder="Введите описательное название для вашего изображения" required aria-describedby="name-help">
+                                    <div id="name-help" class="form-text">Краткое описание для идентификации изображения</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
                                     <label for="id_description" class="form-label">Описание (опционально)</label>
-                                    <textarea name="description" class="form-control" id="id_description" rows="3" placeholder="Добавьте любые соответствующие заметки об изображении"></textarea>
+                                    <textarea name="description" class="form-control" id="id_description" rows="3" placeholder="Добавьте любые соответствующие заметки об изображении" aria-describedby="description-help"></textarea>
+                                    <div id="description-help" class="form-text">Дополнительная информация о контексте или условиях съемки</div>
                                 </div>
                             </div>
-                        </div>
+                        </fieldset>
                         
                         <!-- Submit Button -->
                         <div class="text-center mt-4">
-                            <button type="submit" class="btn btn-primary btn-lg" id="submit-btn" disabled>
+                            <button type="submit" class="btn btn-primary btn-lg" id="submit-btn" disabled aria-describedby="submit-help">
                                 <i class="fas fa-upload me-2"></i>
                                 Загрузить изображение
                             </button>
-                            <button type="button" class="btn btn-outline-secondary btn-lg ms-2" onclick="resetForm()">
+                            <button type="button" class="btn btn-outline-secondary btn-lg ms-2" onclick="resetForm()" aria-label="Очистить форму">
                                 <i class="fas fa-times me-2"></i>
                                 Очистить
                             </button>
+                            <div id="submit-help" class="form-text mt-2">Кнопка будет активна после выбора файла</div>
                         </div>
                     </form>
                 </div>

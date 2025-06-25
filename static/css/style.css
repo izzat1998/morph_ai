@@ -132,6 +132,114 @@ main {
 }
 
 /* ==========================================
+   ACCESSIBILITY STYLES
+   ========================================== */
+
+/* Skip Navigation Link */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: var(--dark-navy);
+  color: var(--white);
+  padding: 8px;
+  z-index: 9999;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-weight-semibold);
+  transition: top 0.3s;
+}
+
+.skip-link:focus {
+  top: 6px;
+}
+
+/* Enhanced Focus Indicators */
+.btn:focus-visible,
+.form-control:focus-visible,
+.nav-link:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--primary-blue);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* High Contrast Focus for Important Actions */
+.btn-primary:focus-visible {
+  outline-color: var(--warning-amber);
+  box-shadow: 0 0 0 3px rgba(255, 149, 0, 0.3);
+}
+
+/* Screen Reader Only Content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.sr-only-focusable:focus,
+.sr-only-focusable:active {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* Improve Color Contrast for Status Indicators */
+.badge {
+  font-weight: var(--font-weight-bold);
+  border: 1px solid transparent;
+}
+
+.badge.bg-success {
+  background-color: #065f46 !important;
+  border-color: #10b981;
+}
+
+.badge.bg-warning {
+  background-color: #92400e !important;
+  color: var(--white) !important;
+  border-color: #f59e0b;
+}
+
+.badge.bg-info {
+  background-color: #0c4a6e !important;
+  border-color: #0ea5e9;
+}
+
+/* Keyboard Navigation Support */
+.dropdown-menu a:focus,
+.dropdown-menu button:focus {
+  background-color: var(--primary-blue);
+  color: var(--white);
+  outline: none;
+}
+
+/* Touch Target Minimum Size */
+@media (max-width: 768px) {
+  .btn, .nav-link, .dropdown-item {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .navbar-nav .nav-link {
+    padding: 12px 16px;
+  }
+}
+
+/* ==========================================
    TYPOGRAPHY
    ========================================== */
 h1, h2, h3, h4, h5, h6 {

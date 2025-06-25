@@ -8,6 +8,7 @@ import json
 from .forms import CellUploadForm, CellAnalysisForm, ScaleCalibrationForm
 from .models import Cell, CellAnalysis, DetectedCell
 from .analysis import run_cell_analysis, get_analysis_summary, get_image_quality_summary
+from .services import CellUploadService, CellAnalysisService, CellExportService, CellScaleService
 from django.utils.translation import gettext as _
 
 @login_required
@@ -15,9 +16,7 @@ def upload_cell(request):
     if request.method == 'POST':
         form = CellUploadForm(request.POST, request.FILES)
         if form.is_valid():
-            cell = form.save(commit=False)
-            cell.user = request.user
-            cell.save()
+            cell = CellUploadService.create_cell(form, request.user)
             messages.success(request, f'Изображение клетки "{cell.name}" успешно загружено!')
             return redirect('cells:upload')
     else:
@@ -52,44 +51,11 @@ def analyze_cell(request, cell_id):
     if request.method == 'POST':
         form = CellAnalysisForm(request.POST)
         if form.is_valid():
-            analysis = form.save(commit=False)
-            analysis.cell = cell
-            
-            # Handle ROI data if provided
-            print(f"DEBUG VIEW: use_roi = {analysis.use_roi}")
-            print(f"DEBUG VIEW: 'roi_data' in POST: {'roi_data' in request.POST}")
-            
-            if analysis.use_roi and 'roi_data' in request.POST:
-                try:
-                    roi_data_str = request.POST.get('roi_data', '[]')
-                    print(f"DEBUG VIEW: roi_data_str = {roi_data_str}")
-                    
-                    roi_data = json.loads(roi_data_str)
-                    roi_count = int(request.POST.get('roi_count', '0'))
-                    
-                    print(f"DEBUG VIEW: parsed roi_data = {roi_data}")
-                    print(f"DEBUG VIEW: roi_count = {roi_count}")
-                    
-                    analysis.roi_regions = roi_data
-                    analysis.roi_count = roi_count
-                    
-                    messages.success(request, _('ROI selection enabled with {} region(s)').format(roi_count))
-                except (json.JSONDecodeError, ValueError) as e:
-                    print(f"DEBUG VIEW: JSON decode error: {e}")
-                    messages.warning(request, _('ROI data was invalid, proceeding without ROI selection'))
-                    analysis.use_roi = False
-                    analysis.roi_regions = []
-                    analysis.roi_count = 0
-            elif analysis.use_roi:
-                print("DEBUG VIEW: ROI enabled but no roi_data in POST")
-                messages.warning(request, _('ROI selection was enabled but no regions were drawn. Running standard analysis.'))
-                analysis.use_roi = False
-            
-            analysis.save()
+            analysis = CellAnalysisService.create_analysis(form, cell, request)
             
             # Run analysis in the background (for now, synchronously)
             # In production, this should be done with Celery or similar
-            success = run_cell_analysis(analysis.id)
+            success = CellAnalysisService.run_analysis(analysis.id)
             
             if success:
                 messages.success(request, 'Анализ завершен успешно!')
@@ -110,74 +76,13 @@ def analyze_cell(request, cell_id):
 @login_required
 def analysis_detail(request, analysis_id):
     analysis = get_object_or_404(CellAnalysis, id=analysis_id, cell__user=request.user)
-    
-    context = {
-        'analysis': analysis,
-        'cell': analysis.cell,
-        'summary': get_analysis_summary(analysis) if analysis.status == 'completed' else None,
-    }
-    
-    if analysis.status == 'completed':
-        # Paginate detected cells
-        detected_cells = analysis.detected_cells.all()
-        paginator = Paginator(detected_cells, 20)  # Show 20 cells per page
-        page_number = request.GET.get('page')
-        page_obj = paginator.get_page(page_number)
-        context['page_obj'] = page_obj
-        
-        # Add cell filtering information for transparency
-        validated_cell_count = detected_cells.count()
-        context['validated_cell_count'] = validated_cell_count
-        context['original_cell_count'] = analysis.num_cells_detected
-        context['cells_filtered'] = analysis.num_cells_detected - validated_cell_count
-        
-        # Extract filtering details from quality metrics
-        filtering_info = {}
-        if analysis.quality_metrics:
-            # Segmentation refinement info
-            if 'segmentation_refinement' in analysis.quality_metrics:
-                refinement = analysis.quality_metrics['segmentation_refinement']
-                filtering_info['refinement'] = {
-                    'original_count': refinement.get('original_cell_count', analysis.num_cells_detected),
-                    'refined_count': refinement.get('refined_cell_count', analysis.num_cells_detected),
-                    'steps': refinement.get('refinement_steps', [])
-                }
-            
-            # Morphometric validation info  
-            if 'morphometric_validation' in analysis.quality_metrics:
-                validation = analysis.quality_metrics['morphometric_validation']
-                filtering_info['validation'] = {
-                    'total_cells': validation.get('total_cells', 0),
-                    'valid_cells': validation.get('valid_cells', 0),
-                    'outliers_detected': validation.get('outliers_detected', 0),
-                    'outlier_percentage': validation.get('outlier_percentage', 0),
-                    'outlier_reasons': validation.get('outlier_reasons', {})
-                }
-        
-        context['filtering_info'] = filtering_info
-    
+    context = CellAnalysisService.get_analysis_context(analysis, request)
     return render(request, 'cells/analysis_detail.html', context)
 
 
 @login_required
 def analysis_list(request):
-    analyses = CellAnalysis.objects.filter(cell__user=request.user).order_by('-analysis_date')
-    
-    # Filter by status if provided
-    status_filter = request.GET.get('status')
-    if status_filter:
-        analyses = analyses.filter(status=status_filter)
-    
-    # Paginate results
-    paginator = Paginator(analyses, 10)  # Show 10 analyses per page
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    context = {
-        'page_obj': page_obj,
-        'status_filter': status_filter,
-        'status_choices': CellAnalysis.STATUS_CHOICES,
-    }
+    context = CellAnalysisService.get_analysis_list_context(request.user, request)
     return render(request, 'cells/analysis_list.html', context)
 
 
