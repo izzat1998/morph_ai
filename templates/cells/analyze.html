@@ -91,6 +91,10 @@
                                     </div>
                                 </div>
                                 <div class="roi-instructions mt-3 p-3 border-start border-primary border-4 bg-white">
+                                    <div class="alert alert-info mb-3 p-2">
+                                        <i class="fas fa-mouse-pointer me-2"></i>
+                                        <strong>Нажмите и перетащите для рисования прямоугольник</strong>
+                                    </div>
                                     <h6 class="text-primary mb-2">
                                         <i class="fas fa-info-circle me-2"></i>
                                         Инструкции ROI
@@ -106,12 +110,8 @@
                             
                             <!-- Canvas Container with proper layering -->
                             <div class="image-container position-relative d-flex justify-content-center">
-                                <div class="canvas-wrapper position-relative">
-                                    <canvas id="roi-canvas" class="border border-2 border-primary rounded shadow-sm"></canvas>
-                                    <div id="roi-status" class="position-absolute top-0 start-0 bg-primary text-white px-2 py-1 rounded-bottom-end small d-none" style="z-index: 10;">
-                                        <i class="fas fa-crosshairs me-1"></i>
-                                        Нажмите и перетащите для рисования прямоугольника
-                                    </div>
+                                <div class="canvas-wrapper position-relative" style="max-width: 100%; max-height: 500px;">
+                                    <canvas id="roi-canvas" class="border border-2 border-primary rounded shadow-sm" style="max-width: 100%; max-height: 500px; object-fit: contain;"></canvas>
                                 </div>
                             </div>
                         </div>
@@ -187,357 +187,312 @@
             
             <!-- Quick Analysis Info Panel -->
             <div class="col-xl-6 col-lg-12">
-                <div class="card border-0 shadow-lg h-100">
-                    <div class="card-header bg-gradient-info text-white">
-                        <h5 class="mb-0">
-                            <i class="fas fa-info-circle me-2"></i>
-                            О анализе Cellpose
-                        </h5>
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="text-center mb-4">
-                            <div class="analysis-icon mb-3">
-                                <i class="fas fa-microscope fa-3x text-primary"></i>
-                            </div>
-                            <h6 class="fw-bold mb-3">Морфометрический анализ на основе ИИ</h6>
-                            <p class="text-muted">Этот анализ использует ИИ Cellpose для автоматической сегментации отдельных клеток и извлечения морфометрических характеристик.</p>
-                        </div>
-                        
-                        <div class="features-list">
-                            <div class="feature-item d-flex align-items-center mb-2">
-                                <i class="fas fa-check-circle text-success me-2"></i>
-                                <span class="small">Автоматическая сегментация клеток</span>
-                            </div>
-                            <div class="feature-item d-flex align-items-center mb-2">
-                                <i class="fas fa-check-circle text-success me-2"></i>
-                                <span class="small">Морфометрические характеристики</span>
-                            </div>
-                            <div class="feature-item d-flex align-items-center mb-2">
-                                <i class="fas fa-check-circle text-success me-2"></i>
-                                <span class="small">Анализ текстуры GLCM</span>
-                            </div>
-                            <div class="feature-item d-flex align-items-center mb-2">
-                                <i class="fas fa-check-circle text-success me-2"></i>
-                                <span class="small">Контроль качества</span>
-                            </div>
-                        </div>
-                        
-                        <!-- Analysis Status Container (hidden initially) -->
-                        <div id="analysis-status" class="d-none mt-4">
-                            <div class="alert alert-warning border-0 shadow-sm">
-                                <div class="d-flex align-items-center">
-                                    <div class="spinner-border spinner-border-sm text-warning me-3" role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-1">Анализ в процессе</h6>
-                                        <small class="text-muted">Это может занять несколько минут в зависимости от размера и сложности изображения...</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Enhanced Configuration Panel -->
-<section class="container-fluid py-4 bg-light">
-    <div class="container-fluid px-4">
-        <div class="row">
-            <div class="col-12">
                 <form method="post" class="analysis-form">
                     {% csrf_token %}
                     <div class="card border-0 shadow-lg">
                         <div class="card-header bg-gradient-primary text-white">
                             <h5 class="mb-0">
                                 <i class="fas fa-microscope me-2"></i>
-                                Детальная конфигурация анализа
+                                Конфигурация анализа
                             </h5>
                         </div>
                         <div class="card-body p-4">
+                        <!-- Configuration Tabs Navigation -->
+                        <ul class="nav nav-tabs mb-4" id="configTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic-config" type="button" role="tab">
+                                    <i class="fas fa-cogs me-2"></i>Основные параметры
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="filtering-tab" data-bs-toggle="tab" data-bs-target="#filtering-config" type="button" role="tab">
+                                    <i class="fas fa-filter me-2"></i>Фильтрация
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="statistical-tab" data-bs-toggle="tab" data-bs-target="#statistical-config" type="button" role="tab">
+                                    <i class="fas fa-chart-line me-2"></i>Статистический анализ
+                                    <span class="badge bg-info ms-1">TIER 1</span>
+                                </button>
+                            </li>
+                        </ul>
+
                         <!-- Configuration Dashboard -->
                         <div class="configuration-dashboard">
-                            <div class="row g-4">
-                                <!-- Core Parameters -->
-                                <div class="col-lg-4">
-                                    <div class="config-section">
-                                        <div class="section-header">
-                                            <h6 class="text-primary mb-3">
-                                                <i class="fas fa-cogs me-2"></i>
-                                                Основные параметры
-                                            </h6>
+                            <div class="tab-content" id="configTabContent">
+                                <div class="tab-pane fade show active" id="basic-config" role="tabpanel">
+                                    <div class="basic-config-compact">
+                                        <div class="row g-3">
+                                            <!-- Core Parameters -->
+                                            <div class="col-md-6">
+                                                <div class="card border-0 bg-light">
+                                                    <div class="card-body p-3">
+                                                        <h6 class="text-primary mb-3">
+                                                            <i class="fas fa-cogs me-2"></i>
+                                                            Основные параметры
+                                                        </h6>
+
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-bold" for="{{ form.cellpose_model.id_for_label }}">Модель Cellpose</label>
+                                                            {{ form.cellpose_model }}
+                                                            <small class="text-muted">Выберите модель для вашего типа окрашивания</small>
+                                                            {% if form.cellpose_model.errors %}
+                                                                <div class="text-danger small">{{ form.cellpose_model.errors.0 }}</div>
+                                                            {% endif %}
+                                                        </div>
+
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-bold" for="{{ form.cellpose_diameter.id_for_label }}">Диаметр клетки (пиксели)</label>
+                                                            <div class="input-group">
+                                                                {{ form.cellpose_diameter }}
+                                                                <button class="btn btn-outline-secondary btn-sm" type="button" id="auto-diameter-btn">
+                                                                    <i class="fas fa-magic"></i> Авто
+                                                                </button>
+                                                            </div>
+                                                            <small class="text-muted">0 = автоопределение</small>
+                                                            {% if form.cellpose_diameter.errors %}
+                                                                <div class="text-danger small">{{ form.cellpose_diameter.errors.0 }}</div>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Thresholds & Features -->
+                                            <div class="col-md-6">
+                                                <div class="card border-0 bg-light">
+                                                    <div class="card-body p-3">
+                                                        <h6 class="text-success mb-3">
+                                                            <i class="fas fa-sliders-h me-2"></i>
+                                                            Пороги и функции
+                                                        </h6>
+
+                                                        <div class="row">
+                                                            <div class="col-6">
+                                                                <div class="mb-2">
+                                                                    <label class="form-label small fw-bold" for="{{ form.flow_threshold.id_for_label }}">Порог потока</label>
+                                                                    {{ form.flow_threshold }}
+                                                                    {% if form.flow_threshold.errors %}
+                                                                        <div class="text-danger small">{{ form.flow_threshold.errors.0 }}</div>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-6">
+                                                                <div class="mb-2">
+                                                                    <label class="form-label small fw-bold" for="{{ form.cellprob_threshold.id_for_label }}">Порог вероятности</label>
+                                                                    {{ form.cellprob_threshold }}
+                                                                    {% if form.cellprob_threshold.errors %}
+                                                                        <div class="text-danger small">{{ form.cellprob_threshold.errors.0 }}</div>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="mb-2">
+                                                            <label class="form-label small fw-bold" for="{{ form.filtering_mode.id_for_label }}">Режим фильтрации</label>
+                                                            {{ form.filtering_mode }}
+                                                            {% if form.filtering_mode.errors %}
+                                                                <div class="text-danger small">{{ form.filtering_mode.errors.0 }}</div>
+                                                            {% endif %}
+                                                        </div>
+
+                                                        <div class="form-check form-switch">
+                                                            {{ form.use_roi }}
+                                                            <label class="form-check-label small fw-bold" for="{{ form.use_roi.id_for_label }}">
+                                                                Использовать ROI
+                                                            </label>
+                                                            {% if form.use_roi.errors %}
+                                                                <div class="text-danger small">{{ form.use_roi.errors.0 }}</div>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="parameters-grid">
-                                            <div class="parameter-card mb-3 p-3 border rounded">
-                                                <label class="form-label fw-bold" for="{{ form.cellpose_model.id_for_label }}">Модель Cellpose</label>
-                                                {{ form.cellpose_model }}
-                                                <small class="text-muted mt-1">Выберите на основе вашего типа окрашивания</small>
-                                                {% if form.cellpose_model.errors %}
-                                                    <div class="text-danger small mt-1">{{ form.cellpose_model.errors.0 }}</div>
-                                                {% endif %}
-                                            </div>
-                                            <div class="parameter-card mb-3 p-3 border rounded">
-                                                <label class="form-label fw-bold" for="{{ form.cellpose_diameter.id_for_label }}">Диаметр клетки (пиксели)</label>
-                                                <div class="input-group">
-                                                    {{ form.cellpose_diameter }}
-                                                    <button class="btn btn-outline-secondary" type="button" id="auto-diameter-btn">
-                                                        <i class="fas fa-magic"></i> Авто
-                                                    </button>
+
+
+                                        <!-- Quick Analysis Features -->
+                                        <div class="row mt-3">
+                                            <div class="col-12">
+                                                <div class="card border-info">
+                                                    <div class="card-body p-3">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <div>
+                                                                <h6 class="text-info mb-1">
+                                                                    <i class="fas fa-sparkles me-2"></i>
+                                                                    Включенные возможности анализа
+                                                                </h6>
+                                                                <small class="text-muted">Автоматически активированы для всех анализов</small>
+                                                            </div>
+                                                            <div class="analysis-features d-flex flex-wrap gap-1">
+                                                                <span class="badge bg-primary">Морфометрический анализ</span>
+                                                                <span class="badge bg-success">CellposeSAM сегментация</span>
+                                                                <span class="badge bg-info">Базовый контроль качества</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <small class="text-muted mt-1">Установите 0 для автоматического обнаружения</small>
-                                                {% if form.cellpose_diameter.errors %}
-                                                    <div class="text-danger small mt-1">{{ form.cellpose_diameter.errors.0 }}</div>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Segmentation Thresholds -->
-                                <div class="col-lg-4">
-                                    <div class="config-section">
-                                        <div class="section-header">
-                                            <h6 class="text-success mb-3">
-                                                <i class="fas fa-sliders-h me-2"></i>
-                                                Пороги сегментации
-                                            </h6>
-                                        </div>
-                                        <div class="parameters-grid">
-                                            <div class="parameter-card mb-3 p-3 border rounded">
-                                                <label class="form-label fw-bold" for="{{ form.flow_threshold.id_for_label }}">Порог потока</label>
-                                                <div class="range-input-group">
-                                                    <input type="range" class="form-range" min="0" max="3" step="0.1" id="flow-threshold-range">
-                                                    {{ form.flow_threshold }}
-                                                </div>
-                                                <div class="threshold-guide mt-2">
-                                                    <span class="badge bg-success">Ниже = Больше клеток</span>
-                                                    <span class="badge bg-warning">Выше = Меньше клеток</span>
-                                                </div>
-                                                {% if form.flow_threshold.errors %}
-                                                    <div class="text-danger small mt-1">{{ form.flow_threshold.errors.0 }}</div>
-                                                {% endif %}
-                                            </div>
-                                            <div class="parameter-card mb-3 p-3 border rounded">
-                                                <label class="form-label fw-bold" for="{{ form.cellprob_threshold.id_for_label }}">Порог вероятности клетки</label>
-                                                <div class="range-input-group">
-                                                    <input type="range" class="form-range" min="-6" max="6" step="0.1" id="cellprob-threshold-range">
-                                                    {{ form.cellprob_threshold }}
-                                                </div>
-                                                <div class="threshold-guide mt-2">
-                                                    <span class="badge bg-info">Выше = Более чистая сегментация</span>
-                                                </div>
-                                                {% if form.cellprob_threshold.errors %}
-                                                    <div class="text-danger small mt-1">{{ form.cellprob_threshold.errors.0 }}</div>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Advanced Analysis Features -->
-                                <div class="col-lg-4">
-                                    <div class="config-section">
-                                        <div class="section-header">
-                                            <h6 class="text-info mb-3">
-                                                <i class="fas fa-microscope me-2"></i>
-                                                Расширенные функции
-                                            </h6>
-                                        </div>
-                                        <div class="parameters-grid">
-                                            <div class="parameter-card mb-3 p-3 border rounded">
-                                                <div class="form-check form-switch">
-                                                    {{ form.use_roi }}
-                                                    <label class="form-check-label fw-bold" for="{{ form.use_roi.id_for_label }}">
-                                                        Интеллектуальный анализ ROI
-                                                    </label>
-                                                </div>
-                                                <small class="text-muted mt-1">Выбор региона на основе ИИ с картированием плотности</small>
-                                                {% if form.use_roi.errors %}
-                                                    <div class="text-danger small mt-1">{{ form.use_roi.errors.0 }}</div>
-                                                {% endif %}
-                                            </div>
-                                            <div class="parameter-card mb-3 p-3 border rounded">
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="texture-analysis-preview" checked>
-                                                    <label class="form-check-label fw-bold" for="texture-analysis-preview">
-                                                        Анализ текстуры GLCM
-                                                    </label>
-                                                </div>
-                                                <small class="text-muted mt-1">12 GLCM + 17 статистических текстурных характеристик</small>
-                                            </div>
-                                            <div class="parameter-card mb-3 p-3 border rounded">
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="quality-assessment-preview" checked>
-                                                    <label class="form-check-label fw-bold" for="quality-assessment-preview">
-                                                        Оценка качества
-                                                    </label>
-                                                </div>
-                                                <small class="text-muted mt-1">Автоматическая оценка качества изображения и валидация</small>
-                                            </div>
-                                            <div class="parameter-card mb-3 p-3 border rounded">
-                                                <label class="form-label fw-bold" for="{{ form.filtering_mode.id_for_label }}">Режим анализа</label>
-                                                {{ form.filtering_mode }}
-                                                <small class="text-muted mt-1">Фильтрация медицинского уровня с физической валидацией</small>
-                                                {% if form.filtering_mode.errors %}
-                                                    <div class="text-danger small mt-1">{{ form.filtering_mode.errors.0 }}</div>
-                                                {% endif %}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                                <!-- End of basic-config tab -->
+
+
+                        <!-- Filtering configuration tab -->
+                        <div class="tab-pane fade" id="filtering-config" role="tabpanel">
+
+
                         </div>
-                        
-                        <!-- Advanced Processing Pipeline -->
-                        <div class="advanced-processing-pipeline mt-4">
-                            <div class="card border-0 shadow-sm">
-                                <div class="card-header bg-gradient-secondary text-white">
-                                    <h6 class="mb-0">
-                                        <i class="fas fa-cogs me-2"></i>
-                                        Расширенный конвейер обработки изображений
-                                    </h6>
+                        <!-- End of filtering-config tab -->
+
+                        <!-- Statistical Analysis Tab -->
+                        <div class="tab-pane fade" id="statistical-config" role="tabpanel">
+                            <div class="statistical-analysis-section">
+                                <div class="section-header mb-4">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="text-success mb-2">
+                                                <i class="fas fa-chart-line me-2"></i>
+                                                Статистический анализ
+                                                <span class="badge bg-info ms-2">TIER 1 ENHANCEMENT</span>
+                                            </h6>
+                                            <p class="text-muted small mb-0">Научный статистический анализ с доверительными интервалами, bootstrap анализом и оценкой неопределенности для исследовательских целей.</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="card-body p-4">
+
+                                <!-- Statistical Analysis Toggle -->
+                                <div class="statistical-toggle-section mb-4">
+                                    <div class="card border-info">
+                                        <div class="card-body p-4">
+                                            <div class="form-check form-switch">
+                                                {{ form.enable_statistical_analysis }}
+                                                <label class="form-check-label fw-bold" for="{{ form.enable_statistical_analysis.id_for_label }}">
+                                                    Включить расширенный статистический анализ
+                                                </label>
+                                                <small class="text-muted d-block mt-1">{{ form.enable_statistical_analysis.help_text }}</small>
+                                                {% if form.enable_statistical_analysis.errors %}
+                                                    <div class="text-danger small mt-1">{{ form.enable_statistical_analysis.errors.0 }}</div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Statistical Configuration Options -->
+                                <div id="statistical-options-section" class="statistical-config-options" style="display: none;">
                                     <div class="row g-4">
-                                        <!-- Preprocessing Module -->
-                                        <div class="col-lg-3">
-                                            <div class="processing-module">
+                                        <div class="col-md-6">
+                                            <div class="config-card p-4 border rounded bg-light">
                                                 <h6 class="text-primary mb-3">
-                                                    <i class="fas fa-magic me-2"></i>
-                                                    Предварительная обработка
+                                                    <i class="fas fa-percentage me-2"></i>
+                                                    Параметры доверительных интервалов
                                                 </h6>
-                                                <div class="feature-list">
-                                                    <div class="feature-item mb-2">
-                                                        <div class="form-check form-switch">
-                                                            {{ form.apply_noise_reduction }}
-                                                            <label class="form-check-label small fw-bold" for="{{ form.apply_noise_reduction.id_for_label }}">Двустороннее шумоподавление</label>
-                                                        </div>
-                                                        <small class="text-muted d-block">Шумоподавление с сохранением краев</small>
-                                                        <div class="mt-1">
-                                                            {{ form.noise_reduction_method }}
-                                                        </div>
-                                                    </div>
-                                                    <div class="feature-item mb-2">
-                                                        <div class="form-check form-switch">
-                                                            {{ form.apply_contrast_enhancement }}
-                                                            <label class="form-check-label small fw-bold" for="{{ form.apply_contrast_enhancement.id_for_label }}">Улучшение CLAHE</label>
-                                                        </div>
-                                                        <small class="text-muted d-block">Адаптивный контраст для микроскопии</small>
-                                                        <div class="mt-1">
-                                                            {{ form.contrast_method }}
-                                                        </div>
-                                                    </div>
-                                                    <div class="feature-item mb-2">
-                                                        <div class="form-check form-switch">
-                                                            {{ form.apply_sharpening }}
-                                                            <label class="form-check-label small fw-bold" for="{{ form.apply_sharpening.id_for_label }}">Маска нерезкости</label>
-                                                        </div>
-                                                        <small class="text-muted d-block">Улучшение краев</small>
-                                                    </div>
-                                                    <div class="feature-item mb-2">
-                                                        <div class="form-check form-switch">
-                                                            {{ form.apply_normalization }}
-                                                            <label class="form-check-label small fw-bold" for="{{ form.apply_normalization.id_for_label }}">Z-оценка нормализации</label>
-                                                        </div>
-                                                        <small class="text-muted d-block">Стандартизация интенсивности</small>
-                                                    </div>
+
+                                                <div class="parameter-group mb-3">
+                                                    <label class="form-label fw-bold" for="{{ form.confidence_level.id_for_label }}">
+                                                        Уровень доверия
+                                                    </label>
+                                                    {{ form.confidence_level }}
+                                                    <small class="text-muted d-block mt-1">{{ form.confidence_level.help_text }}</small>
+                                                    {% if form.confidence_level.errors %}
+                                                        <div class="text-danger small mt-1">{{ form.confidence_level.errors.0 }}</div>
+                                                    {% endif %}
+                                                </div>
+
+                                                <div class="confidence-info p-3 bg-primary bg-opacity-10 rounded">
+                                                    <h6 class="text-primary mb-2">Что такое доверительные интервалы?</h6>
+                                                    <ul class="mb-0 small">
+                                                        <li><strong>90%:</strong> Быстрый анализ, менее строгий</li>
+                                                        <li><strong>95%:</strong> Стандарт для научных публикаций ⭐</li>
+                                                        <li><strong>99%:</strong> Максимальная уверенность, широкие интервалы</li>
+                                                    </ul>
                                                 </div>
                                             </div>
                                         </div>
-                                        
-                                        <!-- Texture Analysis Module -->
-                                        <div class="col-lg-3">
-                                            <div class="processing-module">
+
+                                        <div class="col-md-6">
+                                            <div class="config-card p-4 border rounded bg-light">
                                                 <h6 class="text-success mb-3">
-                                                    <i class="fas fa-fingerprint me-2"></i>
-                                                    Анализ текстуры
+                                                    <i class="fas fa-sync me-2"></i>
+                                                    Bootstrap анализ
                                                 </h6>
-                                                <div class="feature-list">
-                                                    <div class="feature-highlight mb-3 p-2 bg-light rounded">
-                                                        <strong class="text-success">Характеристики GLCM (12)</strong>
-                                                        <small class="text-muted d-block">Contrast, Correlation, Energy, Homogeneity, Entropy, Variance, etc.</small>
-                                                    </div>
-                                                    <div class="feature-highlight mb-3 p-2 bg-light rounded">
-                                                        <strong class="text-info">Статистические характеристики (17)</strong>
-                                                        <small class="text-muted d-block">Mean, Std, Skewness, Kurtosis, Percentiles, IQR, etc.</small>
-                                                    </div>
-                                                    <div class="texture-settings">
-                                                        <label class="form-label small">Расстояние GLCM</label>
-                                                        <input type="range" class="form-range" min="1" max="5" value="1" id="glcm-distance">
-                                                        <small class="text-muted">Расстояние пикселей для совместного встречаемости</small>
-                                                    </div>
+
+                                                <div class="parameter-group mb-3">
+                                                    <label class="form-label fw-bold" for="{{ form.bootstrap_samples.id_for_label }}">
+                                                        Bootstrap итерации
+                                                    </label>
+                                                    {{ form.bootstrap_samples }}
+                                                    <small class="text-muted d-block mt-1">{{ form.bootstrap_samples.help_text }}</small>
+                                                    {% if form.bootstrap_samples.errors %}
+                                                        <div class="text-danger small mt-1">{{ form.bootstrap_samples.errors.0 }}</div>
+                                                    {% endif %}
+                                                </div>
+
+                                                <div class="bootstrap-info p-3 bg-success bg-opacity-10 rounded">
+                                                    <h6 class="text-success mb-2">Оценка времени выполнения:</h6>
+                                                    <ul class="mb-0 small">
+                                                        <li><strong>1,000:</strong> ~30 секунд (быстро)</li>
+                                                        <li><strong>2,000:</strong> ~60 секунд (рекомендуется) ⭐</li>
+                                                        <li><strong>5,000:</strong> ~150 секунд (высокая точность)</li>
+                                                    </ul>
                                                 </div>
                                             </div>
                                         </div>
-                                        
-                                        <!-- Quality Assessment Module -->
-                                        <div class="col-lg-3">
-                                            <div class="processing-module">
-                                                <h6 class="text-warning mb-3">
-                                                    <i class="fas fa-shield-alt me-2"></i>
-                                                    Контроль качества
+                                    </div>
+
+                                    <!-- Statistical Features Overview -->
+                                    <div class="statistical-features mt-4">
+                                        <div class="card border-info">
+                                            <div class="card-header bg-info bg-opacity-10">
+                                                <h6 class="mb-0 text-info">
+                                                    <i class="fas fa-star me-2"></i>
+                                                    Что включает статистический анализ TIER 1
                                                 </h6>
-                                                <div class="feature-list">
-                                                    <div class="feature-item mb-2">
-                                                        <strong class="text-primary small">Обнаружение размытия</strong>
-                                                        <small class="text-muted d-block">Laplacian variance + Tenengrad</small>
-                                                    </div>
-                                                    <div class="feature-item mb-2">
-                                                        <strong class="text-primary small">Оценка контраста</strong>
-                                                        <small class="text-muted d-block">RMS, Michelson, Entropy</small>
-                                                    </div>
-                                                    <div class="feature-item mb-2">
-                                                        <strong class="text-primary small">Анализ шума</strong>
-                                                        <small class="text-muted d-block">SNR estimation (dB)</small>
-                                                    </div>
-                                                    <div class="quality-score mt-3 p-2 bg-success bg-opacity-10 rounded">
-                                                        <div class="d-flex justify-content-between">
-                                                            <span class="small fw-bold">Оценка качества</span>
-                                                            <span class="badge bg-success" id="quality-score">85/100</span>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row g-3">
+                                                    <div class="col-md-6">
+                                                        <div class="feature-list">
+                                                            <h6 class="text-primary mb-2">📊 Доверительные интервалы</h6>
+                                                            <ul class="small mb-3">
+                                                                <li>BCa bootstrap доверительные интервалы</li>
+                                                                <li>Скорректированные на смещение и асимметрию</li>
+                                                                <li>Надежная оценка неопределенности</li>
+                                                            </ul>
+
+                                                            <h6 class="text-success mb-2">🔬 Анализ неопределенности</h6>
+                                                            <ul class="small mb-0">
+                                                                <li>Распространение погрешностей</li>
+                                                                <li>Оценка надежности измерений</li>
+                                                                <li>Анализ источников неопределенности</li>
+                                                            </ul>
                                                         </div>
-                                                        <div class="progress mt-1" style="height: 4px;">
-                                                            <div class="progress-bar bg-success" style="width: 85%"></div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="feature-list">
+                                                            <h6 class="text-warning mb-2">🎲 Bootstrap анализ</h6>
+                                                            <ul class="small mb-3">
+                                                                <li>Эмпирические распределения параметров</li>
+                                                                <li>Анализ стабильности результатов</li>
+                                                                <li>Валидация статистических предположений</li>
+                                                            </ul>
+
+                                                            <h6 class="text-info mb-2">✅ Показатели качества</h6>
+                                                            <ul class="small mb-0">
+                                                                <li>Оценки надежности измерений</li>
+                                                                <li>Детекция статистических выбросов</li>
+                                                                <li>Метрики валидации данных</li>
+                                                            </ul>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Validation Module -->
-                                        <div class="col-lg-3">
-                                            <div class="processing-module">
-                                                <h6 class="text-danger mb-3">
-                                                    <i class="fas fa-check-double me-2"></i>
-                                                    Валидация
-                                                </h6>
-                                                <div class="feature-list">
-                                                    <div class="feature-item mb-2">
-                                                        <div class="form-check form-switch">
-                                                            <input class="form-check-input" type="checkbox" id="physics-validation" checked>
-                                                            <label class="form-check-label small fw-bold">Физическая валидация</label>
-                                                        </div>
-                                                        <small class="text-muted d-block">Соотношения площадь-периметр</small>
-                                                    </div>
-                                                    <div class="feature-item mb-2">
-                                                        <div class="form-check form-switch">
-                                                            <input class="form-check-input" type="checkbox" id="outlier-detection" checked>
-                                                            <label class="form-check-label small fw-bold">Обнаружение выбросов</label>
-                                                        </div>
-                                                        <select class="form-select form-select-sm mt-1">
-                                                            <option value="iqr">IQR Method</option>
-                                                            <option value="zscore">Z-Score Method</option>
-                                                            <option value="modified_zscore" selected>Modified Z-Score</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="feature-item mb-2">
-                                                        <div class="form-check form-switch">
-                                                            <input class="form-check-input" type="checkbox" id="watershed-split" checked>
-                                                            <label class="form-check-label small fw-bold">Разделение водоразделом</label>
-                                                        </div>
-                                                        <small class="text-muted d-block">Разделить соприкасающиеся клетки</small>
+
+                                                <div class="alert alert-warning border-0 mt-3">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-clock me-2"></i>
+                                                        <small><strong>Примечание:</strong> Статистический анализ увеличивает время обработки в 2-3 раза, но обеспечивает научную строгость результатов.</small>
                                                     </div>
                                                 </div>
                                             </div>
@@ -546,76 +501,18 @@
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Real-time Parameter Preview -->
-                        <div class="parameter-preview mt-4 p-3 bg-light rounded">
-                            <h6 class="text-primary mb-3">
-                                <i class="fas fa-eye me-2"></i>
-                                Сводка текущей конфигурации
-                            </h6>
-                            <div class="row g-3">
-                                <div class="col-md-2">
-                                    <div class="preview-item text-center p-2 bg-white rounded">
-                                        <div class="preview-icon text-primary mb-1">
-                                            <i class="fas fa-brain"></i>
-                                        </div>
-                                        <div class="preview-value fw-bold" id="model-preview-value">Цитоплазма</div>
-                                        <div class="preview-label small text-muted">Модель</div>
-                                    </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <div class="preview-item text-center p-2 bg-white rounded">
-                                        <div class="preview-icon text-success mb-1">
-                                            <i class="fas fa-ruler-combined"></i>
-                                        </div>
-                                        <div class="preview-value fw-bold" id="diameter-preview-value">30.0 px</div>
-                                        <div class="preview-label small text-muted">Диаметр</div>
-                                    </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <div class="preview-item text-center p-2 bg-white rounded">
-                                        <div class="preview-icon text-warning mb-1">
-                                            <i class="fas fa-stream"></i>
-                                        </div>
-                                        <div class="preview-value fw-bold" id="flow-preview-value">0.4</div>
-                                        <div class="preview-label small text-muted">Порог потока</div>
-                                    </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <div class="preview-item text-center p-2 bg-white rounded">
-                                        <div class="preview-icon text-info mb-1">
-                                            <i class="fas fa-percentage"></i>
-                                        </div>
-                                        <div class="preview-value fw-bold" id="cellprob-preview-value">0.0</div>
-                                        <div class="preview-label small text-muted">Вероятность клетки</div>
-                                    </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <div class="preview-item text-center p-2 bg-white rounded">
-                                        <div class="preview-icon text-success mb-1">
-                                            <i class="fas fa-fingerprint"></i>
-                                        </div>
-                                        <div class="preview-value fw-bold" id="texture-preview-value">29</div>
-                                        <div class="preview-label small text-muted">Текстурные характеристики</div>
-                                    </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <div class="preview-item text-center p-2 bg-white rounded">
-                                        <div class="preview-icon text-danger mb-1">
-                                            <i class="fas fa-shield-alt"></i>
-                                        </div>
-                                        <div class="preview-value fw-bold" id="validation-preview-value">Clinical</div>
-                                        <div class="preview-label small text-muted">Валидация</div>
-                                    </div>
-                                </div>
-                            </div>
+                        <!-- End of statistical-config tab -->
+
                         </div>
-                        
+                        <!-- End of tab-content -->
+                        </div>
+                        <!-- End of configuration-dashboard -->
+
                         <!-- Hidden preprocessing toggle field -->
                         <div style="display: none;">
                             {{ form.apply_preprocessing }}
                         </div>
-                        
+
                         <!-- Submit Section -->
                         <div class="mt-4 p-4 bg-light rounded">
                             <div class="row align-items-center">
@@ -637,6 +534,17 @@
                     </div>
                 </div>
                 </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Enhanced Configuration Panel -->
+<section class="container-fluid py-4 bg-light">
+    <div class="container-fluid px-4">
+        <div class="row">
+            <div class="col-12">
+
             </div>
         </div>
     </div>
@@ -1164,6 +1072,7 @@ function updatePreviewSummary() {
     }
 }
 
+
 // Enhanced ROI Analysis Interface
 (function() {
     'use strict';
@@ -1231,15 +1140,15 @@ function updatePreviewSummary() {
     }
     
     function setupCanvas(img) {
-        // Calculate optimal canvas size
+        // Calculate optimal canvas size - match regular image display
         const containerWidth = roiContainer.offsetWidth - 100; // Account for padding
         const maxWidth = Math.min(containerWidth, 600);
-        const maxHeight = 500;
+        const maxHeight = 500; // Match the regular image max-height
         
         let width = img.naturalWidth;
         let height = img.naturalHeight;
         
-        // Scale to fit container
+        // Scale to fit container while maintaining aspect ratio
         if (width > maxWidth || height > maxHeight) {
             const ratio = Math.min(maxWidth / width, maxHeight / height);
             width *= ratio;
@@ -1249,6 +1158,10 @@ function updatePreviewSummary() {
         canvasScale = width / img.naturalWidth;
         roiCanvas.width = width;
         roiCanvas.height = height;
+        
+        // Set CSS size to match canvas dimensions for consistent display
+        roiCanvas.style.width = width + 'px';
+        roiCanvas.style.height = height + 'px';
         
         // Store reference to image
         roiCanvas.sourceImage = img;
@@ -1319,11 +1232,6 @@ function updatePreviewSummary() {
         addROIBtn.classList.add('active');
         addROIBtn.innerHTML = '<i class="fas fa-crosshairs me-2"></i>Drawing Mode';
         roiCanvas.style.cursor = 'crosshair';
-        
-        const statusEl = document.getElementById('roi-status');
-        if (statusEl) {
-            statusEl.classList.remove('d-none');
-        }
     }
     
     function disableDrawingMode() {
@@ -1331,11 +1239,6 @@ function updatePreviewSummary() {
         addROIBtn.classList.remove('active');
         addROIBtn.innerHTML = '<i class="fas fa-plus me-2"></i>Add Region';
         roiCanvas.style.cursor = 'default';
-        
-        const statusEl = document.getElementById('roi-status');
-        if (statusEl) {
-            statusEl.classList.add('d-none');
-        }
     }
     
     function clearAllRegions() {
@@ -1692,6 +1595,32 @@ function updatePreviewSummary() {
             }, { once: true });
         }
     };
+    
+    // Statistical Analysis Toggle Functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const statisticalCheckbox = document.getElementById('{{ form.enable_statistical_analysis.id_for_label }}');
+        const statisticalOptionsSection = document.getElementById('statistical-options-section');
+        
+        function toggleStatisticalOptions() {
+            if (statisticalCheckbox && statisticalOptionsSection) {
+                if (statisticalCheckbox.checked) {
+                    statisticalOptionsSection.style.display = 'block';
+                    statisticalOptionsSection.classList.add('fade-in');
+                } else {
+                    statisticalOptionsSection.style.display = 'none';
+                    statisticalOptionsSection.classList.remove('fade-in');
+                }
+            }
+        }
+        
+        // Set initial state
+        toggleStatisticalOptions();
+        
+        // Add event listener for toggle
+        if (statisticalCheckbox) {
+            statisticalCheckbox.addEventListener('change', toggleStatisticalOptions);
+        }
+    });
     
 })();
 </script>

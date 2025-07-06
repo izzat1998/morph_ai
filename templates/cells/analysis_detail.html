@@ -11,6 +11,10 @@
                 <h2>Результаты анализа</h2>
                 <div>
                     {% if analysis.status == 'completed' %}
+                    <a href="{% url 'cells:enhanced_analysis_detail' analysis.id %}" class="btn btn-primary me-2">
+                        <i class="fas fa-chart-area me-1"></i>
+                        Расширенная визуализация
+                    </a>
                     <div class="btn-group me-2" role="group">
                         <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-download"></i> Экспорт
@@ -454,6 +458,184 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Statistical Analysis Results (TIER 1 ENHANCEMENT) -->
+    {% if has_statistical_data %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-gradient-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-line me-2"></i>
+                            Статистический анализ TIER 1
+                        </h5>
+                        <div class="statistical-badges">
+                            <span class="badge bg-light text-dark me-2">
+                                <i class="fas fa-chart-bar me-1"></i>
+                                {{ statistical_config_display.confidence_level_percent }}% ДИ
+                            </span>
+                            <span class="badge bg-light text-dark">
+                                <i class="fas fa-sync me-1"></i>
+                                {{ statistical_config.bootstrap_samples|floatformat:0 }} Bootstrap
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="alert alert-info border-0 mb-4">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-info-circle fa-2x text-info me-3"></i>
+                                    <div>
+                                        <h6 class="mb-1">Научный статистический анализ активен</h6>
+                                        <small>Результаты включают доверительные интервалы, анализ неопределенности и bootstrap валидацию для обеспечения научной строгости.</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Statistical Summary -->
+                    {% if statistical_summary %}
+                    <div class="statistical-metrics">
+                        <h6 class="text-success mb-3">
+                            <i class="fas fa-calculator me-2"></i>
+                            Статистические показатели с доверительными интервалами
+                        </h6>
+                        <div class="row g-3">
+                            {% for feature_name, stats in statistical_summary.items %}
+                            <div class="col-md-6 col-lg-4">
+                                <div class="stat-card p-3 bg-light rounded">
+                                    <div class="stat-header d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="mb-0 text-primary">{{ feature_name|title }}</h6>
+                                        <span class="badge bg-primary">
+                                            {{ stats.reliability_score|floatformat:2 }}
+                                        </span>
+                                    </div>
+                                    <div class="stat-content">
+                                        <div class="mean-value mb-2">
+                                            <strong>Среднее:</strong> 
+                                            <span class="font-monospace">{{ stats.mean|floatformat:3 }}</span>
+                                            <small class="text-muted">±{{ stats.std_error|floatformat:3 }}</small>
+                                        </div>
+                                        <div class="confidence-interval mb-2">
+                                            <strong>{{ statistical_config.confidence_level|floatformat:0 }}% ДИ:</strong>
+                                            <span class="font-monospace text-success">
+                                                [{{ stats.confidence_interval_lower|floatformat:3 }}, {{ stats.confidence_interval_upper|floatformat:3 }}]
+                                            </span>
+                                        </div>
+                                        <div class="uncertainty">
+                                            <strong>Неопределенность:</strong>
+                                            <span class="badge bg-warning text-dark">
+                                                {{ stats.uncertainty_percent|floatformat:1 }}%
+                                            </span>
+                                        </div>
+                                        <div class="progress mt-2" style="height: 6px;">
+                                            <div class="progress-bar bg-success" style="width: {{ stats.reliability_score|floatformat:0 }}%"></div>
+                                        </div>
+                                        <small class="text-muted">Надежность измерения</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Statistical Analysis Metadata -->
+                    {% if statistical_analysis %}
+                    <div class="statistical-metadata mt-4">
+                        <h6 class="text-success mb-3">
+                            <i class="fas fa-cogs me-2"></i>
+                            Параметры статистического анализа
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <div class="metadata-item text-center p-3 bg-white rounded border">
+                                    <div class="metadata-icon text-primary mb-2">
+                                        <i class="fas fa-percentage fa-2x"></i>
+                                    </div>
+                                    <div class="metadata-value fw-bold">{{ statistical_analysis_display.confidence_level_percent }}%</div>
+                                    <div class="metadata-label small text-muted">Уровень доверия</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="metadata-item text-center p-3 bg-white rounded border">
+                                    <div class="metadata-icon text-success mb-2">
+                                        <i class="fas fa-sync fa-2x"></i>
+                                    </div>
+                                    <div class="metadata-value fw-bold">{{ statistical_analysis_display.bootstrap_iterations|floatformat:0 }}</div>
+                                    <div class="metadata-label small text-muted">Bootstrap итерации</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="metadata-item text-center p-3 bg-white rounded border">
+                                    <div class="metadata-icon text-warning mb-2">
+                                        <i class="fas fa-ruler fa-2x"></i>
+                                    </div>
+                                    <div class="metadata-value fw-bold">±{{ statistical_analysis_display.pixel_uncertainty|floatformat:1 }}</div>
+                                    <div class="metadata-label small text-muted">Погрешность пикселя</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="metadata-item text-center p-3 bg-white rounded border">
+                                    <div class="metadata-icon text-info mb-2">
+                                        <i class="fas fa-clock fa-2x"></i>
+                                    </div>
+                                    <div class="metadata-value fw-bold">{{ statistical_analysis_display.computation_time_seconds|floatformat:1 }}s</div>
+                                    <div class="metadata-label small text-muted">Время вычислений</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Statistical Export Options -->
+                    <div class="statistical-export mt-4">
+                        <h6 class="text-success mb-3">
+                            <i class="fas fa-download me-2"></i>
+                            Экспорт статистических данных
+                        </h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="{% url 'cells:export_analysis_csv' analysis.id %}" class="btn btn-outline-success">
+                                <i class="fas fa-file-csv me-2"></i>
+                                CSV с доверительными интервалами
+                            </a>
+                            <a href="{% url 'reports:analysis_pdf_config' analysis.id %}" class="btn btn-outline-primary">
+                                <i class="fas fa-file-pdf me-2"></i>
+                                PDF отчет со статистикой
+                            </a>
+                            <button class="btn btn-outline-info" onclick="showStatisticalDetails()">
+                                <i class="fas fa-chart-bar me-2"></i>
+                                Подробная статистика
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% elif statistical_config.enable_statistical_analysis %}
+    <!-- Statistical Analysis was requested but failed -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <h6 class="mb-0">Статистический анализ был запрошен</h6>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">Статистический анализ был включен для этого анализа, но данные не были сгенерированы. Анализ выполнен в стандартном режиме.</p>
+                    <small class="text-muted">Параметры: {{ statistical_config_display.confidence_level_percent }}% ДИ, {{ statistical_config.bootstrap_samples|floatformat:0 }} bootstrap итераций</small>
                 </div>
             </div>
         </div>

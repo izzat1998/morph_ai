@@ -454,10 +454,10 @@ class MorphometricPDFReport:
         
         # Prepare data for charts
         data_dict = {
-            'Area': [cell.area for cell in detected_cells],
-            'Perimeter': [cell.perimeter for cell in detected_cells],
-            'Circularity': [cell.circularity for cell in detected_cells],
-            'Eccentricity': [cell.eccentricity for cell in detected_cells],
+            'Площадь': [cell.area for cell in detected_cells],
+            'Периметр': [cell.perimeter for cell in detected_cells],
+            'Круглость': [cell.circularity for cell in detected_cells],
+            'Эксцентриситет': [cell.eccentricity for cell in detected_cells],
         }
         
         # Distribution histograms

@@ -17,7 +17,6 @@ except ImportError:
 
 from .exceptions import ImagePreprocessingError, DependencyError
 from .utils import validate_image_array
-from .gpu_utils import gpu_manager
 
 logger = logging.getLogger(__name__)
 
@@ -38,13 +37,11 @@ class GPUImagePreprocessor:
         try:
             import cupy as cp
             self.cp = cp
-            self.gpu_info = gpu_manager.detect_gpu_capabilities()
-            if self.gpu_info.backend == 'cuda':
-                self.cupy_available = True
-                logger.info("GPU preprocessing enabled with CuPy")
-            else:
-                logger.info("GPU not available, will use CPU preprocessing")
+            self.cupy_available = True
+            logger.info("GPU preprocessing enabled with CuPy")
         except ImportError:
+            self.cupy_available = False
+            self.cp = None
             logger.info("CuPy not available, using CPU preprocessing")
     
     def _to_gpu(self, array: np.ndarray) -> Union[np.ndarray, 'cp.ndarray']:

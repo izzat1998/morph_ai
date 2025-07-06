@@ -15,7 +15,14 @@ import sys
 
 from cells.gpu_utils import gpu_manager, log_gpu_status, is_gpu_available
 from cells.gpu_memory_manager import memory_manager, get_gpu_memory_status
-from cells.gpu_morphometrics import GPUMorphometrics, calculate_morphometrics_gpu
+# GPU morphometrics import with fallback
+try:
+    from cells.gpu_morphometrics import GPUMorphometrics, calculate_morphometrics_gpu
+    GPU_MORPHOMETRICS_AVAILABLE = True
+except ImportError:
+    GPU_MORPHOMETRICS_AVAILABLE = False
+    GPUMorphometrics = None
+    calculate_morphometrics_gpu = None
 from cells.image_preprocessing import GPUImagePreprocessor
 from cells.performance_monitor import PerformanceBenchmark, get_performance_recommendations
 
@@ -128,6 +135,10 @@ class Command(BaseCommand):
         # Create test mask data
         test_masks = self._create_test_masks(data_size)
         
+        if not GPU_MORPHOMETRICS_AVAILABLE:
+            self.stdout.write(self.style.WARNING('GPU morphometrics module not available, skipping morphometrics benchmark'))
+            return
+            
         gpu_morphometrics = GPUMorphometrics()
         
         # Benchmark GPU vs CPU
@@ -138,7 +149,7 @@ class Command(BaseCommand):
             self.stdout.write(f'  Iteration {i+1}/{iterations}', ending='')
             
             # GPU benchmark
-            if is_gpu_available():
+            if is_gpu_available() and GPU_MORPHOMETRICS_AVAILABLE:
                 start_time = time.time()
                 try:
                     gpu_result = calculate_morphometrics_gpu(test_masks)
@@ -264,7 +275,7 @@ class Command(BaseCommand):
             # Run morphometrics benchmark
             test_masks = self._create_test_masks(size)
             
-            if is_gpu_available():
+            if is_gpu_available() and GPU_MORPHOMETRICS_AVAILABLE:
                 try:
                     start_time = time.time()
                     result = calculate_morphometrics_gpu(test_masks)

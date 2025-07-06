@@ -71,9 +71,9 @@ class MorphometricChartGenerator:
             
             # Add vertical lines for statistics
             ax.axvline(mean_val, color=self.colors['danger'], linestyle='--', 
-                      linewidth=2, label=f'Mean: {mean_val:.2f}')
+                      linewidth=2, label=f'Среднее: {mean_val:.2f}')
             ax.axvline(median_val, color=self.colors['warning'], linestyle='-', 
-                      linewidth=2, label=f'Median: {median_val:.2f}')
+                      linewidth=2, label=f'Медиана: {median_val:.2f}')
             
             # Add normal distribution overlay
             x = np.linspace(min(data), max(data), 100)
@@ -82,17 +82,17 @@ class MorphometricChartGenerator:
             # Scale to histogram
             y = y * len(data) * (bins_arr[1] - bins_arr[0])
             ax.plot(x, y, color=self.colors['secondary'], linewidth=2, 
-                   label='Normal Distribution')
+                   label='Нормальное распределение')
             
             # Styling
             ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
             ax.set_xlabel(xlabel, fontsize=12)
-            ax.set_ylabel('Frequency', fontsize=12)
+            ax.set_ylabel('Частота', fontsize=12)
             ax.legend(frameon=True, fancybox=True, shadow=True)
             ax.grid(True, alpha=0.3)
             
             # Add statistics text box
-            stats_text = f'n = {len(data)}\nMean = {mean_val:.2f}\nStd = {std_val:.2f}\nMedian = {median_val:.2f}'
+            stats_text = f'n = {len(data)}\nСреднее = {mean_val:.2f}\nСтд.откл. = {std_val:.2f}\nМедиана = {median_val:.2f}'
             ax.text(0.97, 0.97, stats_text, transform=ax.transAxes, fontsize=10,
                    verticalalignment='top', horizontalalignment='right',
                    bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
@@ -116,7 +116,7 @@ class MorphometricChartGenerator:
                 return None
     
     def create_correlation_matrix(self, data_dict: Dict[str, List[float]], 
-                                title: str = "Correlation Matrix") -> io.BytesIO:
+                                title: str = "Корреляционная матрица") -> io.BytesIO:
         """
         Create a correlation matrix heatmap.
         
@@ -272,7 +272,7 @@ class MorphometricChartGenerator:
             return self._create_error_chart(title)
     
     def create_quality_metrics_chart(self, metrics: Dict[str, float],
-                                   title: str = "Quality Metrics") -> io.BytesIO:
+                                   title: str = "Метрики качества") -> io.BytesIO:
         """
         Create a radar chart for quality metrics.
         
@@ -336,7 +336,7 @@ class MorphometricChartGenerator:
             return self._create_error_chart(title)
     
     def create_summary_statistics_table(self, data_dict: Dict[str, List[float]],
-                                      title: str = "Summary Statistics") -> io.BytesIO:
+                                      title: str = "Сводная статистика") -> io.BytesIO:
         """
         Create a visual table of summary statistics.
         
@@ -352,15 +352,15 @@ class MorphometricChartGenerator:
             stats = []
             for param_name, values in data_dict.items():
                 stats.append({
-                    'Parameter': param_name,
-                    'Count': len(values),
-                    'Mean': np.mean(values),
-                    'Std': np.std(values),
-                    'Min': np.min(values),
+                    'Параметр': param_name,
+                    'Количество': len(values),
+                    'Среднее': np.mean(values),
+                    'Стд.откл.': np.std(values),
+                    'Мин': np.min(values),
                     'Q25': np.percentile(values, 25),
-                    'Median': np.median(values),
+                    'Медиана': np.median(values),
                     'Q75': np.percentile(values, 75),
-                    'Max': np.max(values)
+                    'Макс': np.max(values)
                 })
             
             df = pd.DataFrame(stats)
@@ -418,10 +418,10 @@ class MorphometricChartGenerator:
             BytesIO buffer containing error chart
         """
         fig, ax = plt.subplots(figsize=self.figsize, dpi=self.dpi)
-        ax.text(0.5, 0.5, 'Error generating chart', 
+        ax.text(0.5, 0.5, 'Ошибка создания диаграммы', 
                transform=ax.transAxes, ha='center', va='center',
                fontsize=14, color=self.colors['danger'])
-        ax.set_title(f"Error: {title}", fontsize=14, fontweight='bold')
+        ax.set_title(f"Ошибка: {title}", fontsize=14, fontweight='bold')
         ax.axis('off')
         
         buffer = io.BytesIO()

@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     'accounts',
     'cells',
     'reports',
+    'validation',
+    'morphometric_stats',
 ]
 
 MIDDLEWARE = [
@@ -120,8 +122,8 @@ LOGOUT_REDIRECT_URL = '/'
 
 LANGUAGE_CODE = 'ru'
 TIME_ZONE = 'UTC'
-USE_I18N = True
-USE_L10N = True
+USE_I18N = False
+USE_L10N = False
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
@@ -168,8 +170,14 @@ else:
     CELLPOSE_USE_GPU = False
 
 # GPU Memory Management
-GPU_MEMORY_FRACTION = float(os.getenv('GPU_MEMORY_FRACTION', '0.8'))
-GPU_BATCH_SIZE = int(os.getenv('GPU_BATCH_SIZE', '4'))
+GPU_MEMORY_FRACTION = float(os.getenv('GPU_MEMORY_FRACTION', '0.6'))  # Reduced for SAM models
+GPU_BATCH_SIZE = int(os.getenv('GPU_BATCH_SIZE', '2'))  # Reduced batch size for SAM
+PYTORCH_MEMORY_FRACTION = float(os.getenv('PYTORCH_MEMORY_FRACTION', '0.6'))
+
+# PyTorch Memory Optimization
+import os
+if 'PYTORCH_CUDA_ALLOC_CONF' not in os.environ:
+    os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 
 # Performance Settings
 ENABLE_GPU_PREPROCESSING = os.getenv('ENABLE_GPU_PREPROCESSING', 'auto').lower()
@@ -179,6 +187,31 @@ elif ENABLE_GPU_PREPROCESSING in ('true', '1', 'yes', 'on'):
     ENABLE_GPU_PREPROCESSING = True
 else:
     ENABLE_GPU_PREPROCESSING = False
+
+# Note: Custom GPU modules removed - using Cellpose's built-in GPU acceleration
+# ENABLE_GPU_PREPROCESSING now refers to standard image preprocessing, not custom GPU modules
+
+# Cellpose-SAM Integration Settings (REQUIRED)
+# Note: This application exclusively uses Cellpose-SAM for enhanced segmentation
+ENABLE_CELLPOSE_SAM = True  # Always enabled - no fallback to standard Cellpose
+
+# SAM Model Configuration
+CELLPOSE_SAM_PATCH_SIZE = int(os.getenv('CELLPOSE_SAM_PATCH_SIZE', '8'))  # Patch size for SAM transformer
+CELLPOSE_SAM_BACKBONE = os.getenv('CELLPOSE_SAM_BACKBONE', 'vit_l')  # Vision transformer backbone ('vit_l', 'vit_b', 'vit_h')
+
+# SAM Model Paths (REQUIRED - must be configured for application to work)
+CELLPOSE_SAM_MODEL_PATH = os.getenv('CELLPOSE_SAM_MODEL_PATH', os.path.join(BASE_DIR, 'cellpose_model', 'cpsam8_0_2100_8_402175188'))  # Path to SAM model (required)
+CELLPOSE_MODEL_DIR = os.getenv('CELLPOSE_MODEL_DIR', os.path.join(BASE_DIR, 'cellpose_model'))  # Directory for SAM models
+
+# Validation: Check if SAM model path is configured
+if not CELLPOSE_SAM_MODEL_PATH and not DEBUG:
+    import warnings
+    warnings.warn(
+        "CELLPOSE_SAM_MODEL_PATH is not configured. "
+        "Please set the path to your Cellpose-SAM model file. "
+        "Run 'python validate_sam_setup.py' for setup guidance.",
+        UserWarning
+    )
 
 # Security Settings
 if not DEBUG:

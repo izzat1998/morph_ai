@@ -98,7 +98,7 @@ def get_image_quality_summary(image_path: str) -> Dict[str, Any]:
 
 def get_analysis_summary(analysis) -> Optional[Dict[str, Any]]:
     """
-    Get comprehensive summary statistics for a completed analysis.
+    Get comprehensive summary statistics for a completed analysis including all morphometric features.
     
     Args:
         analysis: CellAnalysis instance (Django model)
@@ -128,43 +128,62 @@ def get_analysis_summary(analysis) -> Optional[Dict[str, Any]]:
             logger.info(f"Analysis {getattr(analysis, 'id', 'unknown')} has no detected cells")
             return None
         
-        # Extract measurements (pixels)
-        areas = [cell.area for cell in detected_cells if cell.area is not None]
-        perimeters = [cell.perimeter for cell in detected_cells if cell.perimeter is not None]
-        circularities = [cell.circularity for cell in detected_cells if cell.circularity is not None]
-        eccentricities = [cell.eccentricity for cell in detected_cells if cell.eccentricity is not None]
-        major_axes = [cell.major_axis_length for cell in detected_cells if cell.major_axis_length is not None]
-        minor_axes = [cell.minor_axis_length for cell in detected_cells if cell.minor_axis_length is not None]
+        # Initialize comprehensive data collectors
+        morphometric_data = {
+            # Basic morphometric features
+            'areas': [cell.area for cell in detected_cells if cell.area is not None],
+            'perimeters': [cell.perimeter for cell in detected_cells if cell.perimeter is not None],
+            'circularities': [cell.circularity for cell in detected_cells if cell.circularity is not None],
+            'eccentricities': [cell.eccentricity for cell in detected_cells if cell.eccentricity is not None],
+            'solidities': [cell.solidity for cell in detected_cells if cell.solidity is not None],
+            'extents': [cell.extent for cell in detected_cells if cell.extent is not None],
+            'major_axis_lengths': [cell.major_axis_length for cell in detected_cells if cell.major_axis_length is not None],
+            'minor_axis_lengths': [cell.minor_axis_length for cell in detected_cells if cell.minor_axis_length is not None],
+            'aspect_ratios': [cell.aspect_ratio for cell in detected_cells if cell.aspect_ratio is not None],
+            
+            # GLCM texture features
+            'glcm_contrasts': [cell.glcm_contrast for cell in detected_cells if cell.glcm_contrast is not None],
+            'glcm_correlations': [cell.glcm_correlation for cell in detected_cells if cell.glcm_correlation is not None],
+            'glcm_energies': [cell.glcm_energy for cell in detected_cells if cell.glcm_energy is not None],
+            'glcm_homogeneities': [cell.glcm_homogeneity for cell in detected_cells if cell.glcm_homogeneity is not None],
+            'glcm_entropies': [cell.glcm_entropy for cell in detected_cells if cell.glcm_entropy is not None],
+            'glcm_variances': [cell.glcm_variance for cell in detected_cells if cell.glcm_variance is not None],
+            
+            # Intensity features
+            'intensity_means': [cell.intensity_mean for cell in detected_cells if cell.intensity_mean is not None],
+            'intensity_stds': [cell.intensity_std for cell in detected_cells if cell.intensity_std is not None],
+            'intensity_variances': [cell.intensity_variance for cell in detected_cells if cell.intensity_variance is not None],
+            'intensity_ranges': [cell.intensity_range for cell in detected_cells if cell.intensity_range is not None],
+            'intensity_entropies': [cell.intensity_entropy for cell in detected_cells if cell.intensity_entropy is not None],
+            'intensity_energies': [cell.intensity_energy for cell in detected_cells if cell.intensity_energy is not None],
+            
+            # Physical measurements (if scale available)
+            'areas_microns': [cell.area_microns_sq for cell in detected_cells if cell.area_microns_sq is not None],
+            'perimeters_microns': [cell.perimeter_microns for cell in detected_cells if cell.perimeter_microns is not None],
+            'major_axis_lengths_microns': [cell.major_axis_length_microns for cell in detected_cells if cell.major_axis_length_microns is not None],
+            'minor_axis_lengths_microns': [cell.minor_axis_length_microns for cell in detected_cells if cell.minor_axis_length_microns is not None],
+        }
         
-        # Validate we have data
-        if not areas:
+        # Validate we have basic data
+        if not morphometric_data['areas']:
             logger.warning(f"Analysis {getattr(analysis, 'id', 'unknown')} has no valid area measurements")
             return None
         
-        # Build summary statistics
+        # Build comprehensive summary statistics
         summary = {
-            'total_cells': len(areas),
+            'total_cells': len(morphometric_data['areas']),
             'scale_available': getattr(analysis.cell, 'scale_set', False),
             'pixels_per_micron': getattr(analysis.cell, 'pixels_per_micron', None) if getattr(analysis.cell, 'scale_set', False) else None,
         }
         
-        # Add pixel-based statistics
-        if areas:
-            summary['area_stats'] = _calculate_stats(areas, 'area')
-        if perimeters:
-            summary['perimeter_stats'] = _calculate_stats(perimeters, 'perimeter')
-        if circularities:
-            summary['circularity_stats'] = _calculate_stats(circularities, 'circularity')
-        if eccentricities:
-            summary['eccentricity_stats'] = _calculate_stats(eccentricities, 'eccentricity')
-        if major_axes:
-            summary['major_axis_stats'] = _calculate_stats(major_axes, 'major_axis')
-        if minor_axes:
-            summary['minor_axis_stats'] = _calculate_stats(minor_axes, 'minor_axis')
+        # Add comprehensive statistics for all features
+        for feature_name, values in morphometric_data.items():
+            if values and not feature_name.endswith('_microns'):  # Handle microns separately
+                summary[f'{feature_name[:-1]}_stats'] = _calculate_comprehensive_stats(values, feature_name)
         
         # Add physical measurements if scale is available
         if getattr(analysis.cell, 'scale_set', False):
-            _add_physical_measurements(summary, detected_cells)
+            _add_comprehensive_physical_measurements(summary, morphometric_data)
         
         return summary
         
@@ -213,6 +232,66 @@ def _calculate_stats(values: list, metric_name: str) -> Dict[str, float]:
         return {}
 
 
+def _calculate_comprehensive_stats(values: list, metric_name: str) -> Dict[str, float]:
+    """
+    Calculate comprehensive statistical summary for a list of values.
+    
+    Args:
+        values: List of numerical values
+        metric_name: Name of the metric (for logging)
+        
+    Returns:
+        Dictionary with comprehensive statistics (mean, std, min, max, median, quartiles, CV, etc.)
+    """
+    if not values:
+        logger.warning(f"No values provided for {metric_name} statistics")
+        return {}
+    
+    try:
+        values_array = np.array(values)
+        
+        # Filter out invalid values
+        valid_values = values_array[np.isfinite(values_array)]
+        
+        if len(valid_values) == 0:
+            logger.warning(f"No valid values found for {metric_name} statistics")
+            return {}
+        
+        import statistics
+        
+        stats = {
+            'count': len(valid_values),
+            'mean': float(np.mean(valid_values)),
+            'std': float(np.std(valid_values)),
+            'min': float(np.min(valid_values)),
+            'max': float(np.max(valid_values)),
+            'median': float(np.median(valid_values)),
+            'range': float(np.max(valid_values) - np.min(valid_values)),
+        }
+        
+        # Add quartiles and IQR for datasets with multiple values
+        if len(valid_values) > 1:
+            stats.update({
+                'q25': float(np.percentile(valid_values, 25)),
+                'q75': float(np.percentile(valid_values, 75)),
+                'iqr': float(np.percentile(valid_values, 75) - np.percentile(valid_values, 25)),
+                'cv': float((np.std(valid_values) / np.mean(valid_values)) * 100) if np.mean(valid_values) != 0 else 0.0
+            })
+        else:
+            stats.update({
+                'q25': stats['median'],
+                'q75': stats['median'],
+                'iqr': 0.0,
+                'cv': 0.0
+            })
+        
+        return stats
+        
+    except Exception as e:
+        logger.error(f"Error calculating comprehensive statistics for {metric_name}: {str(e)}")
+        return {}
+
+
 def _add_physical_measurements(summary: Dict[str, Any], detected_cells) -> None:
     """
     Add physical measurements (in microns) to the summary.
@@ -247,6 +326,41 @@ def _add_physical_measurements(summary: Dict[str, Any], detected_cells) -> None:
             
     except Exception as e:
         logger.error(f"Error adding physical measurements to summary: {str(e)}")
+        # Don't raise - just log the error and continue without physical measurements
+
+
+def _add_comprehensive_physical_measurements(summary: Dict[str, Any], morphometric_data: Dict[str, list]) -> None:
+    """
+    Add comprehensive physical measurements (in microns) to the summary.
+    
+    Args:
+        summary: Summary dictionary to update
+        morphometric_data: Dictionary containing morphometric data including micron measurements
+    """
+    try:
+        # Add physical measurements if data is available
+        if morphometric_data['areas_microns']:
+            summary['area_stats_microns'] = _calculate_comprehensive_stats(
+                morphometric_data['areas_microns'], 'area_microns'
+            )
+        
+        if morphometric_data['perimeters_microns']:
+            summary['perimeter_stats_microns'] = _calculate_comprehensive_stats(
+                morphometric_data['perimeters_microns'], 'perimeter_microns'
+            )
+        
+        if morphometric_data['major_axis_lengths_microns']:
+            summary['major_axis_stats_microns'] = _calculate_comprehensive_stats(
+                morphometric_data['major_axis_lengths_microns'], 'major_axis_microns'
+            )
+        
+        if morphometric_data['minor_axis_lengths_microns']:
+            summary['minor_axis_stats_microns'] = _calculate_comprehensive_stats(
+                morphometric_data['minor_axis_lengths_microns'], 'minor_axis_microns'
+            )
+            
+    except Exception as e:
+        logger.error(f"Error adding comprehensive physical measurements to summary: {str(e)}")
         # Don't raise - just log the error and continue without physical measurements
 
 

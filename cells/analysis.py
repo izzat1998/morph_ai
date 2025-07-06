@@ -33,14 +33,12 @@ from django.utils import timezone
 from django.conf import settings
 from django.utils.translation import gettext as _
 
-# Import refactored modules
+# Import simplified modules
 from .quality_assessment import ImageQualityAssessment
 from .image_preprocessing import ImagePreprocessor
-from .parameter_optimization import ParameterOptimizer
 from .segmentation_refinement import SegmentationRefinement
 from .utils import run_cell_analysis, get_image_quality_summary, get_analysis_summary
-from .gpu_utils import gpu_manager, log_gpu_status, cleanup_gpu_memory
-from .gpu_memory_manager import memory_manager, gpu_memory_context
+from .cellpose_sam_proper import CellposeSAMSegmenter, is_cellpose_sam_available
 from .exceptions import *
 
 # Model imports
@@ -118,72 +116,70 @@ class CellAnalysisProcessor:
             start_time = time.time()
             logger.info(f"Starting analysis for cell: {self.cell.name}")
             
-            # Start memory monitoring for this analysis
-            memory_manager.start_monitoring()
+            # Simplified GPU operations - no complex memory management needed
+            # Step 1: Load and assess image quality
+            image_array = self._load_image()
             
-            # Use managed memory context for GPU operations
-            with gpu_memory_context(reserve_mb=1000):
-                # Step 1: Load and assess image quality
-                image_array = self._load_image()
-                
-                # Step 2: Run cellpose segmentation
-                masks, flows, styles, diameters = self._run_cellpose_segmentation(image_array)
-                
-                # Step 3: Apply post-processing refinement
-                original_mask_count = len(np.unique(masks)) - 1
-                refinement_options = self.analysis.get_filtering_options()
-                
-                refined_masks, refinement_steps = SegmentationRefinement.refine_segmentation(
-                    masks, image_array, refinement_options
-                )
-                final_mask_count = len(np.unique(refined_masks)) - 1
-                
-                # Store refinement information
-                refinement_info = {
-                    'original_cell_count': int(original_mask_count),
-                    'refined_cell_count': int(final_mask_count),
-                    'refinement_steps': refinement_steps,
-                    'options_used': refinement_options
-                }
-                
-                # Add refinement info to quality metrics
-                if not hasattr(self.analysis, 'quality_metrics') or not self.analysis.quality_metrics:
-                    self.analysis.quality_metrics = {}
-                self.analysis.quality_metrics['segmentation_refinement'] = refinement_info
-                
-                # Use refined masks for further processing
-                masks = refined_masks
-                
-                logger.info(f"Segmentation completed: {original_mask_count} → {final_mask_count} cells after refinement")
-                
-                # Step 4: Save all comprehensive visualizations
-                self._save_all_visualizations(image_array, masks, flows, styles, diameters)
-                
-                # Step 5: Extract morphometric features
-                self._extract_morphometric_features(masks)
-                
-                # Step 6: Update analysis record
-                processing_time = time.time() - start_time
-                self.analysis.processing_time = processing_time
-                self.analysis.completed_at = timezone.now()
-                self.analysis.status = 'completed'
-                self.analysis.save()
-                
-                # Final validation - ensure core visualization is accessible
-                try:
-                    if self.analysis.segmentation_image and self.analysis.segmentation_image.url:
-                        logger.info(f"Core visualization accessible at: {self.analysis.segmentation_image.url}")
-                    else:
-                        logger.error("Core visualization is not accessible after analysis completion")
-                except Exception as validation_error:
-                    logger.warning(f"Could not validate visualization accessibility: {str(validation_error)}")
-                
-                # Log memory status after analysis
-                memory_status = memory_manager.get_status()
-                logger.info(f"Analysis completed successfully in {processing_time:.2f} seconds")
-                logger.info(f"Final GPU memory usage: {memory_status['current_memory']['usage_ratio']:.1%}")
-                
-                return True
+            # Step 2: Run cellpose segmentation
+            masks, flows, styles, diameters = self._run_cellpose_segmentation(image_array)
+            
+            # Step 3: Apply post-processing refinement
+            original_mask_count = len(np.unique(masks)) - 1
+            refinement_options = self.analysis.get_filtering_options()
+            
+            refined_masks, refinement_steps = SegmentationRefinement.refine_segmentation(
+                masks, image_array, refinement_options
+            )
+            final_mask_count = len(np.unique(refined_masks)) - 1
+            
+            # Store refinement information
+            refinement_info = {
+                'original_cell_count': int(original_mask_count),
+                'refined_cell_count': int(final_mask_count),
+                'refinement_steps': refinement_steps,
+                'options_used': refinement_options
+            }
+            
+            # Add refinement info to quality metrics
+            if not hasattr(self.analysis, 'quality_metrics') or not self.analysis.quality_metrics:
+                self.analysis.quality_metrics = {}
+            self.analysis.quality_metrics['segmentation_refinement'] = refinement_info
+            
+            # Use refined masks for further processing
+            masks = refined_masks
+            
+            logger.info(f"Segmentation completed: {original_mask_count} → {final_mask_count} cells after refinement")
+            
+            # Add ROI metadata if ROI processing was used
+            if hasattr(self, '_roi_metadata'):
+                self.analysis.quality_metrics['roi_analysis'] = self._roi_metadata
+                logger.info(f"ROI metadata preserved: {len(self._roi_metadata.get('roi_regions', []))} regions processed")
+            
+            # Step 4: Save all comprehensive visualizations
+            self._save_all_visualizations(image_array, masks, flows, styles, diameters)
+            
+            # Step 5: Extract morphometric features
+            self._extract_morphometric_features(masks)
+            
+            # Step 6: Update analysis record
+            processing_time = time.time() - start_time
+            self.analysis.processing_time = processing_time
+            self.analysis.completed_at = timezone.now()
+            self.analysis.status = 'completed'
+            self.analysis.save()
+            
+            # Final validation - ensure core visualization is accessible
+            try:
+                if self.analysis.segmentation_image and self.analysis.segmentation_image.url:
+                    logger.info(f"Core visualization accessible at: {self.analysis.segmentation_image.url}")
+                else:
+                    logger.error("Core visualization is not accessible after analysis completion")
+            except Exception as validation_error:
+                logger.warning(f"Could not validate visualization accessibility: {str(validation_error)}")
+            
+            logger.info(f"Analysis completed successfully in {processing_time:.2f} seconds")
+            
+            return True
             
         except Exception as e:
             logger.error(f"Analysis failed: {str(e)}")
@@ -233,61 +229,465 @@ class CellAnalysisProcessor:
             except Exception as preprocessing_error:
                 logger.warning(f"GPU preprocessing failed: {str(preprocessing_error)}")
         
-        # Auto-optimize parameters if diameter is 0 (auto-detection requested)
+        # Use simple, proven defaults - no optimization needed
+        # CellposeSAM works best with standard parameters
         if self.analysis.cellpose_diameter == 0:
-            current_params = {
-                'cellpose_model': self.analysis.cellpose_model,
-                'flow_threshold': self.analysis.flow_threshold,
-                'cellprob_threshold': self.analysis.cellprob_threshold
-            }
+            # Keep diameter=0 for auto-detection (CellposeSAM is excellent at this)
+            pass
+        
+        # Ensure we have proven default parameters
+        if self.analysis.flow_threshold is None or self.analysis.flow_threshold == 0:
+            self.analysis.flow_threshold = 0.4  # Proven optimal default
+        if self.analysis.cellprob_threshold is None:
+            self.analysis.cellprob_threshold = 0.0  # Proven optimal default
+        if not self.analysis.cellpose_model:
+            self.analysis.cellpose_model = 'cpsam'  # Most robust model
             
-            # Use our new parameter optimization module
-            optimized_params = ParameterOptimizer.optimize_all_parameters(
-                image_array, quality_assessment, current_params
-            )
-            
-            # Update analysis with optimized parameters
-            self.analysis.cellpose_diameter = optimized_params['cellpose_diameter']
-            self.analysis.flow_threshold = optimized_params['flow_threshold'] 
-            self.analysis.cellprob_threshold = optimized_params['cellprob_threshold']
-            self.analysis.cellpose_model = optimized_params['cellpose_model']
-            
-            # Store optimization info
-            self.analysis.quality_metrics['parameter_optimization'] = optimized_params
-            
-            logger.info(f"Auto-optimized parameters: diameter={optimized_params['cellpose_diameter']:.1f}, "
-                       f"model={optimized_params['cellpose_model']}")
+        logger.info(f"Using proven parameters: diameter={self.analysis.cellpose_diameter}, "
+                   f"flow={self.analysis.flow_threshold}, cellprob={self.analysis.cellprob_threshold}, "
+                   f"model={self.analysis.cellpose_model}")
         
         self.analysis.save()
         return image_array
         
+    def _extract_roi_regions(self, image_array):
+        """
+        Extract ROI regions from the full image array.
+        
+        Returns:
+            list: List of (roi_data, cropped_image) tuples
+        """
+        if not self.analysis.use_roi or not self.analysis.roi_regions:
+            return None
+            
+        # Validate ROI regions data
+        if not isinstance(self.analysis.roi_regions, list):
+            logger.warning("ROI regions data is not a list, disabling ROI processing")
+            return None
+            
+        if len(self.analysis.roi_regions) == 0:
+            logger.warning("No ROI regions defined, disabling ROI processing")
+            return None
+            
+        roi_extracts = []
+        
+        for roi in self.analysis.roi_regions:
+            # Validate ROI data structure
+            if not isinstance(roi, dict):
+                logger.warning(f"Invalid ROI data structure: {type(roi)}, skipping")
+                continue
+                
+            # Extract coordinates and ensure they're within image bounds
+            try:
+                x = max(0, int(roi.get('x', 0)))
+                y = max(0, int(roi.get('y', 0)))
+                width = max(1, int(roi.get('width', 1)))
+                height = max(1, int(roi.get('height', 1)))
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Invalid ROI coordinates: {roi}, error: {e}")
+                continue
+            
+            # Ensure ROI doesn't exceed image bounds
+            x = min(x, image_array.shape[1] - 1)
+            y = min(y, image_array.shape[0] - 1)
+            width = min(width, image_array.shape[1] - x)
+            height = min(height, image_array.shape[0] - y)
+            
+            # Skip invalid ROIs
+            if width <= 0 or height <= 0:
+                logger.warning(f"Skipping invalid ROI: x={x}, y={y}, w={width}, h={height}")
+                continue
+                
+            # Extract the ROI region
+            if len(image_array.shape) == 2:
+                cropped = image_array[y:y+height, x:x+width]
+            else:
+                cropped = image_array[y:y+height, x:x+width, :]
+                
+            roi_data = {
+                'id': roi.get('id', len(roi_extracts)),
+                'x': x, 'y': y, 'width': width, 'height': height,
+                'original_coords': roi
+            }
+            
+            roi_extracts.append((roi_data, cropped))
+            logger.info(f"Extracted ROI {roi_data['id']}: {width}x{height} at ({x}, {y})")
+            
+        # Check for overlapping ROI regions and warn user
+        if len(roi_extracts) > 1:
+            overlap_count = 0
+            for i in range(len(roi_extracts)):
+                for j in range(i + 1, len(roi_extracts)):
+                    roi1_data, _ = roi_extracts[i]
+                    roi2_data, _ = roi_extracts[j]
+                    
+                    region1 = (roi1_data['x'], roi1_data['y'], 
+                              roi1_data['x'] + roi1_data['width'], 
+                              roi1_data['y'] + roi1_data['height'])
+                    region2 = (roi2_data['x'], roi2_data['y'], 
+                              roi2_data['x'] + roi2_data['width'], 
+                              roi2_data['y'] + roi2_data['height'])
+                    
+                    if self._roi_regions_overlap(region1, region2):
+                        overlap_count += 1
+                        logger.info(f"ROI overlap detected: ROI {roi1_data['id']} and ROI {roi2_data['id']} - "
+                                  f"deduplication will be applied")
+            
+            if overlap_count > 0:
+                logger.info(f"Total ROI overlaps detected: {overlap_count} - using intelligent cell merging")
+            else:
+                logger.info(f"No ROI overlaps detected in {len(roi_extracts)} regions - standard processing")
+            
+        return roi_extracts if roi_extracts else None
+
+    def _merge_overlapping_cells(self, combined_mask, new_mask, roi_data, overlap_threshold=0.5):
+        """
+        Merge overlapping cells from new ROI mask into existing combined mask.
+        
+        Args:
+            combined_mask: Existing combined mask
+            new_mask: New ROI mask to merge
+            roi_data: ROI coordinates and metadata
+            overlap_threshold: Minimum overlap ratio to consider cells as duplicates
+            
+        Returns:
+            Updated combined mask with merged cells
+        """
+        from scipy import ndimage
+        from skimage import measure
+        
+        x, y = roi_data['x'], roi_data['y']
+        height, width = new_mask.shape[:2]
+        
+        # Get region where new mask will be placed
+        roi_region = combined_mask[y:y+height, x:x+width]
+        
+        # Find existing cells in the ROI region
+        existing_labels = np.unique(roi_region)
+        existing_labels = existing_labels[existing_labels > 0]
+        
+        # Find new cells in the new mask
+        new_labels = np.unique(new_mask)
+        new_labels = new_labels[new_labels > 0]
+        
+        if len(existing_labels) == 0:
+            # No existing cells in this region, just place the new mask
+            combined_mask[y:y+height, x:x+width] = np.maximum(roi_region, new_mask)
+            logger.debug(f"ROI {roi_data['id']}: No existing cells, placed {len(new_labels)} new cells")
+            return combined_mask
+        
+        # Track which new cells have been merged
+        merged_new_cells = set()
+        merge_count = 0
+        
+        # Check each new cell against existing cells for overlap
+        for new_label in new_labels:
+            new_cell_mask = (new_mask == new_label)
+            best_overlap = 0
+            best_existing_label = None
+            
+            # Check overlap with each existing cell
+            for existing_label in existing_labels:
+                existing_cell_mask = (roi_region == existing_label)
+                
+                # Calculate overlap
+                intersection = np.logical_and(new_cell_mask, existing_cell_mask)
+                union = np.logical_or(new_cell_mask, existing_cell_mask)
+                
+                if union.sum() > 0:
+                    overlap_ratio = intersection.sum() / union.sum()
+                    
+                    if overlap_ratio > best_overlap:
+                        best_overlap = overlap_ratio
+                        best_existing_label = existing_label
+            
+            # If significant overlap found, merge the cells
+            if best_overlap > overlap_threshold and best_existing_label is not None:
+                # Merge by assigning new cell pixels to existing cell ID
+                merge_pixels = new_cell_mask
+                combined_mask[y:y+height, x:x+width][merge_pixels] = best_existing_label
+                merged_new_cells.add(new_label)
+                merge_count += 1
+                logger.debug(f"ROI {roi_data['id']}: Merged cell {new_label} with existing cell {best_existing_label} (overlap: {best_overlap:.2f})")
+        
+        # Place remaining new cells (those that weren't merged)
+        remaining_labels = [label for label in new_labels if label not in merged_new_cells]
+        if remaining_labels:
+            # Find the next available cell ID
+            max_existing_id = combined_mask.max()
+            current_new_id = max_existing_id + 1
+            
+            for old_label in remaining_labels:
+                new_cell_mask = (new_mask == old_label)
+                combined_mask[y:y+height, x:x+width][new_cell_mask] = current_new_id
+                current_new_id += 1
+            
+            logger.debug(f"ROI {roi_data['id']}: Added {len(remaining_labels)} new cells, merged {merge_count} duplicates")
+        else:
+            logger.debug(f"ROI {roi_data['id']}: All {len(new_labels)} cells were merged with existing cells")
+        
+        return combined_mask
+
+    def _roi_regions_overlap(self, region1, region2):
+        """
+        Check if two ROI regions overlap.
+        
+        Args:
+            region1: (x1, y1, x2, y2) bounds of first region
+            region2: (x1, y1, x2, y2) bounds of second region
+            
+        Returns:
+            bool: True if regions overlap
+        """
+        x1_1, y1_1, x2_1, y2_1 = region1
+        x1_2, y1_2, x2_2, y2_2 = region2
+        
+        # Check if there's no overlap (easier to check)
+        if (x2_1 <= x1_2 or x2_2 <= x1_1 or 
+            y2_1 <= y1_2 or y2_2 <= y1_1):
+            return False
+            
+        return True
+
+    def _combine_roi_masks(self, roi_results, full_image_shape):
+        """
+        Combine masks from multiple ROI regions into a single full-image mask.
+        
+        Args:
+            roi_results: List of (roi_data, masks, flows, styles, diameters) tuples
+            full_image_shape: Shape of the original full image
+            
+        Returns:
+            Combined masks, flows, styles, diameters
+        """
+        # Create empty full-size mask
+        if len(full_image_shape) == 2:
+            combined_mask = np.zeros(full_image_shape, dtype=np.uint16)
+        else:
+            combined_mask = np.zeros(full_image_shape[:2], dtype=np.uint16)
+            
+        # Reconstruct full flow field from ROI data
+        combined_flows = self._reconstruct_full_flow_field(roi_results, full_image_shape)
+        combined_styles = []
+        combined_diameters = []
+        
+        total_detections = 0
+        overlapping_regions = []
+        
+        for roi_idx, (roi_data, masks, flows, styles, diameters) in enumerate(roi_results):
+            if masks is None:
+                continue
+                
+            # Get ROI coordinates
+            x, y = roi_data['x'], roi_data['y']
+            width, height = roi_data['width'], roi_data['height']
+            
+            # Check for overlaps with previously processed ROIs
+            current_roi_bounds = (x, y, x + width, y + height)
+            overlaps_detected = False
+            
+            for prev_roi_bounds in overlapping_regions:
+                if self._roi_regions_overlap(current_roi_bounds, prev_roi_bounds):
+                    overlaps_detected = True
+                    break
+            
+            if overlaps_detected:
+                logger.info(f"ROI {roi_data['id']}: Overlap detected, using intelligent merging")
+            
+            overlapping_regions.append(current_roi_bounds)
+            
+            # Prepare ROI mask for merging
+            roi_mask = masks.copy()
+            if roi_mask.max() > 0:
+                unique_labels = np.unique(roi_mask)
+                unique_labels = unique_labels[unique_labels > 0]  # Exclude background
+                
+                # Use intelligent merging instead of simple np.maximum
+                try:
+                    combined_mask = self._merge_overlapping_cells(
+                        combined_mask, roi_mask, roi_data, 
+                        overlap_threshold=0.5
+                    )
+                    
+                    # Count actual detections in final mask (to avoid double counting)
+                    roi_region = combined_mask[y:y+height, x:x+width]
+                    actual_detections = len(np.unique(roi_region)) - 1  # Exclude background
+                    
+                    logger.info(f"ROI {roi_data['id']}: Processed {len(unique_labels)} detected cells, "
+                              f"resulted in {actual_detections} final cells in region")
+                    
+                except ValueError as e:
+                    logger.warning(f"Failed to merge ROI mask for region {roi_data['id']}: {e}")
+                    continue
+                    
+            # Collect metadata
+            if styles is not None:
+                combined_styles.extend(styles if isinstance(styles, list) else [styles])
+            if diameters is not None:
+                combined_diameters.extend(diameters if isinstance(diameters, list) else [diameters])
+        
+        # Calculate final total detections from the combined mask
+        total_detections = len(np.unique(combined_mask)) - 1  # Exclude background
+                
+        logger.info(f"Combined {len(roi_results)} ROI regions with {total_detections} total detections")
+        
+        # Return in the same format as single-image segmentation
+        return combined_mask, combined_flows, combined_styles or None, combined_diameters or None
+
+    def _reconstruct_full_flow_field(self, roi_results, full_image_shape):
+        """
+        Reconstruct full-image flow field from ROI flow data.
+        
+        Args:
+            roi_results: List of (roi_data, masks, flows, styles, diameters) tuples
+            full_image_shape: Shape of the original full image
+            
+        Returns:
+            Combined flow data in same format as Cellpose output
+        """
+        logger.info("Reconstructing full-image flow field from ROI data")
+        
+        # Create full-size flow array - same format as Cellpose output
+        if len(full_image_shape) == 2:
+            h, w = full_image_shape
+        else:
+            h, w = full_image_shape[:2]
+            
+        # Initialize flow arrays matching Cellpose format
+        # flows[0] contains [prob, dY, dX] where prob is cell probability
+        # flows[1] contains XY flow data
+        full_flow_prob = np.zeros((h, w), dtype=np.float32)
+        full_flow_xy = np.zeros((h, w, 2), dtype=np.float32)
+        
+        overlap_count = np.zeros((h, w), dtype=np.int32)  # Track overlapping regions
+        
+        valid_roi_count = 0
+        
+        for roi_idx, (roi_data, masks, flows, styles, diameters) in enumerate(roi_results):
+            if flows is None or len(flows) < 2:
+                logger.debug(f"ROI {roi_data.get('id', roi_idx)}: No flow data available")
+                continue
+                
+            try:
+                # Get ROI coordinates
+                x = max(0, int(roi_data['x']))
+                y = max(0, int(roi_data['y']))
+                roi_width = int(roi_data['width'])
+                roi_height = int(roi_data['height'])
+                
+                # Ensure ROI doesn't exceed image bounds
+                x = min(x, w - 1)
+                y = min(y, h - 1)
+                roi_width = min(roi_width, w - x)
+                roi_height = min(roi_height, h - y)
+                
+                if roi_width <= 0 or roi_height <= 0:
+                    logger.warning(f"ROI {roi_data.get('id', roi_idx)}: Invalid dimensions, skipping")
+                    continue
+                
+                # Extract flow data from ROI
+                roi_flow_data = flows[0]  # [prob, dY, dX] format
+                roi_xy_flows = flows[1] if len(flows) > 1 else None
+                
+                # Handle different flow data formats
+                if isinstance(roi_flow_data, list) and len(roi_flow_data) >= 3:
+                    # Standard format: [prob, dY, dX]
+                    roi_prob = roi_flow_data[0]
+                    if roi_xy_flows is not None and roi_xy_flows.shape[:2] == (roi_height, roi_width):
+                        # Place flow data in full image coordinates
+                        full_flow_xy[y:y+roi_height, x:x+roi_width] += roi_xy_flows
+                        full_flow_prob[y:y+roi_height, x:x+roi_width] += roi_prob
+                        overlap_count[y:y+roi_height, x:x+roi_width] += 1
+                        valid_roi_count += 1
+                        
+                        logger.debug(f"ROI {roi_data.get('id', roi_idx)}: Added flow data "
+                                   f"at ({x},{y}) size ({roi_width}x{roi_height})")
+                
+            except Exception as roi_error:
+                logger.warning(f"ROI {roi_data.get('id', roi_idx)}: Flow reconstruction failed: {roi_error}")
+                continue
+        
+        # Average overlapping regions
+        overlap_mask = overlap_count > 1
+        if np.any(overlap_mask):
+            full_flow_xy[overlap_mask] /= overlap_count[overlap_mask, np.newaxis]
+            full_flow_prob[overlap_mask] /= overlap_count[overlap_mask]
+            overlap_regions = np.sum(overlap_mask)
+            logger.info(f"Averaged {overlap_regions} overlapping pixels from multiple ROIs")
+        
+        # Construct flow data in Cellpose format
+        # flows[0] = [prob, dY, dX] 
+        # flows[1] = XY flow field
+        if valid_roi_count > 0:
+            dY = full_flow_xy[:, :, 0]  # Y component
+            dX = full_flow_xy[:, :, 1]  # X component
+            
+            combined_flows = [
+                [full_flow_prob, dY, dX],  # Standard Cellpose format
+                full_flow_xy                # XY flow field for visualization
+            ]
+            
+            logger.info(f"Successfully reconstructed flow field from {valid_roi_count} ROI regions")
+            return combined_flows
+        else:
+            logger.warning("No valid flow data found in any ROI region")
+            return None
+
     def _run_cellpose_segmentation(self, image_array):
         """Run Cellpose segmentation with GPU acceleration and fallback."""
         try:
-            # Log GPU status for debugging
-            log_gpu_status()
+            # Simple GPU detection
+            use_gpu = getattr(settings, 'CELLPOSE_USE_GPU', False)
             
-            # Detect GPU capabilities
-            gpu_info = gpu_manager.detect_gpu_capabilities()
-            use_gpu = getattr(settings, 'CELLPOSE_USE_GPU', False) and gpu_info.backend != 'cpu'
+            # Check if GPU is actually available
+            if use_gpu:
+                try:
+                    import torch
+                    use_gpu = torch.cuda.is_available()
+                except ImportError:
+                    use_gpu = False
             
-            logger.info(f"Cellpose segmentation starting - GPU: {use_gpu} ({gpu_info.backend} backend)")
+            # Enhanced GPU logging
+            if use_gpu:
+                try:
+                    import torch
+                    gpu_name = torch.cuda.get_device_name(0)
+                    gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3
+                    memory_allocated = torch.cuda.memory_allocated() / 1024**2
+                    logger.info(f"🚀 GPU ACCELERATION ENABLED")
+                    logger.info(f"   Device: {gpu_name}")
+                    logger.info(f"   Memory: {gpu_memory:.1f}GB total, {memory_allocated:.1f}MB currently allocated")
+                except Exception as e:
+                    logger.warning(f"GPU info retrieval failed: {str(e)}")
+            else:
+                logger.info("⚠️  Using CPU (GPU disabled or unavailable)")
             
-            # Initialize Cellpose model with GPU settings
+            # Initialize CellposeSAM segmenter (proper implementation)
             try:
-                model = models.CellposeModel(
-                    model_type=self.analysis.cellpose_model,
+                logger.info("Initializing CellposeSAM segmenter")
+                
+                # Check if SAM is available
+                if not is_cellpose_sam_available():
+                    raise RuntimeError(
+                        "CellposeSAM is not available. Please ensure Cellpose 4.0+ is installed: "
+                        "pip install cellpose[gui]>=4.0.0"
+                    )
+                
+                # Initialize proper CellposeSAM segmenter
+                segmenter = CellposeSAMSegmenter(
                     gpu=use_gpu
                 )
-                logger.info(f"Cellpose model initialized: {self.analysis.cellpose_model} (GPU: {use_gpu})")
+                
+                model_info = segmenter.get_model_info()
+                logger.info(f"CellposeSAM segmenter initialized successfully (GPU: {use_gpu})")
+                logger.info(f"Model info: {model_info}")
+                    
             except Exception as model_error:
-                logger.warning(f"Failed to initialize GPU model, falling back to CPU: {str(model_error)}")
-                # Fallback to CPU
-                model = models.CellposeModel(
-                    model_type=self.analysis.cellpose_model,
-                    gpu=False
+                logger.error(f"CellposeSAM initialization failed: {str(model_error)}")
+                raise RuntimeError(
+                    f"Failed to initialize CellposeSAM: {str(model_error)}. "
+                    f"Please ensure Cellpose 4.0+ is properly installed."
                 )
-                use_gpu = False
             
             # Determine channels based on image
             if len(image_array.shape) == 2:
@@ -305,54 +705,161 @@ class CellAnalysisProcessor:
             else:
                 channels = [0, 0]
             
-            # Run segmentation (Cellpose v4.0.4+ returns masks, flows, prob)
-            result = model.eval(
-                image_array,
-                diameter=self.analysis.cellpose_diameter,
-                flow_threshold=self.analysis.flow_threshold,
-                cellprob_threshold=self.analysis.cellprob_threshold,
-                channels=channels
-            )
+            # Check if ROI processing is enabled
+            roi_extracts = self._extract_roi_regions(image_array)
             
-            # Handle different return formats between Cellpose versions
-            if len(result) == 3:
-                # v4.0.4+ format: (masks, flows, prob)
-                masks, flows, prob = result
-                styles = None  # Not returned in v4.0.4+
-                diameters = [self.analysis.cellpose_diameter]  # Use configured diameter
-            elif len(result) == 4:
-                # Legacy format: (masks, flows, styles, diameters)
-                masks, flows, styles, diameters = result
+            if roi_extracts:
+                # ROI-based segmentation
+                logger.info(f"Running ROI-based CellposeSAM segmentation on {len(roi_extracts)} regions")
+                roi_results = []
+                
+                for roi_data, roi_image in roi_extracts:
+                    logger.info(f"Processing ROI {roi_data['id']}: {roi_data['width']}x{roi_data['height']}")
+                    
+                    try:
+                        # Run segmentation on this ROI
+                        roi_result = segmenter.segment(
+                            image_array=roi_image,
+                            diameter=self.analysis.cellpose_diameter if self.analysis.cellpose_diameter > 0 else None,
+                            flow_threshold=self.analysis.flow_threshold,
+                            cellprob_threshold=self.analysis.cellprob_threshold,
+                            do_3D=False
+                        )
+                        
+                        # Handle different return formats
+                        if len(roi_result) == 3:
+                            roi_masks, roi_flows, roi_prob = roi_result
+                            roi_styles = None
+                            roi_diameters = [self.analysis.cellpose_diameter]
+                        elif len(roi_result) == 4:
+                            roi_masks, roi_flows, roi_styles, roi_diameters = roi_result
+                        else:
+                            roi_masks = roi_result[0]
+                            roi_flows = roi_result[1] if len(roi_result) > 1 else None
+                            roi_styles = None
+                            roi_diameters = [self.analysis.cellpose_diameter]
+                        
+                        roi_detections = len(np.unique(roi_masks)) - 1
+                        logger.info(f"ROI {roi_data['id']}: {roi_detections} cells detected")
+                        
+                        roi_results.append((roi_data, roi_masks, roi_flows, roi_styles, roi_diameters))
+                        
+                    except Exception as roi_error:
+                        logger.warning(f"ROI {roi_data['id']} segmentation failed: {str(roi_error)}")
+                        # Continue with other ROIs
+                        continue
+                
+                if roi_results:
+                    # Combine all ROI results into single full-image masks
+                    masks, flows, styles, diameters = self._combine_roi_masks(roi_results, image_array.shape)
+                    
+                    # Store ROI metadata for quality metrics
+                    self._roi_metadata = {
+                        'roi_regions': [
+                            {
+                                'id': roi_data['id'],
+                                'coordinates': {'x': roi_data['x'], 'y': roi_data['y'], 
+                                              'width': roi_data['width'], 'height': roi_data['height']},
+                                'cells_detected': len(np.unique(roi_masks)) - 1,
+                                'area_coverage': roi_data['width'] * roi_data['height'],
+                                'flow_data_available': roi_flows is not None
+                            }
+                            for (roi_data, roi_masks, roi_flows, roi_styles, roi_diameters) in roi_results
+                        ],
+                        'total_rois': len(roi_results),
+                        'flow_reconstruction': flows is not None,
+                        'analysis_type': 'roi_enhanced'
+                    }
+                    
+                    logger.info("ROI-based segmentation completed, masks combined")
+                else:
+                    logger.warning("All ROI segmentations failed, falling back to full image")
+                    # Fallback to full image segmentation
+                    result = segmenter.segment(
+                        image_array=image_array,
+                        diameter=self.analysis.cellpose_diameter if self.analysis.cellpose_diameter > 0 else None,
+                        flow_threshold=self.analysis.flow_threshold,
+                        cellprob_threshold=self.analysis.cellprob_threshold,
+                        do_3D=False
+                    )
+                    
+                    if len(result) == 3:
+                        masks, flows, prob = result
+                        styles = None
+                        diameters = [self.analysis.cellpose_diameter]
+                    elif len(result) == 4:
+                        masks, flows, styles, diameters = result
+                    else:
+                        masks = result[0]
+                        flows = result[1] if len(result) > 1 else None
+                        styles = None
+                        diameters = [self.analysis.cellpose_diameter]
             else:
-                # Fallback
-                masks = result[0]
-                flows = result[1] if len(result) > 1 else None
-                styles = None
-                diameters = [self.analysis.cellpose_diameter]
+                # Standard full-image segmentation
+                logger.info("Running standard CellposeSAM segmentation on full image")
+                result = segmenter.segment(
+                    image_array=image_array,
+                    diameter=self.analysis.cellpose_diameter if self.analysis.cellpose_diameter > 0 else None,
+                    flow_threshold=self.analysis.flow_threshold,
+                    cellprob_threshold=self.analysis.cellprob_threshold,
+                    do_3D=False
+                )
+                
+                # Handle different return formats between Cellpose versions
+                if len(result) == 3:
+                    # v4.0.4+ format: (masks, flows, prob)
+                    masks, flows, prob = result
+                    styles = None  # Not returned in v4.0.4+
+                    diameters = [self.analysis.cellpose_diameter]  # Use configured diameter
+                elif len(result) == 4:
+                    # Legacy format: (masks, flows, styles, diameters)
+                    masks, flows, styles, diameters = result
+                else:
+                    # Fallback
+                    masks = result[0]
+                    flows = result[1] if len(result) > 1 else None
+                    styles = None
+                    diameters = [self.analysis.cellpose_diameter]
             
             # Log completion with performance info
             num_detections = len(np.unique(masks)) - 1
             backend_used = "GPU" if use_gpu else "CPU"
-            logger.info(f"Cellpose segmentation completed: {num_detections} detections using {backend_used}")
             
-            # Clean up GPU memory if used
+            # Enhanced completion logging with GPU memory info
             if use_gpu:
                 try:
-                    cleanup_gpu_memory()
-                    logger.debug("GPU memory cleaned up after segmentation")
-                except Exception as cleanup_error:
-                    logger.warning(f"GPU memory cleanup failed: {str(cleanup_error)}")
+                    import torch
+                    final_memory = torch.cuda.memory_allocated() / 1024**2
+                    logger.info(f"✅ Cellpose-SAM segmentation completed: {num_detections} cells detected")
+                    logger.info(f"   Backend: {backend_used} | GPU Memory: {final_memory:.1f}MB")
+                except Exception:
+                    logger.info(f"✅ Cellpose-SAM segmentation completed: {num_detections} detections using {backend_used}")
+            else:
+                logger.info(f"✅ Cellpose-SAM segmentation completed: {num_detections} detections using {backend_used}")
+            
+            # Simple GPU cleanup
+            if use_gpu:
+                try:
+                    import torch
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                        logger.debug("GPU memory cleaned up after segmentation")
+                except ImportError:
+                    pass
             
             return masks, flows, styles, diameters
             
         except Exception as e:
-            logger.error(f"Cellpose segmentation failed: {str(e)}")
-            # Clean up GPU memory on error
-            try:
-                cleanup_gpu_memory()
-            except:
-                pass
-            raise SegmentationError(f"Segmentation failed: {str(e)}")
+            logger.error(f"Cellpose-SAM segmentation failed: {str(e)}")
+            # Simple GPU cleanup on error
+            if use_gpu:
+                try:
+                    import torch
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                except ImportError:
+                    pass
+            raise SegmentationError(f"Cellpose-SAM segmentation failed: {str(e)}")
     
     def _save_all_visualizations(self, original_image, masks, flows=None, styles=None, diameters=None):
         """Save all 4 comprehensive visualization pages"""
@@ -502,10 +1009,13 @@ class CellAnalysisProcessor:
                                 raise ValueError("Flow data contains non-finite values")
                         elif len(xy_flows.shape) == 2 and xy_flows.shape[1] >= 2:
                             logger.debug(f"Handling 2D flow data shape: {xy_flows.shape}")
-                            # Some Cellpose versions return 2D flow data - reshape if needed
+                            # Some Cellpose versions return 2D flow data - check for valid reshape
                             h, w = masks.shape
-                            if xy_flows.shape[0] == h * w and xy_flows.shape[1] >= 2:
-                                # Reshape to 3D format
+                            expected_size = h * w
+                            actual_size = xy_flows.shape[0]
+                            
+                            if actual_size == expected_size and xy_flows.shape[1] >= 2:
+                                # Reshape to 3D format - valid case
                                 xy_flows_3d = xy_flows.reshape(h, w, xy_flows.shape[1])
                                 flow_data = np.stack([xy_flows_3d[:,:,1], xy_flows_3d[:,:,0]], axis=-1)
                                 
@@ -519,7 +1029,12 @@ class CellAnalysisProcessor:
                                 else:
                                     raise ValueError("Reshaped flow data contains non-finite values")
                             else:
-                                raise ValueError(f"Cannot reshape 2D flow data: {xy_flows.shape} for mask shape {masks.shape}")
+                                # Invalid dimensions - log warning and skip flow visualization
+                                logger.warning(f"Flow data dimensions mismatch: flow shape {xy_flows.shape} (size={actual_size}) cannot be reshaped for mask shape {masks.shape} (size={expected_size})")
+                                # Skip flow visualization instead of raising error
+                                axes[ax_idx].text(0.5, 0.5, 'Flow data\ndimensions mismatch', 
+                                                ha='center', va='center', transform=axes[ax_idx].transAxes,
+                                                bbox=dict(boxstyle='round', facecolor='lightgray', alpha=0.8))
                         else:
                             raise ValueError(f"Unsupported flow shape: {xy_flows.shape}, expected 3D with >=2 channels or reshapeable 2D")
                     else:
@@ -846,11 +1361,15 @@ class CellAnalysisProcessor:
                         flow_data_valid = True
                         logger.debug(f"Flow data validation passed - shape: {xy_flows.shape}, type: {type(xy_flows)}")
                     else:
-                        logger.warning(f"Flow data is None or has no shape attribute: {type(xy_flows)}")
+                        logger.debug(f"Flow data is None or has no shape attribute: {type(xy_flows)}")
+                elif isinstance(flows[0], np.ndarray):
+                    # Handle case where flows[0] is directly the flow array
+                    logger.debug(f"Flow data is directly an array: shape {flows[0].shape}, type: {type(flows[0])}")
+                    # This case may need special handling depending on Cellpose version
                 else:
-                    logger.warning(f"Flow data structure unexpected: {type(flows[0]) if flows else 'None'}")
+                    logger.debug(f"Flow data structure unexpected but not critical: {type(flows[0]) if flows else 'None'}")
             else:
-                logger.warning(f"No flows data provided: {type(flows)}")
+                logger.debug(f"No flows data provided: {type(flows)} - will skip flow visualization")
             
             fig, axes = plt.subplots(2, 2, figsize=(16, 12))
             axes = axes.flatten()
@@ -1255,94 +1774,12 @@ class CellAnalysisProcessor:
             logger.error(f"Edge & boundary visualization failed: {str(e)}")
             
     def _extract_morphometric_features(self, masks):
-        """Extract morphometric features from segmented cells with GPU acceleration."""
+        """Extract morphometric features from segmented cells using scikit-image."""
         try:
             # Clear existing detected cells
             self.analysis.detected_cells.all().delete()
             
-            # Try GPU-accelerated morphometrics first
-            use_gpu_morphometrics = getattr(settings, 'ENABLE_GPU_PREPROCESSING', False)
-            
-            if use_gpu_morphometrics:
-                try:
-                    from .gpu_morphometrics import calculate_morphometrics_gpu, is_gpu_morphometrics_available
-                    
-                    if is_gpu_morphometrics_available():
-                        logger.info("Using GPU-accelerated morphometric calculations")
-                        gpu_start_time = time.time()
-                        
-                        # Calculate all features using GPU
-                        gpu_results = calculate_morphometrics_gpu(masks)
-                        areas = gpu_results['areas']
-                        perimeters = gpu_results['perimeters']
-                        centroids = gpu_results['centroids']
-                        shape_descriptors = gpu_results['shape_descriptors']
-                        
-                        gpu_time = time.time() - gpu_start_time
-                        logger.info(f"GPU morphometric calculations completed in {gpu_time:.3f}s")
-                        
-                        # Create DetectedCell instances from GPU results
-                        for cell_id in areas:
-                            descriptors = shape_descriptors.get(cell_id, {})
-                            centroid = centroids.get(cell_id, (0, 0))
-                            
-                            # Get bounding box from CPU regionprops for complex shapes
-                            try:
-                                cell_mask = (masks == cell_id).astype(np.uint8)
-                                props = measure.regionprops(cell_mask)
-                                if props:
-                                    bbox = props[0].bbox
-                                    bounding_box_y, bounding_box_x = bbox[0], bbox[1]
-                                    bounding_box_height, bounding_box_width = bbox[2] - bbox[0], bbox[3] - bbox[1]
-                                else:
-                                    bounding_box_x = bounding_box_y = 0
-                                    bounding_box_width = bounding_box_height = 1
-                            except:
-                                bounding_box_x = bounding_box_y = 0
-                                bounding_box_width = bounding_box_height = 1
-                            
-                            detected_cell = DetectedCell(
-                                analysis=self.analysis,
-                                cell_id=cell_id,
-                                area=descriptors.get('area', areas[cell_id]),
-                                perimeter=descriptors.get('perimeter', perimeters.get(cell_id, 0)),
-                                circularity=descriptors.get('circularity', 0),
-                                eccentricity=descriptors.get('eccentricity', 0),
-                                solidity=descriptors.get('solidity', 1.0),
-                                extent=descriptors.get('extent', 1.0),
-                                major_axis_length=descriptors.get('major_axis_length', 0),
-                                minor_axis_length=descriptors.get('minor_axis_length', 0),
-                                aspect_ratio=descriptors.get('aspect_ratio', 1.0),
-                                centroid_x=centroid[1],
-                                centroid_y=centroid[0],
-                                bounding_box_x=bounding_box_x,
-                                bounding_box_y=bounding_box_y,
-                                bounding_box_width=bounding_box_width,
-                                bounding_box_height=bounding_box_height
-                            )
-                            
-                            # Calculate physical measurements if scale is available
-                            if self.analysis.cell.scale_set and self.analysis.cell.pixels_per_micron:
-                                ppm = self.analysis.cell.pixels_per_micron
-                                detected_cell.area_microns_sq = detected_cell.area / (ppm ** 2)
-                                detected_cell.perimeter_microns = detected_cell.perimeter / ppm
-                                detected_cell.major_axis_length_microns = detected_cell.major_axis_length / ppm
-                                detected_cell.minor_axis_length_microns = detected_cell.minor_axis_length / ppm
-                            
-                            detected_cell.save()
-                        
-                        num_cells = len(areas)
-                        logger.info(f"GPU morphometric feature extraction completed for {num_cells} cells")
-                        return
-                        
-                    else:
-                        logger.info("GPU morphometrics not available, falling back to CPU")
-                        
-                except Exception as gpu_error:
-                    logger.warning(f"GPU morphometric calculation failed: {str(gpu_error)}")
-                    logger.info("Falling back to CPU morphometric calculations")
-            
-            # CPU fallback - original implementation
+            # Use standard scikit-image morphometric calculations
             logger.info("Using CPU morphometric calculations")
             cpu_start_time = time.time()
             

@@ -1,8 +1,48 @@
 from django import forms
-from django.utils.translation import gettext_lazy as _
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit, Layout, Field, Fieldset, HTML, Div, Button
-from .models import Cell, CellAnalysis
+from .models import Cell, CellAnalysis, AnalysisBatch
+
+
+class MultipleFileInput(forms.ClearableFileInput):
+    """Custom widget for multiple file uploads"""
+    allow_multiple_selected = True
+    
+    def __init__(self, attrs=None):
+        if attrs is None:
+            attrs = {}
+        attrs.update({'multiple': True})
+        super().__init__(attrs)
+    
+    def value_from_datadict(self, data, files, name):
+        """Handle multiple file uploads"""
+        if hasattr(files, 'getlist'):
+            return files.getlist(name)
+        else:
+            return files.get(name)
+
+
+class MultipleFileField(forms.FileField):
+    """Custom field for multiple file uploads"""
+    
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", MultipleFileInput())
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        """Clean multiple uploaded files"""
+        # SingleValueField expects a single value, but we have multiple files
+        if isinstance(data, (list, tuple)):
+            cleaned_files = []
+            for file in data:
+                if file:  # Skip empty files
+                    cleaned_file = super(forms.FileField, self).clean(file)
+                    if cleaned_file:
+                        cleaned_files.append(cleaned_file)
+            return cleaned_files
+        else:
+            # Single file or None
+            return super().clean(data, initial)
 
 
 class CellUploadForm(forms.ModelForm):
@@ -59,18 +99,23 @@ class CellUploadForm(forms.ModelForm):
                 if pil_image.width > 8192 or pil_image.height > 8192:
                     raise forms.ValidationError("Изображение слишком большое (максимум 8192x8192 пикселя)")
                 
+                # Check supported formats (including BMP)
+                supported_formats = ['JPEG', 'PNG', 'TIFF', 'BMP']
+                if pil_image.format not in supported_formats:
+                    raise forms.ValidationError(f"Неподдерживаемый формат изображения '{pil_image.format}'. Поддерживаются: JPEG, PNG, TIFF, BMP")
+                
                 # Check if image is corrupted by trying to load pixel data
                 pil_image.load()
                 
                 # Convert to RGB if needed for compatibility check
                 if pil_image.mode not in ['RGB', 'RGBA', 'L', 'P']:
-                    raise forms.ValidationError(_("Unsupported image mode. Please use RGB, grayscale, or palette images."))
+                    raise forms.ValidationError("Неподдерживаемый режим изображения. Пожалуйста, используйте RGB, оттенки серого или палитровые изображения.")
                 
             except Exception as e:
                 if 'Image too small' in str(e) or 'Image too large' in str(e) or 'Unsupported image mode' in str(e):
                     raise  # Re-raise our custom validation errors
                 else:
-                    raise forms.ValidationError(_("Invalid or corrupted image file"))
+                    raise forms.ValidationError("Неверный или поврежденный файл изображения")
         
         return image
 
@@ -79,69 +124,102 @@ class CellAnalysisForm(forms.ModelForm):
     # Additional preprocessing fields (not in model, handled separately)
     apply_preprocessing = forms.BooleanField(
         required=False,
-        label=_('Apply Image Preprocessing'),
-        help_text=_('Enable advanced image preprocessing to improve segmentation quality'),
+        label='Применить предобработку изображения',
+        help_text='Включить продвинутую предобработку изображения для улучшения качества сегментации',
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
     )
     
     apply_noise_reduction = forms.BooleanField(
         required=False,
-        label=_('Noise Reduction'),
+        label='Подавление шума',
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
     )
     
     noise_reduction_method = forms.ChoiceField(
         required=False,
         choices=[
-            ('gaussian', _('Gaussian Filter')),
-            ('median', _('Median Filter')),
-            ('bilateral', _('Bilateral Filter (Recommended)')),
+            ('gaussian', 'Гауссов фильтр'),
+            ('median', 'Медианный фильтр'),
+            ('bilateral', 'Двусторонний фильтр (рекомендуется)'),
         ],
         initial='bilateral',
-        label=_('Noise Reduction Method'),
+        label='Метод подавления шума',
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     
     apply_contrast_enhancement = forms.BooleanField(
         required=False,
-        label=_('Contrast Enhancement'),
+        label='Улучшение контраста',
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
     )
     
     contrast_method = forms.ChoiceField(
         required=False,
         choices=[
-            ('clahe', _('CLAHE (Recommended)')),
-            ('histogram_eq', _('Histogram Equalization')),
-            ('rescale', _('Intensity Rescaling')),
+            ('clahe', 'CLAHE (рекомендуется)'),
+            ('histogram_eq', 'Гистограмная эквализация'),
+            ('rescale', 'Масштабирование интенсивности'),
         ],
         initial='clahe',
-        label=_('Contrast Method'),
+        label='Метод контраста',
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     
     apply_sharpening = forms.BooleanField(
         required=False,
-        label=_('Image Sharpening'),
+        label='Повышение резкости изображения',
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
     )
     
     apply_normalization = forms.BooleanField(
         required=False,
-        label=_('Intensity Normalization'),
+        label='Нормализация интенсивности',
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+    
+    # Statistical Analysis Fields (TIER 1 CRITICAL ENHANCEMENT)
+    enable_statistical_analysis = forms.BooleanField(
+        required=False,
+        initial=True,  # Включить по умолчанию для точных расчетов
+        label='Включить статистический анализ',
+        help_text='Добавить научный статистический анализ с доверительными интервалами и анализом неопределенности',
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+    
+    confidence_level = forms.ChoiceField(
+        required=False,
+        choices=[
+            (0.90, '90% доверительный интервал'),
+            (0.95, '95% доверительный интервал (рекомендуется)'),
+            (0.99, '99% доверительный интервал'),
+        ],
+        initial=0.95,
+        label='Уровень доверия',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+    bootstrap_samples = forms.ChoiceField(
+        required=False,
+        choices=[
+            (1000, '1,000 итераций (быстро)'),
+            (2000, '2,000 итераций (рекомендуется)'),
+            (5000, '5,000 итераций (высокая точность)'),
+        ],
+        initial=2000,
+        label='Bootstrap итерации',
+        widget=forms.Select(attrs={'class': 'form-select'})
     )
 
     class Meta:
         model = CellAnalysis
         fields = ['cellpose_model', 'cellpose_diameter', 'flow_threshold', 'cellprob_threshold', 'use_roi', 'filtering_mode']
         labels = {
-            'cellpose_model': _('Cellpose Model'),
-            'cellpose_diameter': _('Cell Diameter (pixels)'),
-            'flow_threshold': _('Flow Threshold'),
-            'cellprob_threshold': _('Cell Probability Threshold'),
-            'use_roi': _('Use Region of Interest (ROI) Selection'),
-            'filtering_mode': _('Cell Filtering Mode'),
+            'cellpose_model': 'Модель Cellpose',
+            'cellpose_diameter': 'Диаметр клетки (пиксели)',
+            'flow_threshold': 'Порог потока',
+            'cellprob_threshold': 'Порог вероятности клетки',
+            'use_roi': 'Использовать выбор области интереса (ROI)',
+            'filtering_mode': 'Режим фильтрации клеток',
         }
         widgets = {
             'cellpose_model': forms.Select(attrs={'class': 'form-select'}),
@@ -173,190 +251,126 @@ class CellAnalysisForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = 'post'
+        # Simple layout without tab structure - template handles tabs
         self.helper.layout = Layout(
-            # Tab structure with organized sections
-            HTML('''
-                <div class="tab-content" id="configTabContent">
-                    <div class="tab-pane fade show active" id="basic-config" role="tabpanel">
-                        <div class="basic-config-section">
-            '''),
-            Fieldset(
-                _('Core Parameters'),
-                HTML('<div class="row g-3">'),
-                    HTML('<div class="col-md-6">'),
-                        Field('cellpose_model', css_class='form-select'),
-                    HTML('</div>'),
-                    HTML('<div class="col-md-6">'),
-                        Field('cellpose_diameter', css_class='form-control'),
-                    HTML('</div>'),
-                HTML('</div>'),
-                HTML('<div class="row g-3 mt-3">'),
-                    HTML('<div class="col-md-6">'),
-                        Field('flow_threshold', css_class='form-control'),
-                    HTML('</div>'),
-                    HTML('<div class="col-md-6">'),
-                        Field('cellprob_threshold', css_class='form-control'),
-                    HTML('</div>'),
-                HTML('</div>'),
-                HTML('<div class="mt-3">'),
-                    Div(
-                        Field('use_roi', css_class='form-check-input'),
-                        HTML('<small class="text-muted d-block mt-1">' + str(_('Enable to select specific regions for analysis')) + '</small>'),
-                        css_class='form-check'
-                    ),
-                HTML('</div>'),
-            ),
-            HTML('''
-                        </div>
-                    </div>
-                    <div class="tab-pane fade" id="advanced-config" role="tabpanel">
-            '''),
-            Fieldset(
-                _('Image Preprocessing (Optional)'),
-                HTML('<p class="text-muted small">' + str(_('Advanced preprocessing options to improve image quality before segmentation.')) + '</p>'),
-                Div(
-                    Field('apply_preprocessing', css_class='form-check-input', id='id_apply_preprocessing'),
-                    HTML('<small class="text-muted">' + str(_('Enable preprocessing options below')) + '</small>'),
-                    css_class='form-check mb-3'
-                ),
-                HTML('<div id="preprocessing-options" style="display: none;" class="preprocessing-grid">'),
-                    HTML('<div class="row g-3">'),
-                        HTML('<div class="col-md-6">'),
-                            Div(
-                                Field('apply_noise_reduction', css_class='form-check-input'),
-                                HTML('<label class="form-check-label fw-bold">' + str(_('Noise Reduction')) + '</label>'),
-                                css_class='form-check mb-2'
-                            ),
-                            Field('noise_reduction_method', css_class='form-select form-select-sm'),
-                        HTML('</div>'),
-                        HTML('<div class="col-md-6">'),
-                            Div(
-                                Field('apply_contrast_enhancement', css_class='form-check-input'),
-                                HTML('<label class="form-check-label fw-bold">' + str(_('Contrast Enhancement')) + '</label>'),
-                                css_class='form-check mb-2'
-                            ),
-                            Field('contrast_method', css_class='form-select form-select-sm'),
-                        HTML('</div>'),
-                    HTML('</div>'),
-                    HTML('<div class="row g-3 mt-2">'),
-                        HTML('<div class="col-md-6">'),
-                            Div(
-                                Field('apply_sharpening', css_class='form-check-input'),
-                                HTML('<label class="form-check-label fw-bold">' + str(_('Image Sharpening')) + '</label>'),
-                                css_class='form-check'
-                            ),
-                        HTML('</div>'),
-                        HTML('<div class="col-md-6">'),
-                            Div(
-                                Field('apply_normalization', css_class='form-check-input'),
-                                HTML('<label class="form-check-label fw-bold">' + str(_('Intensity Normalization')) + '</label>'),
-                                css_class='form-check'
-                            ),
-                        HTML('</div>'),
-                    HTML('</div>'),
-                HTML('</div>'),
-                HTML('''
-                <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    const preprocessingCheckbox = document.getElementById('id_apply_preprocessing');
-                    const preprocessingOptions = document.getElementById('preprocessing-options');
-                    
-                    function togglePreprocessingOptions() {
-                        if (preprocessingCheckbox.checked) {
-                            preprocessingOptions.style.display = 'block';
-                        } else {
-                            preprocessingOptions.style.display = 'none';
-                        }
-                    }
-                    
-                    preprocessingCheckbox.addEventListener('change', togglePreprocessingOptions);
-                    togglePreprocessingOptions(); // Set initial state
-                });
-                </script>
-                '''),
-            ),
-            HTML('''
-                    </div>
-                    <div class="tab-pane fade" id="filtering-config" role="tabpanel">
-            '''),
-            Fieldset(
-                _('Cell Filtering Options'),
-                HTML('<p class="text-muted small">' + str(_('Control how strictly cells are filtered during analysis. Choose based on your use case.')) + '</p>'),
-                Field('filtering_mode', css_class='form-select'),
-                HTML('''
-                <div class="filtering-guide mt-3 p-3 bg-light rounded">
-                    <h6 class="text-primary mb-2">Filtering Mode Guide</h6>
-                    <div class="row g-2">
-                        <div class="col-md-6">
-                            <div class="guide-item p-2 border rounded bg-white">
-                                <strong class="text-success">No Filtering</strong><br>
-                                <small class="text-muted">Keep all detected cells</small>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="guide-item p-2 border rounded bg-white">
-                                <strong class="text-info">Basic</strong><br>
-                                <small class="text-muted">Remove only obvious artifacts</small>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="guide-item p-2 border rounded bg-white">
-                                <strong class="text-warning">Research</strong><br>
-                                <small class="text-muted">Conservative filtering for research</small>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="guide-item p-2 border rounded bg-white">
-                                <strong class="text-primary">Clinical</strong><br>
-                                <small class="text-muted">Standard medical-grade filtering</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                '''),
-            ),
-            HTML('''
-                    </div>
-                </div>
-            '''),
+            # Basic fields - rendered in template
+            Field('cellpose_model', css_class='form-select'),
+            Field('cellpose_diameter', css_class='form-control'),
+            Field('flow_threshold', css_class='form-control'),
+            Field('cellprob_threshold', css_class='form-control'),
+            Field('use_roi', css_class='form-check-input'),
+            Field('filtering_mode', css_class='form-select'),
+            
+            # Preprocessing fields - rendered in template
+            Field('apply_preprocessing', css_class='form-check-input'),
+            Field('apply_noise_reduction', css_class='form-check-input'),
+            Field('noise_reduction_method', css_class='form-select'),
+            Field('apply_contrast_enhancement', css_class='form-check-input'),
+            Field('contrast_method', css_class='form-select'),
+            Field('apply_sharpening', css_class='form-check-input'),
+            Field('apply_normalization', css_class='form-check-input'),
+            
+            # Statistical fields - rendered in template
+            Field('enable_statistical_analysis', css_class='form-check-input'),
+            Field('confidence_level', css_class='form-select'),
+            Field('bootstrap_samples', css_class='form-select'),
+            
+            # Submit button
             HTML('<div class="form-actions mt-4 text-center">'),
-                Submit('submit', _('Start Analysis'), css_class='btn btn-success btn-lg px-5'),
-                HTML('<a href="#" onclick="history.back()" class="btn btn-outline-secondary ms-3">' + str(_('Cancel')) + '</a>'),
+                Submit('submit', 'Начать анализ', css_class='btn btn-success btn-lg px-5'),
+                HTML('<a href="#" onclick="history.back()" class="btn btn-outline-secondary ms-3">Отмена</a>'),
             HTML('</div>')
         )
         
         # Add help text
-        self.fields['cellpose_model'].help_text = _("Choose the appropriate cellpose model for your images")
-        self.fields['cellpose_diameter'].help_text = _("Expected cell diameter in pixels (leave 0 for auto-detection)")
-        self.fields['flow_threshold'].help_text = _("Flow error threshold (0.4 is default, lower = more cells)")
-        self.fields['cellprob_threshold'].help_text = _("Cell probability threshold (0.0 is default)")
-        self.fields['use_roi'].help_text = _("Check to enable region selection - you can draw rectangles on the image to focus analysis")
-        self.fields['apply_preprocessing'].help_text = _("Enable advanced image preprocessing to improve segmentation quality")
-        self.fields['apply_noise_reduction'].help_text = _("Reduce image noise for clearer cell boundaries")
-        self.fields['noise_reduction_method'].help_text = _("Bilateral filter preserves edges best")
-        self.fields['apply_contrast_enhancement'].help_text = _("Improve image contrast for better cell visibility")
-        self.fields['contrast_method'].help_text = _("CLAHE works best for microscopy images")
-        self.fields['apply_sharpening'].help_text = _("Enhance edge definition for better segmentation")
-        self.fields['apply_normalization'].help_text = _("Standardize intensity values across the image")
-        self.fields['filtering_mode'].help_text = _("Choose filtering strictness: None=keep all, Clinical=medical standard, Research=conservative, Custom=advanced settings")
+        self.fields['cellpose_model'].help_text = "Выберите подходящую модель cellpose для ваших изображений"
+        self.fields['cellpose_diameter'].help_text = "Ожидаемый диаметр клетки в пикселях (оставьте 0 для автоопределения)"
+        self.fields['flow_threshold'].help_text = "Порог ошибки потока (0.4 по умолчанию, меньше = больше клеток)"
+        self.fields['cellprob_threshold'].help_text = "Порог вероятности клетки (0.0 по умолчанию)"
+        self.fields['use_roi'].help_text = "Отметьте, чтобы включить выбор области - вы можете нарисовать прямоугольники на изображении для фокусировки анализа"
+        self.fields['apply_preprocessing'].help_text = "Включить продвинутую предобработку изображения для улучшения качества сегментации"
+        self.fields['apply_noise_reduction'].help_text = "Уменьшить шум изображения для более четких границ клеток"
+        self.fields['noise_reduction_method'].help_text = "Двусторонний фильтр лучше всего сохраняет края"
+        self.fields['apply_contrast_enhancement'].help_text = "Улучшить контраст изображения для лучшей видимости клеток"
+        self.fields['contrast_method'].help_text = "CLAHE лучше всего работает для микроскопических изображений"
+        self.fields['apply_sharpening'].help_text = "Улучшить определение краев для лучшей сегментации"
+        self.fields['apply_normalization'].help_text = "Стандартизировать значения интенсивности по всему изображению"
+        self.fields['filtering_mode'].help_text = "Выберите строгость фильтрации: Никакой=сохранить все, Клинический=медицинский стандарт, Исследовательский=консервативный, Настраиваемый=продвинутые настройки"
+        
+        # Statistical analysis help text
+        self.fields['enable_statistical_analysis'].help_text = "Включить научный статистический анализ с доверительными интервалами и анализом неопределенности для исследовательских целей"
+        self.fields['confidence_level'].help_text = "Уровень доверия для доверительных интервалов (95% стандарт для научных публикаций)"
+        self.fields['bootstrap_samples'].help_text = "Количество bootstrap итераций для статистического анализа (больше = точнее, но дольше)"
     
     def clean_cellpose_diameter(self):
         diameter = self.cleaned_data.get('cellpose_diameter')
         if diameter is not None and diameter < 0:
-            raise forms.ValidationError(_("Diameter must be positive or 0 for auto-detection"))
+            raise forms.ValidationError("Диаметр должен быть положительным или 0 для автоопределения")
         return diameter
     
     def clean_flow_threshold(self):
         threshold = self.cleaned_data.get('flow_threshold')
         if threshold is not None and (threshold < 0 or threshold > 3):
-            raise forms.ValidationError(_("Flow threshold must be between 0 and 3"))
+            raise forms.ValidationError("Порог потока должен быть между 0 и 3")
         return threshold
     
     def clean_cellprob_threshold(self):
         threshold = self.cleaned_data.get('cellprob_threshold')
         if threshold is not None and (threshold < -6 or threshold > 6):
-            raise forms.ValidationError(_("Cell probability threshold must be between -6 and 6"))
+            raise forms.ValidationError("Порог вероятности клетки должен быть между -6 и 6")
         return threshold
+    
+    def clean(self):
+        """
+        Enhanced validation with parameter optimization recommendations.
+        Validates parameter combinations and provides optimization hints.
+        """
+        cleaned_data = super().clean()
+        
+        # Import optimization utilities
+        try:
+            from .parameter_optimization import ParameterOptimizer
+            
+            # Validate parameter combinations
+            params = {
+                'cellpose_diameter': cleaned_data.get('cellpose_diameter'),
+                'flow_threshold': cleaned_data.get('flow_threshold'),
+                'cellprob_threshold': cleaned_data.get('cellprob_threshold'),
+                'cellpose_model': cleaned_data.get('cellpose_model')
+            }
+            
+            # Run parameter validation
+            validation_errors = ParameterOptimizer.validate_parameters(params)
+            
+            # Add any validation errors to form
+            for error in validation_errors:
+                self.add_error(None, error)
+            
+            # Check for potentially problematic parameter combinations
+            flow_threshold = cleaned_data.get('flow_threshold')
+            cellprob_threshold = cleaned_data.get('cellprob_threshold')
+            
+            if flow_threshold is not None and cellprob_threshold is not None:
+                if flow_threshold > 2.0 and cellprob_threshold > 3.0:
+                    self.add_error(None, 
+                        "Warning: High flow and probability thresholds may result in very few detected cells. "
+                        "Consider using the Auto-Optimize feature for better parameter selection.")
+                
+                if flow_threshold < 0.2 and cellprob_threshold < -3.0:
+                    self.add_error(None,
+                        "Warning: Very low thresholds may result in over-segmentation and false positives. "
+                        "Consider using the Auto-Optimize feature for more reliable results.")
+        
+        except ImportError:
+            # Parameter optimization not available, skip enhanced validation
+            pass
+        except Exception as e:
+            # Log error but don't fail form validation
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Parameter validation failed: {str(e)}")
+        
+        return cleaned_data
     
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -385,6 +399,25 @@ class CellAnalysisForm(forms.ModelForm):
         if filtering_mode != 'custom':  # Don't override custom settings
             instance.apply_filtering_preset(filtering_mode)
         
+        # Build statistical analysis configuration
+        if self.cleaned_data.get('enable_statistical_analysis', False):
+            statistical_config = {
+                'enable_statistical_analysis': True,
+                'confidence_level': float(self.cleaned_data.get('confidence_level', 0.95)),
+                'bootstrap_samples': int(self.cleaned_data.get('bootstrap_samples', 2000)),
+                'include_confidence_intervals': True,
+                'include_uncertainty_propagation': True,
+                'include_bootstrap_analysis': True,
+            }
+            # Store in preprocessing_options for now (we'll add a dedicated field later if needed)
+            if not instance.preprocessing_options:
+                instance.preprocessing_options = {}
+            instance.preprocessing_options['statistical_config'] = statistical_config
+        else:
+            # Ensure statistical analysis is disabled
+            if instance.preprocessing_options and 'statistical_config' in instance.preprocessing_options:
+                instance.preprocessing_options['statistical_config'] = {'enable_statistical_analysis': False}
+        
         if commit:
             instance.save()
         return instance
@@ -393,8 +426,8 @@ class CellAnalysisForm(forms.ModelForm):
 class ScaleCalibrationForm(forms.Form):
     """Form for setting scale calibration"""
     reference_length_pixels = forms.FloatField(
-        label=_('Reference Length (pixels)'),
-        help_text=_('Measure a known object in the image and enter the length in pixels'),
+        label='Референсная длина (пиксели)',
+        help_text='Измерьте известный объект на изображении и введите длину в пикселях',
         widget=forms.NumberInput(attrs={
             'class': 'form-control',
             'step': '0.1',
@@ -404,8 +437,8 @@ class ScaleCalibrationForm(forms.Form):
     )
     
     reference_length_microns = forms.FloatField(
-        label=_('Known Real Length (μm)'),
-        help_text=_('Enter the actual length of the measured object in microns'),
+        label='Известная реальная длина (мкм)',
+        help_text='Введите фактическую длину измеренного объекта в микронах',
         widget=forms.NumberInput(attrs={
             'class': 'form-control',
             'step': '0.01',
@@ -421,7 +454,7 @@ class ScaleCalibrationForm(forms.Form):
         self.helper.form_id = 'scale-calibration-form'
         self.helper.layout = Layout(
             Fieldset(
-                _('Scale Calibration'),
+                'Калибровка масштаба',
                 HTML('''
                     <div class="alert alert-info">
                         <h6><i class="fas fa-ruler"></i> How to calibrate scale:</h6>
@@ -436,18 +469,246 @@ class ScaleCalibrationForm(forms.Form):
                 Field('reference_length_pixels', css_class='form-control'),
                 Field('reference_length_microns', css_class='form-control'),
             ),
-            Submit('submit', _('Set Scale'), css_class='btn btn-primary'),
-            Button('cancel', _('Cancel'), css_class='btn btn-secondary ms-2', onclick='hideScaleCalibration()')
+            Submit('submit', 'Установить масштаб', css_class='btn btn-primary'),
+            Button('cancel', 'Отмена', css_class='btn btn-secondary ms-2', onclick='hideScaleCalibration()')
         )
     
     def clean_reference_length_pixels(self):
         pixels = self.cleaned_data.get('reference_length_pixels')
         if pixels is not None and pixels <= 0:
-            raise forms.ValidationError(_("Reference length in pixels must be positive"))
+            raise forms.ValidationError("Референсная длина в пикселях должна быть положительной")
         return pixels
     
     def clean_reference_length_microns(self):
         microns = self.cleaned_data.get('reference_length_microns')
         if microns is not None and microns <= 0:
-            raise forms.ValidationError(_("Reference length in microns must be positive"))
+            raise forms.ValidationError("Референсная длина в микронах должна быть положительной")
         return microns
+
+
+class BatchCreateForm(forms.ModelForm):
+    """Conservative form for creating analysis batches"""
+    
+    # Multiple file upload field
+    images = MultipleFileField(
+        widget=MultipleFileInput(attrs={
+            'accept': 'image/*',
+            'class': 'form-control'
+        }),
+        label='Изображения для пакетного анализа',
+        help_text='Выберите до 10 изображений для анализа (макс. 10МБ каждое). Поддерживаются форматы: JPEG, PNG, TIFF, BMP.'
+    )
+    
+    class Meta:
+        model = AnalysisBatch
+        fields = ['name', 'description']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Введите название пакета анализа'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Опциональное описание пакета анализа'
+            }),
+        }
+        labels = {
+            'name': 'Название пакета',
+            'description': 'Описание',
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_enctype = 'multipart/form-data'
+        self.helper.layout = Layout(
+            Fieldset(
+                'Создание пакета анализа',
+                HTML('''
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-layer-group"></i> Пакетный анализ</h6>
+                        <p class="mb-0">Создайте пакет для анализа нескольких связанных изображений с одинаковыми параметрами.</p>
+                        <small><strong>Ограничение RTX 2070 Max-Q:</strong> Максимум 10 изображений на пакет для оптимального использования памяти.</small>
+                    </div>
+                '''),
+                Field('name', css_class='form-control'),
+                Field('description', css_class='form-control'),
+                Field('images', css_class='form-control'),
+            ),
+            Submit('submit', 'Создать пакет анализа', css_class='btn btn-primary')
+        )
+    
+    def clean_images(self):
+        """Validate uploaded images for batch processing"""
+        # Get the cleaned data from the MultipleFileField
+        images = self.cleaned_data.get('images')
+        
+        if not images:
+            raise forms.ValidationError("Пожалуйста, выберите хотя бы одно изображение")
+        
+        # Handle both single file and list of files
+        if not isinstance(images, list):
+            images = [images]
+        
+        # Conservative limit for RTX 2070 Max-Q
+        if len(images) > 10:
+            raise forms.ValidationError("Максимум 10 изображений на пакет (ограничение GPU памяти)")
+        
+        # Validate each image
+        for i, image in enumerate(images):
+            # Check file size
+            if image.size > 10 * 1024 * 1024:  # 10MB limit
+                raise forms.ValidationError(f"Изображение {i+1} слишком большое (макс. 10МБ)")
+            
+            # Check file type
+            if hasattr(image, 'content_type') and not image.content_type.startswith('image/'):
+                raise forms.ValidationError(f"Файл {i+1} не является изображением")
+            
+            # Basic PIL validation
+            try:
+                from PIL import Image as PILImage
+                import io
+                
+                image_data = image.read()
+                image.seek(0)  # Reset file pointer
+                
+                pil_image = PILImage.open(io.BytesIO(image_data))
+                
+                # Check dimensions (conservative for memory)
+                if pil_image.width < 64 or pil_image.height < 64:
+                    raise forms.ValidationError(f"Изображение {i+1} слишком маленькое (минимум 64x64)")
+                
+                if pil_image.width > 4096 or pil_image.height > 4096:
+                    raise forms.ValidationError(f"Изображение {i+1} слишком большое (максимум 4096x4096 для пакетной обработки)")
+                
+                # Check supported formats (including BMP)
+                supported_formats = ['JPEG', 'PNG', 'TIFF', 'BMP']
+                if pil_image.format not in supported_formats:
+                    raise forms.ValidationError(f"Изображение {i+1} имеет неподдерживаемый формат '{pil_image.format}'. Поддерживаются: JPEG, PNG, TIFF, BMP")
+                
+                pil_image.load()  # Verify image integrity
+                
+            except Exception as e:
+                raise forms.ValidationError(f"Изображение {i+1} повреждено или неподдерживается")
+        
+        return images
+
+
+class BatchAnalysisForm(forms.ModelForm):
+    """Form for configuring batch analysis parameters"""
+    
+    # Shared analysis parameters (simplified version of CellAnalysisForm)
+    cellpose_model = forms.ChoiceField(
+        choices=CellAnalysis.CELLPOSE_MODEL_CHOICES,
+        initial='cpsam',
+        label='Модель Cellpose',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+    cellpose_diameter = forms.FloatField(
+        initial=0.0,  # Auto-detection
+        label='Диаметр клетки (пиксели)',
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'step': '0.1',
+            'min': '0',
+            'placeholder': '0 (автоопределение)'
+        })
+    )
+    
+    flow_threshold = forms.FloatField(
+        initial=0.4,
+        label='Порог потока',
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'step': '0.1',
+            'min': '0',
+            'max': '3',
+            'placeholder': '0.4'
+        })
+    )
+    
+    cellprob_threshold = forms.FloatField(
+        initial=0.0,
+        label='Порог вероятности клетки',
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'step': '0.1',
+            'min': '-6',
+            'max': '6',
+            'placeholder': '0.0'
+        })
+    )
+    
+    filtering_mode = forms.ChoiceField(
+        choices=CellAnalysis.FILTERING_MODE_CHOICES,
+        initial='clinical',
+        label='Режим фильтрации',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+    # Conservative preprocessing options
+    apply_preprocessing = forms.BooleanField(
+        required=False,
+        label='Применить базовую предобработку',
+        help_text='Включить базовую предобработку для всех изображений в пакете',
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+    
+    class Meta:
+        model = AnalysisBatch
+        fields = []  # We're not saving to the model directly
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.layout = Layout(
+            Fieldset(
+                'Параметры пакетного анализа',
+                HTML('''
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-memory"></i> RTX 2070 Max-Q оптимизация</h6>
+                        <p class="mb-0">Параметры оптимизированы для вашей GPU. Изображения будут обрабатываться последовательно для предотвращения переполнения памяти.</p>
+                    </div>
+                '''),
+                Field('cellpose_model', css_class='form-select'),
+                Field('cellpose_diameter', css_class='form-control'),
+                Field('flow_threshold', css_class='form-control'),
+                Field('cellprob_threshold', css_class='form-control'),
+                Field('filtering_mode', css_class='form-select'),
+                Field('apply_preprocessing', css_class='form-check-input'),
+            ),
+            Submit('submit', 'Начать пакетный анализ', css_class='btn btn-success btn-lg')
+        )
+        
+        # Add help text
+        self.fields['cellpose_model'].help_text = "Модель для всех изображений в пакете"
+        self.fields['cellpose_diameter'].help_text = "0 = автоопределение для каждого изображения"
+        self.fields['flow_threshold'].help_text = "Консервативное значение для стабильных результатов"
+        self.fields['cellprob_threshold'].help_text = "Стандартное значение для большинства случаев"
+        self.fields['filtering_mode'].help_text = "Режим фильтрации для всех изображений"
+        self.fields['apply_preprocessing'].help_text = "Базовая предобработка для улучшения качества"
+    
+    def get_analysis_parameters(self):
+        """Return analysis parameters as dict for batch processing"""
+        return {
+            'cellpose_model': self.cleaned_data['cellpose_model'],
+            'cellpose_diameter': self.cleaned_data['cellpose_diameter'],
+            'flow_threshold': self.cleaned_data['flow_threshold'],
+            'cellprob_threshold': self.cleaned_data['cellprob_threshold'],
+            'filtering_mode': self.cleaned_data['filtering_mode'],
+            'apply_preprocessing': self.cleaned_data['apply_preprocessing'],
+            'use_roi': False,  # Disabled for batch processing simplicity
+            # Conservative preprocessing options
+            'preprocessing_options': {
+                'apply_noise_reduction': True if self.cleaned_data['apply_preprocessing'] else False,
+                'noise_reduction_method': 'bilateral',
+                'apply_contrast_enhancement': True if self.cleaned_data['apply_preprocessing'] else False,
+                'contrast_method': 'clahe',
+                'apply_sharpening': False,  # Disabled for batch consistency
+                'apply_normalization': True if self.cleaned_data['apply_preprocessing'] else False,
+            }
+        }

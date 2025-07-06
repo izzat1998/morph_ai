@@ -1,13 +1,97 @@
 import os
 from django.db import models
 from django.conf import settings
-from django.utils.translation import gettext_lazy as _
 from PIL import Image
+from django.utils import timezone
+
+class AnalysisBatch(models.Model):
+    """Conservative batch processing model for grouping related cell analyses"""
+    
+    STATUS_CHOICES = [
+        ('pending', 'Ожидание'),
+        ('processing', 'Обработка'),
+        ('completed', 'Завершено'),
+        ('failed', 'Ошибка'),
+        ('cancelled', 'Отменено'),
+    ]
+    
+    # Basic batch information
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='analysis_batches')
+    name = models.CharField(max_length=255, verbose_name='Название пакета')
+    description = models.TextField(blank=True, verbose_name='Описание')
+    
+    # Processing status
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name='Статус')
+    error_message = models.TextField(blank=True, verbose_name='Сообщение об ошибке')
+    
+    # Shared analysis parameters (JSON field for flexibility)
+    analysis_parameters = models.JSONField(default=dict, blank=True, verbose_name='Параметры анализа')
+    
+    # Progress tracking
+    total_images = models.PositiveIntegerField(default=0, verbose_name='Всего изображений')
+    processed_images = models.PositiveIntegerField(default=0, verbose_name='Обработано изображений')
+    failed_images = models.PositiveIntegerField(default=0, verbose_name='Ошибок обработки')
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создано')
+    processing_started_at = models.DateTimeField(null=True, blank=True, verbose_name='Обработка начата')
+    processing_completed_at = models.DateTimeField(null=True, blank=True, verbose_name='Обработка завершена')
+    
+    # Simple batch statistics (calculated after processing)
+    total_cells_detected = models.PositiveIntegerField(default=0, verbose_name='Всего обнаружено клеток')
+    average_cells_per_image = models.FloatField(null=True, blank=True, verbose_name='Среднее количество клеток на изображение')
+    batch_processing_time = models.FloatField(null=True, blank=True, verbose_name='Общее время обработки (сек)')
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Пакет анализа'
+        verbose_name_plural = 'Пакеты анализа'
+    
+    def __str__(self):
+        return f"{self.name} ({self.total_images} images) - {self.status}"
+    
+    @property
+    def progress_percentage(self):
+        """Calculate processing progress as percentage"""
+        if self.total_images == 0:
+            return 0
+        return (self.processed_images / self.total_images) * 100
+    
+    @property
+    def processing_duration(self):
+        """Calculate total processing duration"""
+        if self.processing_started_at and self.processing_completed_at:
+            return (self.processing_completed_at - self.processing_started_at).total_seconds()
+        return None
+    
+    def start_processing(self):
+        """Mark batch as started processing"""
+        self.status = 'processing'
+        self.processing_started_at = timezone.now()
+        self.save()
+    
+    def complete_processing(self):
+        """Mark batch as completed"""
+        self.status = 'completed'
+        self.processing_completed_at = timezone.now()
+        self.save()
+    
+    def fail_processing(self, error_message=""):
+        """Mark batch as failed"""
+        self.status = 'failed'
+        self.error_message = error_message
+        self.processing_completed_at = timezone.now()
+        self.save()
+
 
 class Cell(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cells')
     name = models.CharField(max_length=255, verbose_name='Название')
     image = models.ImageField(upload_to='cells/', verbose_name='Изображение')
+    
+    # Optional batch association (nullable to preserve existing data)
+    batch = models.ForeignKey(AnalysisBatch, on_delete=models.SET_NULL, null=True, blank=True, 
+                             related_name='cells', verbose_name='Пакет анализа')
     
     # Metadata fields (auto-populated)
     file_size = models.PositiveIntegerField(null=True, blank=True, verbose_name='Размер файла')
@@ -92,114 +176,116 @@ class Cell(models.Model):
 
 class CellAnalysis(models.Model):
     STATUS_CHOICES = [
-        ('pending', _('Pending')),
-        ('processing', _('Processing')),
-        ('completed', _('Completed')),
-        ('failed', _('Failed')),
+        ('pending', 'Ожидание'),
+        ('processing', 'Обработка'),
+        ('completed', 'Завершено'),
+        ('failed', 'Ошибка'),
     ]
     
     CELLPOSE_MODEL_CHOICES = [
-        ('cyto', _('Cytoplasm')),
-        ('nuclei', _('Nuclei')),
-        ('cyto2', _('Cytoplasm 2.0')),
-        ('custom', _('Custom')),
+        ('cyto', 'Цитоплазма'),
+        ('nuclei', 'Ядра'),
+        ('cyto2', 'Цитоплазма 2.0'),
+        ('cpsam', 'CellposeSAM'),
+        ("cyto3",'Лучшая моедель'),
+        ('custom', 'Пользовательская'),
     ]
     
     cell = models.ForeignKey(Cell, on_delete=models.CASCADE, related_name='analyses')
     
     # Visualization images for different pipeline stages
-    segmentation_image = models.ImageField(upload_to='analyses/segmentation/', null=True, blank=True, verbose_name=_('Core Pipeline Visualization'))
-    flow_analysis_image = models.ImageField(upload_to='analyses/flow_analysis/', null=True, blank=True, verbose_name=_('Advanced Flow Analysis'))
-    style_quality_image = models.ImageField(upload_to='analyses/style_quality/', null=True, blank=True, verbose_name=_('Style & Quality Analysis'))
-    edge_boundary_image = models.ImageField(upload_to='analyses/edge_boundary/', null=True, blank=True, verbose_name=_('Edge & Boundary Analysis'))
+    segmentation_image = models.ImageField(upload_to='analyses/segmentation/', null=True, blank=True, verbose_name='Визуализация основного конвейера')
+    flow_analysis_image = models.ImageField(upload_to='analyses/flow_analysis/', null=True, blank=True, verbose_name='Продвинутый анализ потока')
+    style_quality_image = models.ImageField(upload_to='analyses/style_quality/', null=True, blank=True, verbose_name='Анализ стиля и качества')
+    edge_boundary_image = models.ImageField(upload_to='analyses/edge_boundary/', null=True, blank=True, verbose_name='Анализ краев и границ')
     
     # Analysis parameters
-    cellpose_model = models.CharField(max_length=20, choices=CELLPOSE_MODEL_CHOICES, default='cyto')
-    cellpose_diameter = models.FloatField(default=30.0, verbose_name=_('Cell Diameter'), help_text=_('Expected cell diameter in pixels'))
-    flow_threshold = models.FloatField(default=0.4, verbose_name=_('Flow Threshold'), help_text=_('Flow error threshold'))
-    cellprob_threshold = models.FloatField(default=0.0, verbose_name=_('Cell Probability Threshold'), help_text=_('Cell probability threshold'))
+    cellpose_model = models.CharField(max_length=20, choices=CELLPOSE_MODEL_CHOICES, default='cyto3')
+    cellpose_diameter = models.FloatField(default=0.0, verbose_name='Диаметр клетки', help_text='Ожидаемый диаметр клетки в пикселях (0 = автоматическое определение)')
+    flow_threshold = models.FloatField(default=0.4, verbose_name='Порог потока', help_text='Порог ошибки потока')
+    cellprob_threshold = models.FloatField(default=0.0, verbose_name='Порог вероятности клетки', help_text='Порог вероятности клетки')
     
     # ROI (Region of Interest) selection
-    use_roi = models.BooleanField(default=False, verbose_name=_('Use ROI'), help_text=_('Whether to use ROI selection'))
-    roi_regions = models.JSONField(default=list, blank=True, verbose_name=_('ROI Regions'), help_text=_('ROI regions as list of rectangles [x, y, width, height]'))
-    roi_count = models.PositiveIntegerField(default=0, verbose_name=_('ROI Count'), help_text=_('Number of ROI regions selected'))
+    use_roi = models.BooleanField(default=False, verbose_name='Использовать ROI', help_text='Использовать ли выбор области интереса')
+    roi_regions = models.JSONField(default=list, blank=True, verbose_name='Области ROI', help_text='Области ROI как список прямоугольников [x, y, ширина, высота]')
+    roi_count = models.PositiveIntegerField(default=0, verbose_name='Количество ROI', help_text='Количество выбранных областей ROI')
     
     # Image preprocessing options
-    apply_preprocessing = models.BooleanField(default=False, verbose_name=_('Apply Preprocessing'), help_text=_('Whether to apply image preprocessing'))
-    preprocessing_options = models.JSONField(default=dict, blank=True, verbose_name=_('Preprocessing Options'), help_text=_('Preprocessing configuration options'))
-    preprocessing_applied = models.BooleanField(default=False, verbose_name=_('Preprocessing Applied'), help_text=_('Whether preprocessing was actually applied'))
-    preprocessing_steps = models.JSONField(default=list, blank=True, verbose_name=_('Preprocessing Steps'), help_text=_('List of preprocessing steps that were applied'))
+    apply_preprocessing = models.BooleanField(default=False, verbose_name='Применить предобработку', help_text='Применять ли предобработку изображения')
+    preprocessing_options = models.JSONField(default=dict, blank=True, verbose_name='Опции предобработки', help_text='Опции конфигурации предобработки')
+    preprocessing_applied = models.BooleanField(default=False, verbose_name='Предобработка применена', help_text='Была ли фактически применена предобработка')
+    preprocessing_steps = models.JSONField(default=list, blank=True, verbose_name='Шаги предобработки', help_text='Список шагов предобработки, которые были применены')
     
     # Image quality assessment
-    quality_metrics = models.JSONField(default=dict, blank=True, verbose_name=_('Quality Metrics'), help_text=_('Image quality assessment metrics'))
-    quality_score = models.FloatField(null=True, blank=True, verbose_name=_('Quality Score'), help_text=_('Overall image quality score (0-100)'))
-    quality_category = models.CharField(max_length=20, blank=True, verbose_name=_('Quality Category'), help_text=_('Quality category: excellent, good, fair, poor'))
+    quality_metrics = models.JSONField(default=dict, blank=True, verbose_name='Метрики качества', help_text='Метрики оценки качества изображения')
+    quality_score = models.FloatField(null=True, blank=True, verbose_name='Оценка качества', help_text='Общая оценка качества изображения (0-100)')
+    quality_category = models.CharField(max_length=20, blank=True, verbose_name='Категория качества', help_text='Категория качества: отличное, хорошее, удовлетворительное, плохое')
     
     # Cell filtering configuration
     FILTERING_MODE_CHOICES = [
-        ('none', _('No Filtering')),
-        ('basic', _('Basic Filtering')),
-        ('research', _('Research Mode')),
-        ('clinical', _('Clinical Mode')),
-        ('custom', _('Custom Settings')),
+        ('none', 'Без фильтрации'),
+        ('basic', 'Базовая фильтрация'),
+        ('research', 'Исследовательский режим'),
+        ('clinical', 'Клинический режим'),
+        ('custom', 'Пользовательские настройки'),
     ]
     
     filtering_mode = models.CharField(
         max_length=20, 
         choices=FILTERING_MODE_CHOICES, 
         default='clinical',
-        verbose_name=_('Filtering Mode'), 
-        help_text=_('Cell filtering strictness level')
+        verbose_name='Режим фильтрации', 
+        help_text='Уровень строгости фильтрации клеток'
     )
     
     # Segmentation refinement options
-    enable_size_filtering = models.BooleanField(default=True, verbose_name=_('Size Filtering'), help_text=_('Remove cells outside size range'))
-    min_cell_area = models.FloatField(default=50, verbose_name=_('Min Cell Area'), help_text=_('Minimum cell area in pixels'))
-    max_cell_area = models.FloatField(null=True, blank=True, verbose_name=_('Max Cell Area'), help_text=_('Maximum cell area in pixels (blank = no limit)'))
+    enable_size_filtering = models.BooleanField(default=True, verbose_name='Фильтрация по размеру', help_text='Удалить клетки вне диапазона размеров')
+    min_cell_area = models.FloatField(default=50, verbose_name='Мин. площадь клетки', help_text='Минимальная площадь клетки в пикселях')
+    max_cell_area = models.FloatField(null=True, blank=True, verbose_name='Макс. площадь клетки', help_text='Максимальная площадь клетки в пикселях (пусто = без ограничений)')
     
-    enable_shape_filtering = models.BooleanField(default=True, verbose_name=_('Shape Filtering'), help_text=_('Remove non-cellular shapes'))
-    min_circularity = models.FloatField(default=0.1, verbose_name=_('Min Circularity'), help_text=_('Minimum circularity (0-1)'))
-    max_eccentricity = models.FloatField(default=0.95, verbose_name=_('Max Eccentricity'), help_text=_('Maximum eccentricity (0-1)'))
-    min_solidity = models.FloatField(default=0.7, verbose_name=_('Min Solidity'), help_text=_('Minimum solidity (0-1)'))
+    enable_shape_filtering = models.BooleanField(default=True, verbose_name='Фильтрация по форме', help_text='Удалить некле­точные формы')
+    min_circularity = models.FloatField(default=0.1, verbose_name='Мин. круглость', help_text='Минимальная круглость (0-1)')
+    max_eccentricity = models.FloatField(default=0.95, verbose_name='Макс. эксцентриситет', help_text='Максимальный эксцентриситет (0-1)')
+    min_solidity = models.FloatField(default=0.7, verbose_name='Мин. плотность', help_text='Минимальная плотность (0-1)')
     
-    enable_edge_removal = models.BooleanField(default=False, verbose_name=_('Edge Removal'), help_text=_('Remove cells touching image edges'))
-    edge_border_width = models.IntegerField(default=5, verbose_name=_('Edge Border Width'), help_text=_('Border width for edge removal'))
+    enable_edge_removal = models.BooleanField(default=False, verbose_name='Удаление краевых', help_text='Удалить клетки, касающиеся краев изображения')
+    edge_border_width = models.IntegerField(default=5, verbose_name='Ширина краевой границы', help_text='Ширина границы для удаления краевых')
     
-    enable_watershed = models.BooleanField(default=False, verbose_name=_('Watershed Splitting'), help_text=_('Split touching cells using watershed'))
-    watershed_min_distance = models.IntegerField(default=10, verbose_name=_('Watershed Distance'), help_text=_('Minimum distance for watershed peaks'))
+    enable_watershed = models.BooleanField(default=False, verbose_name='Разделение водоразделом', help_text='Разделить соприкасающиеся клетки с помощью водораздела')
+    watershed_min_distance = models.IntegerField(default=10, verbose_name='Расстояние водораздела', help_text='Минимальное расстояние для пиков водораздела')
     
     # Morphometric validation options
-    enable_outlier_removal = models.BooleanField(default=True, verbose_name=_('Outlier Removal'), help_text=_('Remove statistical outliers'))
+    enable_outlier_removal = models.BooleanField(default=True, verbose_name='Удаление выбросов', help_text='Удалить статистические выбросы')
     outlier_method = models.CharField(
         max_length=20,
         choices=[
-            ('iqr', _('IQR Method')),
-            ('zscore', _('Z-Score Method')),
-            ('modified_zscore', _('Modified Z-Score')),
+            ('iqr', 'Метод IQR'),
+            ('zscore', 'Метод Z-оценки'),
+            ('modified_zscore', 'Модифицированная Z-оценка'),
         ],
         default='iqr',
-        verbose_name=_('Outlier Method'),
-        help_text=_('Statistical method for outlier detection')
+        verbose_name='Метод выбросов',
+        help_text='Статистический метод для обнаружения выбросов'
     )
-    outlier_threshold = models.FloatField(default=1.5, verbose_name=_('Outlier Threshold'), help_text=_('Threshold for outlier detection'))
+    outlier_threshold = models.FloatField(default=1.5, verbose_name='Порог выбросов', help_text='Порог для обнаружения выбросов')
     
-    enable_physics_validation = models.BooleanField(default=True, verbose_name=_('Physics Validation'), help_text=_('Remove cells violating physical constraints'))
+    enable_physics_validation = models.BooleanField(default=True, verbose_name='Физическая валидация', help_text='Удалить клетки, нарушающие физические ограничения')
     
     # Results
-    num_cells_detected = models.PositiveIntegerField(default=0, verbose_name=_('Cells Detected'))
-    processing_time = models.FloatField(null=True, blank=True, verbose_name=_('Processing Time'), help_text=_('Processing time in seconds'))
+    num_cells_detected = models.PositiveIntegerField(default=0, verbose_name='Обнаружено клеток')
+    processing_time = models.FloatField(null=True, blank=True, verbose_name='Время обработки', help_text='Время обработки в секундах')
     
     # Status tracking
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name=_('Status'))
-    error_message = models.TextField(blank=True, verbose_name=_('Error Message'))
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name='Статус')
+    error_message = models.TextField(blank=True, verbose_name='Сообщение об ошибке')
     
     # Timestamps
-    analysis_date = models.DateTimeField(auto_now_add=True, verbose_name=_('Analysis Date'))
-    completed_at = models.DateTimeField(null=True, blank=True, verbose_name=_('Completed At'))
+    analysis_date = models.DateTimeField(auto_now_add=True, verbose_name='Дата анализа')
+    completed_at = models.DateTimeField(null=True, blank=True, verbose_name='Завершено в')
     
     class Meta:
         ordering = ['-analysis_date']
-        verbose_name_plural = _('Cell Analyses')
+        verbose_name_plural = 'Анализы клеток'
     
     def __str__(self):
         status_info = self.status
@@ -226,14 +312,14 @@ class CellAnalysis(models.Model):
     def get_preprocessing_summary(self):
         """Get human-readable summary of preprocessing steps"""
         if not self.preprocessing_applied or not self.preprocessing_steps:
-            return _('No preprocessing applied')
+            return 'Предобработка не применялась'
         
         return "; ".join(self.preprocessing_steps)
     
     def get_quality_summary(self):
         """Get human-readable summary of image quality"""
         if not self.quality_metrics:
-            return _('Quality not assessed')
+            return 'Качество не оценивалось'
         
         score = self.quality_score or 0
         category = self.quality_category or 'unknown'
@@ -327,74 +413,74 @@ class CellAnalysis(models.Model):
 
 class DetectedCell(models.Model):
     analysis = models.ForeignKey(CellAnalysis, on_delete=models.CASCADE, related_name='detected_cells')
-    cell_id = models.PositiveIntegerField(verbose_name=_('Cell ID'), help_text=_('Cellpose assigned cell ID'))
+    cell_id = models.PositiveIntegerField(verbose_name='ID клетки', help_text='ID клетки, назначенный Cellpose')
     
     # Basic measurements (pixels)
-    area = models.FloatField(verbose_name=_('Area'), help_text=_('Area in pixels²'))
-    perimeter = models.FloatField(verbose_name=_('Perimeter'), help_text=_('Perimeter in pixels'))
+    area = models.FloatField(verbose_name='Площадь', help_text='Площадь в пикселях²')
+    perimeter = models.FloatField(verbose_name='Периметр', help_text='Периметр в пикселях')
     
     # Physical measurements (microns) - calculated if scale is set
-    area_microns_sq = models.FloatField(null=True, blank=True, verbose_name=_('Area (μm²)'), help_text=_('Area in μm²'))
-    perimeter_microns = models.FloatField(null=True, blank=True, verbose_name=_('Perimeter (μm)'), help_text=_('Perimeter in μm'))
+    area_microns_sq = models.FloatField(null=True, blank=True, verbose_name='Площадь (мкм²)', help_text='Площадь в мкм²')
+    perimeter_microns = models.FloatField(null=True, blank=True, verbose_name='Периметр (мкм)', help_text='Периметр в мкм')
     
     # Shape descriptors
-    circularity = models.FloatField(verbose_name=_('Circularity'), help_text=_('4π×area/perimeter²'))
-    eccentricity = models.FloatField(verbose_name=_('Eccentricity'), help_text=_('Eccentricity of the fitted ellipse'))
-    solidity = models.FloatField(verbose_name=_('Solidity'), help_text=_('Area/convex_area ratio'))
-    extent = models.FloatField(verbose_name=_('Extent'), help_text=_('Area/bounding_box_area ratio'))
+    circularity = models.FloatField(verbose_name='Круглость', help_text='4π×площадь/периметр²')
+    eccentricity = models.FloatField(verbose_name='Эксцентриситет', help_text='Эксцентриситет аппроксимирующего эллипса')
+    solidity = models.FloatField(verbose_name='Плотность', help_text='Отношение площадь/выпуклая_площадь')
+    extent = models.FloatField(verbose_name='Протяженность', help_text='Отношение площадь/площадь_охватывающего_прямоугольника')
     
     # Ellipse fitting (pixels)
-    major_axis_length = models.FloatField(verbose_name=_('Major Axis Length'), help_text=_('Major axis length in pixels'))
-    minor_axis_length = models.FloatField(verbose_name=_('Minor Axis Length'), help_text=_('Minor axis length in pixels'))
-    aspect_ratio = models.FloatField(verbose_name=_('Aspect Ratio'), help_text=_('Major/minor axis ratio'))
+    major_axis_length = models.FloatField(verbose_name='Длина большой оси', help_text='Длина большой оси в пикселях')
+    minor_axis_length = models.FloatField(verbose_name='Длина малой оси', help_text='Длина малой оси в пикселях')
+    aspect_ratio = models.FloatField(verbose_name='Соотношение сторон', help_text='Отношение большой/малой оси')
     
     # Ellipse fitting (microns) - calculated if scale is set
-    major_axis_length_microns = models.FloatField(null=True, blank=True, verbose_name=_('Major Axis Length (μm)'), help_text=_('Major axis length in μm'))
-    minor_axis_length_microns = models.FloatField(null=True, blank=True, verbose_name=_('Minor Axis Length (μm)'), help_text=_('Minor axis length in μm'))
+    major_axis_length_microns = models.FloatField(null=True, blank=True, verbose_name='Длина большой оси (мкм)', help_text='Длина большой оси в мкм')
+    minor_axis_length_microns = models.FloatField(null=True, blank=True, verbose_name='Длина малой оси (мкм)', help_text='Длина малой оси в мкм')
     
     # Position
-    centroid_x = models.FloatField(verbose_name=_('Centroid X'), help_text=_('X coordinate of centroid'))
-    centroid_y = models.FloatField(verbose_name=_('Centroid Y'), help_text=_('Y coordinate of centroid'))
+    centroid_x = models.FloatField(verbose_name='Центроид X', help_text='X-координата центроида')
+    centroid_y = models.FloatField(verbose_name='Центроид Y', help_text='Y-координата центроида')
     
     # Bounding box
-    bounding_box_x = models.PositiveIntegerField(verbose_name=_('Bounding Box X'), help_text=_('X coordinate of bounding box'))
-    bounding_box_y = models.PositiveIntegerField(verbose_name=_('Bounding Box Y'), help_text=_('Y coordinate of bounding box'))
-    bounding_box_width = models.PositiveIntegerField(verbose_name=_('Bounding Box Width'), help_text=_('Width of bounding box'))
-    bounding_box_height = models.PositiveIntegerField(verbose_name=_('Bounding Box Height'), help_text=_('Height of bounding box'))
+    bounding_box_x = models.PositiveIntegerField(verbose_name='Охватывающий прямоугольник X', help_text='X-координата охватывающего прямоугольника')
+    bounding_box_y = models.PositiveIntegerField(verbose_name='Охватывающий прямоугольник Y', help_text='Y-координата охватывающего прямоугольника')
+    bounding_box_width = models.PositiveIntegerField(verbose_name='Ширина охватывающего прямоугольника', help_text='Ширина охватывающего прямоугольника')
+    bounding_box_height = models.PositiveIntegerField(verbose_name='Высота охватывающего прямоугольника', help_text='Высота охватывающего прямоугольника')
     
     # GLCM Texture Features
-    glcm_contrast = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Contrast'), help_text=_('Measure of local intensity variation'))
-    glcm_correlation = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Correlation'), help_text=_('Measure of linear dependency of gray levels'))
-    glcm_energy = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Energy'), help_text=_('Measure of textural uniformity'))
-    glcm_homogeneity = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Homogeneity'), help_text=_('Measure of closeness of distribution'))
-    glcm_entropy = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Entropy'), help_text=_('Measure of randomness'))
-    glcm_variance = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Variance'), help_text=_('Measure of heterogeneity'))
-    glcm_sum_average = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Sum Average'), help_text=_('Sum average of GLCM'))
-    glcm_sum_variance = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Sum Variance'), help_text=_('Sum variance of GLCM'))
-    glcm_sum_entropy = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Sum Entropy'), help_text=_('Sum entropy of GLCM'))
-    glcm_difference_average = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Difference Average'), help_text=_('Difference average of GLCM'))
-    glcm_difference_variance = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Difference Variance'), help_text=_('Difference variance of GLCM'))
-    glcm_difference_entropy = models.FloatField(null=True, blank=True, verbose_name=_('GLCM Difference Entropy'), help_text=_('Difference entropy of GLCM'))
+    glcm_contrast = models.FloatField(null=True, blank=True, verbose_name='GLCM Контраст', help_text='Мера локальной вариации интенсивности')
+    glcm_correlation = models.FloatField(null=True, blank=True, verbose_name='GLCM Корреляция', help_text='Мера линейной зависимости уровней серого')
+    glcm_energy = models.FloatField(null=True, blank=True, verbose_name='GLCM Энергия', help_text='Мера текстурной однородности')
+    glcm_homogeneity = models.FloatField(null=True, blank=True, verbose_name='GLCM Однородность', help_text='Мера близости распределения')
+    glcm_entropy = models.FloatField(null=True, blank=True, verbose_name='GLCM Энтропия', help_text='Мера случайности')
+    glcm_variance = models.FloatField(null=True, blank=True, verbose_name='GLCM Дисперсия', help_text='Мера неоднородности')
+    glcm_sum_average = models.FloatField(null=True, blank=True, verbose_name='GLCM Сумма среднего', help_text='Сумма среднего GLCM')
+    glcm_sum_variance = models.FloatField(null=True, blank=True, verbose_name='GLCM Сумма дисперсии', help_text='Сумма дисперсии GLCM')
+    glcm_sum_entropy = models.FloatField(null=True, blank=True, verbose_name='GLCM Сумма энтропии', help_text='Сумма энтропии GLCM')
+    glcm_difference_average = models.FloatField(null=True, blank=True, verbose_name='GLCM Разность среднего', help_text='Разность среднего GLCM')
+    glcm_difference_variance = models.FloatField(null=True, blank=True, verbose_name='GLCM Разность дисперсии', help_text='Разность дисперсии GLCM')
+    glcm_difference_entropy = models.FloatField(null=True, blank=True, verbose_name='GLCM Разность энтропии', help_text='Разность энтропии GLCM')
     
     # First-Order Statistical Features
-    intensity_mean = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Mean'), help_text=_('Mean intensity value'))
-    intensity_std = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Std'), help_text=_('Standard deviation of intensity'))
-    intensity_variance = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Variance'), help_text=_('Variance of intensity'))
-    intensity_skewness = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Skewness'), help_text=_('Skewness of intensity distribution'))
-    intensity_kurtosis = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Kurtosis'), help_text=_('Kurtosis of intensity distribution'))
-    intensity_min = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Min'), help_text=_('Minimum intensity value'))
-    intensity_max = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Max'), help_text=_('Maximum intensity value'))
-    intensity_range = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Range'), help_text=_('Range of intensity values'))
-    intensity_p10 = models.FloatField(null=True, blank=True, verbose_name=_('Intensity 10th Percentile'), help_text=_('10th percentile of intensity'))
-    intensity_p25 = models.FloatField(null=True, blank=True, verbose_name=_('Intensity 25th Percentile'), help_text=_('25th percentile of intensity'))
-    intensity_p75 = models.FloatField(null=True, blank=True, verbose_name=_('Intensity 75th Percentile'), help_text=_('75th percentile of intensity'))
-    intensity_p90 = models.FloatField(null=True, blank=True, verbose_name=_('Intensity 90th Percentile'), help_text=_('90th percentile of intensity'))
-    intensity_iqr = models.FloatField(null=True, blank=True, verbose_name=_('Intensity IQR'), help_text=_('Interquartile range of intensity'))
-    intensity_entropy = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Entropy'), help_text=_('Entropy of intensity histogram'))
-    intensity_energy = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Energy'), help_text=_('Energy of intensity histogram'))
-    intensity_median = models.FloatField(null=True, blank=True, verbose_name=_('Intensity Median'), help_text=_('Median intensity value'))
-    intensity_mad = models.FloatField(null=True, blank=True, verbose_name=_('Intensity MAD'), help_text=_('Median absolute deviation'))
-    intensity_cv = models.FloatField(null=True, blank=True, verbose_name=_('Intensity CV'), help_text=_('Coefficient of variation'))
+    intensity_mean = models.FloatField(null=True, blank=True, verbose_name='Средняя интенсивность', help_text='Среднее значение интенсивности')
+    intensity_std = models.FloatField(null=True, blank=True, verbose_name='Стд. откл. интенсивности', help_text='Стандартное отклонение интенсивности')
+    intensity_variance = models.FloatField(null=True, blank=True, verbose_name='Дисперсия интенсивности', help_text='Дисперсия интенсивности')
+    intensity_skewness = models.FloatField(null=True, blank=True, verbose_name='Асимметрия интенсивности', help_text='Асимметрия распределения интенсивности')
+    intensity_kurtosis = models.FloatField(null=True, blank=True, verbose_name='Эксцесс интенсивности', help_text='Эксцесс распределения интенсивности')
+    intensity_min = models.FloatField(null=True, blank=True, verbose_name='Мин. интенсивность', help_text='Минимальное значение интенсивности')
+    intensity_max = models.FloatField(null=True, blank=True, verbose_name='Макс. интенсивность', help_text='Максимальное значение интенсивности')
+    intensity_range = models.FloatField(null=True, blank=True, verbose_name='Диапазон интенсивности', help_text='Диапазон значений интенсивности')
+    intensity_p10 = models.FloatField(null=True, blank=True, verbose_name='Интенсивность 10% перцентиль', help_text='10-й перцентиль интенсивности')
+    intensity_p25 = models.FloatField(null=True, blank=True, verbose_name='Интенсивность 25% перцентиль', help_text='25-й перцентиль интенсивности')
+    intensity_p75 = models.FloatField(null=True, blank=True, verbose_name='Интенсивность 75% перцентиль', help_text='75-й перцентиль интенсивности')
+    intensity_p90 = models.FloatField(null=True, blank=True, verbose_name='Интенсивность 90% перцентиль', help_text='90-й перцентиль интенсивности')
+    intensity_iqr = models.FloatField(null=True, blank=True, verbose_name='Интенсивность IQR', help_text='Межквартильный размах интенсивности')
+    intensity_entropy = models.FloatField(null=True, blank=True, verbose_name='Энтропия интенсивности', help_text='Энтропия гистограммы интенсивности')
+    intensity_energy = models.FloatField(null=True, blank=True, verbose_name='Энергия интенсивности', help_text='Энергия гистограммы интенсивности')
+    intensity_median = models.FloatField(null=True, blank=True, verbose_name='Медиана интенсивности', help_text='Медианное значение интенсивности')
+    intensity_mad = models.FloatField(null=True, blank=True, verbose_name='Мад интенсивности', help_text='Медианное абсолютное отклонение')
+    intensity_cv = models.FloatField(null=True, blank=True, verbose_name='Коэф. вариации интенсивности', help_text='Коэффициент вариации')
     
     class Meta:
         ordering = ['cell_id']

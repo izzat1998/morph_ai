@@ -239,10 +239,10 @@ class ImageQualityAssessment:
             noise_metrics = ImageQualityAssessment.calculate_noise_metrics(image)
             
             # Combine metrics into overall scores
-            # Normalize scores to 0-100 scale
-            blur_score = min(100, max(0, (blur_metrics['blur_score'] / 1000) * 100))  # Scale laplacian variance
-            contrast_score = min(100, max(0, (contrast_metrics['contrast_score'] / 64) * 100))  # Scale RMS contrast
-            noise_score = min(100, max(0, (noise_metrics['snr_db'] + 20) * 2))  # Scale SNR dB
+            # Normalize scores to 0-100 scale with improved thresholds
+            blur_score = min(100, max(0, (blur_metrics['blur_score'] / 500) * 100))  # Adjusted threshold
+            contrast_score = min(100, max(0, (contrast_metrics['contrast_score'] / 40) * 100))  # Adjusted threshold  
+            noise_score = min(100, max(0, (noise_metrics['snr_db'] + 10) * 3))  # Adjusted threshold
             
             # Overall quality score (weighted average)
             overall_score = (blur_score * 0.4 + contrast_score * 0.3 + noise_score * 0.3)

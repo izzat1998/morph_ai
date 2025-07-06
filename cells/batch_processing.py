@@ -15,8 +15,8 @@ from dataclasses import dataclass
 import queue
 import threading
 
-from .gpu_utils import gpu_manager, get_optimal_batch_size, cleanup_gpu_memory
-from .exceptions import BatchProcessingError, DependencyError
+# Custom GPU modules removed - using Cellpose's built-in GPU acceleration
+from .exceptions import MorphometricAnalysisError, DependencyError
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ class BatchTask:
             self.created_at = time.time()
 
 
-class GPUBatchProcessor:
+class BatchProcessor:
     """
     GPU-efficient batch processor for morphometric analysis tasks.
     
@@ -51,8 +51,8 @@ class GPUBatchProcessor:
             max_batch_size: Maximum batch size (auto-detected if None)
             max_queue_size: Maximum number of tasks in queue
         """
-        self.gpu_info = gpu_manager.detect_gpu_capabilities()
-        self.max_batch_size = max_batch_size or get_optimal_batch_size((512, 512), 4)
+        # Use simple defaults - Cellpose handles GPU optimization internally
+        self.max_batch_size = max_batch_size or 4
         self.max_queue_size = max_queue_size
         
         # Task queue and processing state
@@ -70,8 +70,7 @@ class GPUBatchProcessor:
             'avg_batch_time': 0.0
         }
         
-        logger.info(f"BatchProcessor initialized - max_batch_size: {self.max_batch_size}, "
-                   f"GPU backend: {self.gpu_info.backend}")
+        logger.info(f"BatchProcessor initialized - max_batch_size: {self.max_batch_size}")
     
     def add_task(self, task: BatchTask) -> bool:
         """
@@ -200,33 +199,49 @@ class GPUBatchProcessor:
                 self._process_single_task(task)
     
     def _process_morphometrics_batch(self, tasks: List[BatchTask]):
-        """Process morphometric calculations in batch."""
-        try:
-            from .gpu_morphometrics import calculate_morphometrics_gpu
-            
-            gpu_start = time.time()
-            
-            for task in tasks:
-                try:
-                    masks = task.data
-                    result = calculate_morphometrics_gpu(masks)
-                    self.results[task.task_id] = {
-                        'result': result,
-                        'success': True,
-                        'processing_time': time.time() - gpu_start
-                    }
-                except Exception as e:
-                    self.results[task.task_id] = {'error': str(e), 'success': False}
-            
-            gpu_time = time.time() - gpu_start
-            self.batch_stats['gpu_time'] += gpu_time
-            
-            # Clean up GPU memory after batch
-            cleanup_gpu_memory()
-            
-        except Exception as e:
-            logger.error(f"Morphometrics batch processing failed: {str(e)}")
-            for task in tasks:
+        """Process morphometric calculations using standard scikit-image."""
+        self._process_cpu_morphometrics_batch(tasks)
+    
+    def _process_cpu_morphometrics_batch(self, tasks: List[BatchTask]):
+        """Process morphometric calculations using scikit-image."""
+        from skimage import measure
+        import numpy as np
+        
+        for task in tasks:
+            try:
+                masks = task.data
+                
+                # Use CPU regionprops for morphometric calculations
+                props = measure.regionprops(masks)
+                result = {
+                    'areas': {},
+                    'perimeters': {},
+                    'centroids': {},
+                    'shape_descriptors': {}
+                }
+                
+                for prop in props:
+                    if prop.label > 0:
+                        result['areas'][prop.label] = prop.area
+                        result['perimeters'][prop.label] = prop.perimeter
+                        result['centroids'][prop.label] = prop.centroid
+                        result['shape_descriptors'][prop.label] = {
+                            'area': prop.area,
+                            'perimeter': prop.perimeter,
+                            'circularity': 4 * np.pi * prop.area / (prop.perimeter ** 2) if prop.perimeter > 0 else 0,
+                            'eccentricity': prop.eccentricity,
+                            'solidity': prop.solidity,
+                            'extent': prop.extent
+                        }
+                
+                self.results[task.task_id] = {
+                    'result': result,
+                    'success': True,
+                    'processing_time': 0.0  # Would need timing if required
+                }
+                
+            except Exception as e:
+                logger.error(f"CPU morphometrics processing failed for task {task.task_id}: {str(e)}")
                 self.results[task.task_id] = {'error': str(e), 'success': False}
     
     def _process_preprocessing_batch(self, tasks: List[BatchTask]):
@@ -258,8 +273,7 @@ class GPUBatchProcessor:
                 except Exception as e:
                     self.results[task.task_id] = {'error': str(e), 'success': False}
             
-            # Clean up GPU memory
-            cleanup_gpu_memory()
+            # No GPU memory cleanup needed - using standard processing
             
         except Exception as e:
             logger.error(f"Preprocessing batch processing failed: {str(e)}")
@@ -322,7 +336,6 @@ class GPUBatchProcessor:
             'queue_size': self.task_queue.qsize(),
             'pending_results': len(self.results),
             'processing': self.processing,
-            'gpu_backend': self.gpu_info.backend,
             'max_batch_size': self.max_batch_size
         })
         return stats
@@ -344,7 +357,7 @@ class BatchManager:
     
     def __init__(self):
         """Initialize batch manager."""
-        self.processor = GPUBatchProcessor()
+        self.processor = BatchProcessor()
         self.processor.start_processing()
         logger.info("BatchManager initialized")
     
